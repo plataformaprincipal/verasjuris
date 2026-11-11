@@ -11,6 +11,8 @@
 
 Implementações default: `NotConfiguredEmailProvider`, `NotConfiguredSmsProvider`, `NotConfiguredWhatsAppProvider`, `NotConfiguredPushProvider`.
 
+E-mail de **auth/identidade** (fora do outbox omnichannel): `@verasjuris/email` com `ResendEmailProvider` quando `EMAIL_PROVIDER=resend` (ver `docs/INTEGRATIONS.md`).
+
 ## Configuração na API
 
 `communicationModuleDeps` injeta providers opcionais; omitidos → `not_configured`.

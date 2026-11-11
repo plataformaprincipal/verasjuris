@@ -1,3 +1,6 @@
+import { AppError } from "@verasjuris/types";
+import { ResendEmailProvider } from "./resend-provider.js";
+
 export type EmailKind = "email_verification" | "password_reset" | "organization_invitation";
 
 export type EmailDeliveryStatus = "sent" | "not_configured" | "captured";
@@ -17,7 +20,7 @@ export type SendEmailResult = {
 };
 
 export interface EmailProvider {
-  readonly status: "not_configured" | "memory";
+  readonly status: "configured" | "not_configured" | "memory";
   send(message: OutboundEmail): Promise<SendEmailResult>;
 }
 
@@ -54,10 +57,36 @@ export class MemoryEmailProvider implements EmailProvider {
   }
 }
 
-export type EmailProviderMode = "not_configured" | "memory";
+export type EmailProviderMode = "not_configured" | "memory" | "resend";
 
-export function createEmailProvider(mode: EmailProviderMode = "not_configured"): EmailProvider {
+export type EmailProviderEnv = {
+  RESEND_API_KEY?: string | undefined;
+  RESEND_FROM_EMAIL?: string | undefined;
+};
+
+/**
+ * Factory de e-mail.
+ * - `not_configured` (padrão): sem envio real
+ * - `memory`: somente testes/dev
+ * - `resend`: requer RESEND_API_KEY; sem chave retorna NotConfigured (não falha o boot)
+ */
+export function createEmailProvider(
+  mode: EmailProviderMode = "not_configured",
+  env: EmailProviderEnv = process.env,
+): EmailProvider {
   if (mode === "memory") return new MemoryEmailProvider();
+  if (mode === "resend") {
+    const apiKey = env.RESEND_API_KEY?.trim();
+    const fromEmail = env.RESEND_FROM_EMAIL?.trim();
+    if (!apiKey) return new NotConfiguredEmailProvider();
+    if (!fromEmail) {
+      throw new AppError(
+        "NOT_CONFIGURED",
+        "RESEND_FROM_EMAIL é obrigatória quando EMAIL_PROVIDER=resend.",
+      );
+    }
+    return new ResendEmailProvider({ apiKey, fromEmail });
+  }
   return new NotConfiguredEmailProvider();
 }
 
@@ -70,3 +99,5 @@ export function publicEmailDeliveryMessage(status: EmailDeliveryStatus): string 
   }
   return "Se existir uma conta elegível para este e-mail, enviaremos as próximas instruções.";
 }
+
+export { ResendEmailProvider, type ResendEmailProviderOptions } from "./resend-provider.js";

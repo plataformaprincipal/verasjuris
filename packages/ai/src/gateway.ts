@@ -9,6 +9,7 @@ import {
   type ModelPricing,
 } from "./cost.js";
 import { AiNotConfiguredError, isRetryableAiError, toAiAppError } from "./errors.js";
+import { OpenAIProvider } from "./openai-provider.js";
 import {
   type AIProvider,
   type AIProviderBaseRequest,
@@ -1108,24 +1109,53 @@ export type AIGatewayEnvConfig = {
   AI_REQUEST_TIMEOUT_MS?: number | undefined;
   AI_MAX_RETRIES?: number | undefined;
   AI_MAX_INPUT_TOKENS?: number | undefined;
+  OPENAI_API_KEY?: string | undefined;
+  OPENAI_DEFAULT_MODEL?: string | undefined;
+  OPENAI_HEALTHCHECK?: string | undefined;
 };
 
 /**
- * Fábrica a partir do ambiente. Hoje só `not_configured` existe: provedores reais exigem
- * integração explícita futura e nunca devem ser instanciados dentro dos domínios.
+ * Fábrica a partir do ambiente.
+ * Padrão: `not_configured`. OpenAI só quando FEATURE_AI=1, AI_PROVIDER=openai e OPENAI_API_KEY presente.
+ * Domínios nunca instanciam SDKs de fornecedor.
  */
 export function createAiGatewayFromEnv(
   env: AIGatewayEnvConfig,
   extra: Pick<AIGatewayOptions, "providers" | "pricing" | "idempotencyCache"> = {},
 ): AIGateway {
   const enabled = env.FEATURE_AI === true || env.FEATURE_AI === "1";
+  const requested = env.AI_PROVIDER ?? "not_configured";
+  const providers: Record<string, AIProvider> = {
+    not_configured: new NotConfiguredAIProvider(),
+    ...(extra.providers ?? {}),
+  };
+
+  let providerId = requested;
+  const openAiKey = env.OPENAI_API_KEY?.trim();
+  if (requested === "openai") {
+    if (enabled && openAiKey) {
+      providers.openai = new OpenAIProvider({
+        apiKey: openAiKey,
+        defaultModel: env.OPENAI_DEFAULT_MODEL ?? env.AI_DEFAULT_MODEL,
+        healthCheckNetwork: env.OPENAI_HEALTHCHECK === "1",
+      });
+    } else {
+      providerId = "not_configured";
+    }
+  }
+
+  const defaultModel =
+    env.AI_DEFAULT_MODEL ??
+    env.OPENAI_DEFAULT_MODEL ??
+    (providerId === "openai" ? "gpt-4o-mini" : undefined);
+
   return new AIGateway(
     { ai: enabled },
     {
       ...extra,
-      providerId: env.AI_PROVIDER ?? "not_configured",
-      providers: extra.providers ?? { not_configured: new NotConfiguredAIProvider() },
-      ...(env.AI_DEFAULT_MODEL ? { defaultModel: env.AI_DEFAULT_MODEL } : {}),
+      providerId,
+      providers,
+      ...(defaultModel ? { defaultModel } : {}),
       ...(env.AI_REQUEST_TIMEOUT_MS ? { timeoutMs: env.AI_REQUEST_TIMEOUT_MS } : {}),
       ...(env.AI_MAX_RETRIES !== undefined ? { maxRetries: env.AI_MAX_RETRIES } : {}),
       ...(env.AI_MAX_INPUT_TOKENS ? { maxInputTokens: env.AI_MAX_INPUT_TOKENS } : {}),

@@ -1,21 +1,8 @@
 import { createLogger, loadDotEnv, parseWorkerEnv } from "@verasjuris/config";
 import { createDatabase } from "@verasjuris/database";
 import { createJobQueueFromEnv, LocalInProcessQueueProvider } from "@verasjuris/events";
-import { createStorageProvider } from "@verasjuris/storage";
 import { buildWorkerApp, checkDatabase } from "./app.js";
-import { registerLocalAlertHandlers } from "./jobs/alert-handlers.js";
-import { registerLocalTaxContractHandlers } from "./jobs/tax-contract-handlers.js";
-import { registerLocalCommunicationHandlers } from "./jobs/communication-handlers.js";
-import { registerLocalOnlineLawyerHandlers } from "./jobs/online-lawyer-handlers.js";
-import { registerLocalMarketplaceHandlers } from "./jobs/marketplace-handlers.js";
-import { registerLocalEducationFinanceHandlers } from "./jobs/education-finance-handlers.js";
-import { registerLocalMonetizationTreasuryHandlers } from "./jobs/monetization-treasury-handlers.js";
-import { registerLocalControlAnalyticsWorkflowHandlers } from "./jobs/control-analytics-workflow-handlers.js";
-import { registerLocalPlatformHardeningHandlers } from "./jobs/platform-hardening-handlers.js";
-import {
-  createStorageReconciliationHandler,
-  STORAGE_RECONCILIATION_JOB,
-} from "./jobs/storage-reconciliation.js";
+import { registerWorkerHandlers } from "./register-handlers.js";
 
 async function main(): Promise<void> {
   loadDotEnv();
@@ -24,24 +11,7 @@ async function main(): Promise<void> {
   const database = createDatabase(env.DATABASE_URL);
   // Produção: not_configured. Local: FEATURE_LOCAL_QUEUE=true|1 ou LOCAL_QUEUE=enabled.
   const queue = createJobQueueFromEnv(process.env);
-  if (queue instanceof LocalInProcessQueueProvider) {
-    registerLocalAlertHandlers(queue, database.db);
-    registerLocalTaxContractHandlers(queue, database.db);
-    registerLocalCommunicationHandlers(queue, database.db);
-    registerLocalOnlineLawyerHandlers(queue, database.db);
-    registerLocalMarketplaceHandlers(queue, database.db);
-    registerLocalEducationFinanceHandlers(queue, database.db);
-    registerLocalMonetizationTreasuryHandlers(queue, database.db);
-    registerLocalControlAnalyticsWorkflowHandlers(queue, database.db);
-    registerLocalPlatformHardeningHandlers(queue, database.db);
-    queue.registerHandler(
-      STORAGE_RECONCILIATION_JOB,
-      createStorageReconciliationHandler({
-        db: database.db,
-        storage: createStorageProvider(process.env),
-      }),
-    );
-  }
+  registerWorkerHandlers(queue, database.db);
   const app = await buildWorkerApp({
     logger,
     checkDatabase: () => checkDatabase(database.db),
@@ -58,7 +28,7 @@ async function main(): Promise<void> {
     void shutdown();
   });
   await app.listen({ host: env.WORKER_HOST, port: env.WORKER_PORT });
-  if (queue.status === "local_in_process") {
+  if (queue instanceof LocalInProcessQueueProvider) {
     logger.info(
       "Worker com LocalInProcessQueueProvider (FEATURE_LOCAL_QUEUE/LOCAL_QUEUE). Não é fila distribuída.",
     );

@@ -16,32 +16,47 @@ const emptyToUndefined = (value: unknown): unknown =>
 
 const optionalString = z.preprocess(emptyToUndefined, z.string().min(1).max(200).optional());
 
+const optionalSecret = z.preprocess(emptyToUndefined, z.string().min(1).max(4_000).optional());
+
 const optionalInt = (min: number, max: number) =>
   z.preprocess(emptyToUndefined, z.coerce.number().int().min(min).max(max).optional());
 
 export const apiEnvSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: databaseUrl,
+  /**
+   * Conexão direta (sem pooler) para DDL/migrations. Quando ausente, migrate usa DATABASE_URL.
+   * Não logar o valor — pode conter senha.
+   */
+  DIRECT_URL: z.preprocess(emptyToUndefined, databaseUrl.optional()),
   API_HOST: z.string().min(1).default("127.0.0.1"),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(4000),
   WEB_ORIGIN: z.string().url().default("http://127.0.0.1:3000"),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
-  EMAIL_PROVIDER: z.enum(["not_configured", "memory"]).default("not_configured"),
-  STORAGE_PROVIDER: z.enum(["not_configured", "local"]).default("not_configured"),
+  EMAIL_PROVIDER: z.enum(["not_configured", "memory", "resend"]).default("not_configured"),
+  RESEND_API_KEY: optionalSecret,
+  RESEND_FROM_EMAIL: optionalString,
+  STORAGE_PROVIDER: z.enum(["not_configured", "local", "supabase"]).default("not_configured"),
   LOCAL_STORAGE_PATH: z.string().min(1).default(".data/private-storage"),
   ALLOW_LOCAL_STORAGE_IN_PRODUCTION: z.enum(["0", "1"]).default("0"),
+  SUPABASE_URL: optionalString,
+  SUPABASE_SERVICE_ROLE_KEY: optionalSecret,
+  SUPABASE_STORAGE_BUCKET: optionalString,
   DOCUMENT_MAX_UPLOAD_MB: z.coerce.number().int().min(1).max(100).default(10),
   MALWARE_SCANNER_PROVIDER: z.enum(["not_configured"]).default("not_configured"),
   TEMPORARY_URL_TTL_SECONDS: z.coerce.number().int().min(30).max(3600).default(120),
   DOCUMENT_DOWNLOAD_TOKEN_SECRET: z.string().min(16).optional(),
-  /** Provedores de IA/OCR/oportunidades públicas: somente not_configured até haver integração real. */
-  AI_PROVIDER: z.enum(["not_configured"]).default("not_configured"),
+  /** Padrão not_configured. openai exige FEATURE_AI=1 + OPENAI_API_KEY. */
+  AI_PROVIDER: z.enum(["not_configured", "openai"]).default("not_configured"),
   AI_DEFAULT_MODEL: optionalString,
   AI_REQUEST_TIMEOUT_MS: optionalInt(1_000, 300_000),
   AI_MAX_RETRIES: optionalInt(0, 5),
   AI_MAX_INPUT_TOKENS: optionalInt(1, 2_000_000),
   /** Orçamento mensal em micros inteiros (1 unidade monetária = 1_000_000 micros). */
   AI_MONTHLY_BUDGET_MICROS: optionalInt(0, Number.MAX_SAFE_INTEGER),
+  OPENAI_API_KEY: optionalSecret,
+  OPENAI_DEFAULT_MODEL: optionalString,
+  OPENAI_HEALTHCHECK: z.enum(["0", "1"]).default("0"),
   OCR_PROVIDER: z.enum(["not_configured"]).default("not_configured"),
   PUBLIC_OPPORTUNITY_PROVIDER: z.enum(["not_configured"]).default("not_configured"),
   AUCTION_PROVIDER: z.enum(["not_configured"]).default("not_configured"),
@@ -54,6 +69,8 @@ export const workerEnvSchema = z.object({
   WORKER_HOST: z.string().min(1).default("127.0.0.1"),
   WORKER_PORT: z.coerce.number().int().min(1).max(65535).default(4001),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
+  /** Segredo para invocação HTTP/cron no Vercel (header x-worker-invoke-secret). */
+  WORKER_INVOKE_SECRET: optionalSecret,
 });
 
 export const seedEnvSchema = z.object({

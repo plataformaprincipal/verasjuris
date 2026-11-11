@@ -2,6 +2,7 @@ import { AppError } from "@verasjuris/types";
 import { z } from "zod";
 import { LocalPrivateStorageProvider } from "./local-private-storage.js";
 import { NotConfiguredMalwareScanner } from "./malware.js";
+import { SupabaseStorageProvider } from "./supabase-storage.js";
 import type {
   GetObjectResult,
   MalwareScannerProvider,
@@ -15,6 +16,9 @@ const storageEnvSchema = z.object({
   LOCAL_STORAGE_PATH: z.string().optional(),
   NODE_ENV: z.string().optional(),
   ALLOW_LOCAL_STORAGE_IN_PRODUCTION: z.string().optional(),
+  SUPABASE_URL: z.string().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  SUPABASE_STORAGE_BUCKET: z.string().optional(),
 });
 
 export type StorageFactoryEnv = z.infer<typeof storageEnvSchema> | NodeJS.ProcessEnv;
@@ -49,6 +53,7 @@ function isProduction(env: StorageFactoryEnv): boolean {
 /**
  * Factory de storage.
  * - `local`: apenas fora de production (ou com ALLOW_LOCAL_STORAGE_IN_PRODUCTION=1)
+ * - `supabase`: bucket privado via REST (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)
  * - `not_configured` / ausente: provider que lança NOT_CONFIGURED
  * Não implementa AWS/S3.
  */
@@ -58,6 +63,9 @@ export function createStorageProvider(env: StorageFactoryEnv = process.env): Sto
     LOCAL_STORAGE_PATH: env.LOCAL_STORAGE_PATH,
     NODE_ENV: env.NODE_ENV ?? process.env.NODE_ENV,
     ALLOW_LOCAL_STORAGE_IN_PRODUCTION: env.ALLOW_LOCAL_STORAGE_IN_PRODUCTION,
+    SUPABASE_URL: env.SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY: env.SUPABASE_SERVICE_ROLE_KEY,
+    SUPABASE_STORAGE_BUCKET: env.SUPABASE_STORAGE_BUCKET,
   });
 
   const mode = (parsed.STORAGE_PROVIDER ?? "not_configured").toLowerCase();
@@ -86,6 +94,22 @@ export function createStorageProvider(env: StorageFactoryEnv = process.env): Sto
     }
 
     return new LocalPrivateStorageProvider(root);
+  }
+
+  if (mode === "supabase") {
+    const supabaseUrl = parsed.SUPABASE_URL?.trim();
+    const serviceRoleKey = parsed.SUPABASE_SERVICE_ROLE_KEY?.trim();
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new AppError(
+        "NOT_CONFIGURED",
+        "SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY são obrigatórios quando STORAGE_PROVIDER=supabase.",
+      );
+    }
+    return new SupabaseStorageProvider({
+      supabaseUrl,
+      serviceRoleKey,
+      ...(parsed.SUPABASE_STORAGE_BUCKET ? { bucket: parsed.SUPABASE_STORAGE_BUCKET } : {}),
+    });
   }
 
   throw new AppError(

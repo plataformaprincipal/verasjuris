@@ -179,6 +179,27 @@ const citationInputSchema = z.object({
 
 export class CitationEngine {
   /**
+   * Aceita entrada não tipada (ex.: payload de LLM). Exige `sourceType`; caso contrário
+   * lança `VALIDATION_ERROR` sem inventar fonte.
+   */
+  resolveUnknown(raw: unknown): ResolvedCitation {
+    if (
+      raw === null ||
+      typeof raw !== "object" ||
+      !("sourceType" in raw) ||
+      (raw as { sourceType?: unknown }).sourceType == null ||
+      (raw as { sourceType?: unknown }).sourceType === ""
+    ) {
+      throw new AppError("VALIDATION_ERROR", "Metadados de citação inválidos: sourceType ausente.");
+    }
+    const parsed = citationInputSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new AppError("VALIDATION_ERROR", "Metadados de citação inválidos.");
+    }
+    return this.resolve(parsed.data);
+  }
+
+  /**
    * Resolve e valida metadata. Nunca promove para `verified` sem validação externa real
    * (status `verified` só é aceito se a entrada já vier de verificação comprovada e completa).
    */

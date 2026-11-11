@@ -66,6 +66,16 @@ describe("Etapa 7.1 — CitationEngine", () => {
     expect(result.formattedCitation).toContain("STJ");
     expect(result.formattedCitation).toContain("REsp 123456/SP");
   });
+
+  it("resolveUnknown lança VALIDATION_ERROR quando sourceType está ausente", () => {
+    expect(() => engine.resolveUnknown({ title: "Sem tipo" })).toThrow(/sourceType ausente/);
+    try {
+      engine.resolveUnknown(null);
+      expect.unreachable();
+    } catch (error) {
+      expect(error).toMatchObject({ code: "VALIDATION_ERROR" });
+    }
+  });
 });
 
 describe("Etapa 8 — Auction cost estimator", () => {

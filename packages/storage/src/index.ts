@@ -26,6 +26,11 @@ export {
 } from "./factory.js";
 
 export {
+  SupabaseStorageProvider,
+  type SupabaseStorageOptions,
+} from "./supabase-storage.js";
+
+export {
   ALLOWED_UPLOAD_MIME_TYPES,
   assertAllowedUpload,
   detectMimeFromMagicBytes,
