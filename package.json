@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "description": "VerasJuris — fundação do ecossistema jurídico digital",
+  "description": "VerasJuris \u2014 funda\u00e7\u00e3o do ecossistema jur\u00eddico digital",
   "packageManager": "pnpm@10.18.3",
   "engines": {
     "node": ">=24"
@@ -23,5 +23,11 @@
     "@biomejs/biome": "2.5.14",
     "typescript": "5.9.3",
     "vitest": "5.0.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "drizzle-orm": "0.45.3",
+      "postgres": "3.4.9"
+    }
   }
 }

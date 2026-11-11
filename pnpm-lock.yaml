@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  drizzle-orm: 0.45.3
+  postgres: 3.4.9
+
 importers:
 
   .:
@@ -229,13 +233,13 @@ importers:
       '@verasjuris/types':
         specifier: workspace:*
         version: link:../types
-      drizzle-orm:
-        specifier: 0.45.3
-        version: 0.45.3(@electric-sql/pglite@0.5.8)(postgres@3.4.9)
     devDependencies:
       '@types/node':
         specifier: 26.6.3
         version: 26.6.3
+      drizzle-orm:
+        specifier: 0.45.3
+        version: 0.45.3(@electric-sql/pglite@0.5.8)(postgres@3.4.9)
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -282,12 +286,6 @@ importers:
       '@verasjuris/types':
         specifier: workspace:*
         version: link:../types
-      drizzle-orm:
-        specifier: 0.45.3
-        version: 0.45.3(@electric-sql/pglite@0.5.8)(postgres@3.4.9)
-      postgres:
-        specifier: 3.4.9
-        version: 3.4.9
     devDependencies:
       '@electric-sql/pglite':
         specifier: 0.5.8
@@ -298,6 +296,12 @@ importers:
       drizzle-kit:
         specifier: 0.31.11
         version: 0.31.11
+      drizzle-orm:
+        specifier: 0.45.3
+        version: 0.45.3(@electric-sql/pglite@0.5.8)(postgres@3.4.9)
+      postgres:
+        specifier: 3.4.9
+        version: 3.4.9
       tsx:
         specifier: 4.23.15
         version: 4.23.15
@@ -1752,7 +1756,7 @@ packages:
       kysely: '*'
       mysql2: '>=2'
       pg: '>=8'
-      postgres: '>=3'
+      postgres: 3.4.9
       prisma: '*'
       sql.js: '>=1'
       sqlite3: '>=5'
