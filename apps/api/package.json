@@ -8,10 +8,11 @@
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "tsup && node scripts/verify-vercel-cjs.mjs",
+    "build": "tsup && node scripts/verify-vercel-cjs.mjs && node scripts/prepare-vercel-output.mjs",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
-    "verify:vercel-cjs": "node scripts/verify-vercel-cjs.mjs"
+    "verify:vercel-cjs": "node scripts/verify-vercel-cjs.mjs",
+    "prepare:vercel-output": "node scripts/prepare-vercel-output.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.2",
