@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -218,20 +218,5 @@ describe("vercel serverless bootstrap", () => {
     expect(second.statusCode).toBe(200);
     expect(attempt).toBe(2);
     await app.close();
-  });
-});
-
-describe("vercel compiled artifact", () => {
-  it("dist/vercel.cjs existe após build (ou pré-existente no workspace)", () => {
-    const artifact = path.join(apiRoot, "dist", "vercel.cjs");
-    // Se o build desta sessão já rodou, o arquivo deve existir.
-    // O teste de build dedicado valida geração fresca.
-    if (!existsSync(artifact)) {
-      expect(existsSync(artifact)).toBe(true);
-    } else {
-      const source = readFileSync(artifact, "utf8");
-      expect(source.length).toBeGreaterThan(100);
-      expect(source).toMatch(/exports\.default|module\.exports/);
-    }
   });
 });

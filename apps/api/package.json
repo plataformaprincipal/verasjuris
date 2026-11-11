@@ -8,9 +8,10 @@
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "tsup",
+    "build": "tsup && node scripts/verify-vercel-cjs.mjs",
     "start": "node dist/main.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify:vercel-cjs": "node scripts/verify-vercel-cjs.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "11.1.2",
@@ -23,7 +24,6 @@
     "@verasjuris/calculations": "workspace:*",
     "@verasjuris/config": "workspace:*",
     "@verasjuris/database": "workspace:*",
-
     "@verasjuris/email": "workspace:*",
     "@verasjuris/events": "workspace:*",
     "@verasjuris/notifications": "workspace:*",
