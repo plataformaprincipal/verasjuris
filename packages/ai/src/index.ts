@@ -2,7 +2,7 @@
  * @verasjuris/ai — núcleo de IA assistiva.
  *
  * - Domínios usam SOMENTE `AIGateway`; nunca SDKs de fornecedores.
- * - Nenhum provedor real integrado: padrão é `not_configured`.
+ * - Padrão: `not_configured`. OpenAI só com FEATURE_AI=1 + AI_PROVIDER=openai + OPENAI_API_KEY.
  * - Provedores determinísticos vivem em "@verasjuris/ai/testing" e são exclusivos de testes.
  */
 export { AI_CAPABILITIES, AICapability } from "./capabilities.js";
@@ -60,6 +60,7 @@ export {
   type AIProviderUsage,
   NotConfiguredAIProvider,
 } from "./provider.js";
+export { OpenAIProvider, type OpenAIProviderOptions } from "./openai-provider.js";
 export {
   buildSystemPrompt,
   SAFETY_INSTRUCTIONS,

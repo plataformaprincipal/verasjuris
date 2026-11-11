@@ -89,19 +89,24 @@ const workflowKeySchema = z
   .max(80)
   .regex(/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/, "Informe uma chave válida.");
 
-const conditionNodeSchema: z.ZodType<{
+export interface WorkflowConditionNode {
   operator: (typeof WORKFLOW_CONDITION_OPERATORS)[number];
-  field?: string;
+  field?: string | undefined;
   value?: unknown;
-  children?: unknown[];
-}> = z.lazy(() =>
-  z.object({
-    operator: z.enum(WORKFLOW_CONDITION_OPERATORS),
-    field: z.string().trim().max(120).optional(),
-    value: z.unknown().optional(),
-    children: z.array(conditionNodeSchema).max(20).optional(),
-  }),
+  children?: WorkflowConditionNode[] | undefined;
+}
+
+const conditionNodeSchemaLazy: z.ZodTypeAny = z.lazy(
+  (): z.ZodType<WorkflowConditionNode> =>
+    z.object({
+      operator: z.enum(WORKFLOW_CONDITION_OPERATORS),
+      field: z.string().trim().max(120).optional(),
+      value: z.unknown().optional(),
+      children: z.array(conditionNodeSchemaLazy).max(20).optional(),
+    }),
 );
+
+const conditionNodeSchema = conditionNodeSchemaLazy as z.ZodType<WorkflowConditionNode>;
 
 const actionConfigSchema = z.object({
   type: z.enum(WORKFLOW_ACTION_TYPES),

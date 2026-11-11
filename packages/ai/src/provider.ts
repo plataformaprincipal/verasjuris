@@ -5,7 +5,7 @@ import { AiNotConfiguredError } from "./errors.js";
  * Contrato de provedor de IA. Domínios NUNCA chamam fornecedores diretamente:
  * toda chamada passa por `AIGateway`, que valida, aplica limites e normaliza erros.
  *
- * Nenhum provedor real está integrado. A única implementação de produção é `NotConfiguredAIProvider`.
+ * Padrão de produção: `NotConfiguredAIProvider`. OpenAI é opcional via env + FEATURE_AI.
  */
 
 export type AIProviderUsage = {

@@ -20,7 +20,9 @@ export async function migrateDatabase(connectionString: string): Promise<void> {
 async function main(): Promise<void> {
   loadDotEnv();
   const env = parseApiEnv(process.env);
-  await migrateDatabase(env.DATABASE_URL);
+  // Preferir DIRECT_URL (sem pooler) para DDL; fallback DATABASE_URL.
+  const connectionString = env.DIRECT_URL ?? env.DATABASE_URL;
+  await migrateDatabase(connectionString);
   console.info("Migrations aplicadas.");
 }
 

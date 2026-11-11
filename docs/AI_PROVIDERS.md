@@ -8,13 +8,13 @@ Três contratos distintos, três factories a partir de variáveis de ambiente. D
 
 - **Interface:** `packages/ai/src/provider.ts`, fachada `AIGateway` em `gateway.ts`.
 - **Implementação padrão:** `NotConfiguredAIProvider` — valida pedido, não abre socket, devolve erro mapeado (`AI_PROVIDER_NOT_CONFIGURED`).
-- **Env:** `AI_PROVIDER=not_configured` (único valor aceito em `apiEnvSchema`). Opcionais reservados: `AI_DEFAULT_MODEL`, `AI_REQUEST_TIMEOUT_MS`, `AI_MAX_RETRIES`, `AI_MAX_INPUT_TOKENS`, `AI_MONTHLY_BUDGET_MICROS`.
-- **Capacidades:** catálogo `AICapability` (texto, structured output, embeddings, visão). Com `not_configured`, `describe().capabilities` é lista vazia.
+- **Env:** `AI_PROVIDER=not_configured` \| `openai`. OpenAI só com `FEATURE_AI=1` **e** `OPENAI_API_KEY`. Opcionais: `AI_DEFAULT_MODEL` / `OPENAI_DEFAULT_MODEL`, `AI_REQUEST_TIMEOUT_MS`, `AI_MAX_RETRIES`, `AI_MAX_INPUT_TOKENS`, `AI_MONTHLY_BUDGET_MICROS`, `OPENAI_HEALTHCHECK` (`1` = GET `/v1/models` com timeout curto; padrão sem rede).
+- **Capacidades:** catálogo `AICapability` (texto, structured output, embeddings, visão). Com `not_configured`, `describe().capabilities` é lista vazia. OpenAI declara `TEXT` + `STRUCTURED_OUTPUT`.
 - **Features:** `DEFAULT_AI_FEATURES` amarra feature → capacidades exigidas + `outputDisposition` (quase sempre `requires_review`).
 
-Integração futura: novo valor em `AI_PROVIDER`, adapter que implementa `AIProvider`, registro na factory `createAiGatewayFromEnv`. Exige ADR e testes de contrato.
+Adapter: `OpenAIProvider` (`packages/ai/src/openai-provider.ts`) via `fetch` — sem SDK. Nunca logar a chave. Deploy: `docs/PRODUCTION_DEPLOY.md`.
 
-**OpenAI / Azure / outros:** não implementados.
+**Azure / outros:** não implementados.
 
 ## OCR — `OCRProvider`
 

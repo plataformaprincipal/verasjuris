@@ -272,8 +272,13 @@ export function requireOrganizationPermission(
       : null,
     required: permission,
   });
-  if (!decision.ok) throw new AppError(decision.code, decision.message);
-  return membership as SessionAccount["memberships"][number];
+  if (!decision.ok) {
+    throw new AppError(decision.code, decision.message);
+  }
+  if (!membership) {
+    throw new AppError("NOT_FOUND", "Não encontramos este recurso no seu acesso.");
+  }
+  return membership;
 }
 
 function setSessionCookie(reply: FastifyReply, token: string, secure: boolean): void {

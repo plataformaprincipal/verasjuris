@@ -38,6 +38,10 @@ Substituição `{{var}}` com whitelist (`substituteTemplateVariables`) — sem e
 
 Transacional de billing/pagamento (recibo, falha de cobrança) reutiliza este outbox quando houver template — sem misturar com marketing (ADR 134). Financeiro: `docs/FINANCE.md`, `docs/PAYMENTS.md`.
 
+## E-mail transacional (identidade)
+
+Além dos canais omnichannel acima, o pacote `@verasjuris/email` envia verificação/reset/convite. Em produção: `EMAIL_PROVIDER=resend` com `RESEND_API_KEY` e `RESEND_FROM_EMAIL` (fetch para a API Resend; sem SDK). Ausência de chave → `not_configured` (sem fingir entrega). Ver `docs/PRODUCTION_DEPLOY.md`.
+
 ## Relacionado
 
 `docs/COMMUNICATION_PROVIDERS.md`, `docs/COMMUNICATION_CONSENT.md`, `docs/NOTIFICATIONS.md`, `docs/FINANCE.md`, ADRs 131–135

@@ -31,8 +31,23 @@ export type ApiFailure = {
   };
 };
 
+/**
+ * Base URL da API para fetches do servidor Next (RSC, route handlers, BFF).
+ * Prefere `API_INTERNAL_URL`. Não use `NEXT_PUBLIC_API_URL` no servidor.
+ */
 export function apiInternalUrl(): string {
-  return process.env.API_INTERNAL_URL ?? "http://127.0.0.1:4000";
+  const internal = process.env.API_INTERNAL_URL?.trim();
+  if (internal) return internal;
+  return "http://127.0.0.1:4000";
+}
+
+/**
+ * Base URL exposta ao browser, se necessário.
+ * Nunca colocar segredos em NEXT_PUBLIC_*. Preferir o proxy BFF `/api/v1/*`.
+ */
+export function publicApiUrl(): string | undefined {
+  const value = process.env.NEXT_PUBLIC_API_URL?.trim();
+  return value || undefined;
 }
 
 export const ROLE_LABELS: Record<string, string> = {
