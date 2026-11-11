@@ -59,9 +59,7 @@ export type VercelHandler = (req: IncomingMessage, res: ServerResponse) => Promi
  * - Em falha de boot, descarta a Promise para permitir retry na próxima invocação.
  * - Encaminha via `inject` (padrão estável serverless; não depende de server HTTP persistente).
  */
-export function createVercelHandler(options?: {
-  createApp?: CreateAppFn;
-}): VercelHandler {
+export function createVercelHandler(options?: { createApp?: CreateAppFn }): VercelHandler {
   const createApp = options?.createApp ?? createAppFromEnv;
   let appPromise: Promise<FastifyInstance> | null = null;
 
