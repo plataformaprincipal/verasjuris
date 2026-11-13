@@ -44,7 +44,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import type { Membership } from "../lib/types";
 import { roleLabel } from "../lib/types";
-import { LanguageSwitcher } from "./locale-provider";
+import { LanguageSwitcher, useLocale } from "./locale-provider";
 
 type NavItem = {
   href: string;
@@ -128,19 +128,23 @@ const icons = {
 };
 
 function NavLinks({ items, pathname }: { items: NavItem[]; pathname: string }) {
+  const { t } = useLocale();
   return (
-    <nav className="vj-nav" id="navegacao" aria-label="Áreas">
+    <nav className="vj-nav" id="navegacao" aria-label={t("nav.areas", "Áreas")}>
       {items.map((item) => {
         const Icon = icons[item.icon];
         const current =
           item.href === "/app" || item.href === "/app/crm"
             ? pathname === item.href
             : pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const label = t(`nav.${item.icon}`, item.label);
         return (
           <a key={item.href} href={item.href} aria-current={current ? "page" : undefined}>
             <Icon size={20} aria-hidden="true" />
-            <span>{item.label}</span>
-            {current ? <span className="vj-visually-hidden">, página atual</span> : null}
+            <span>{label}</span>
+            {current ? (
+              <span className="vj-visually-hidden">{t("nav.currentPage", ", página atual")}</span>
+            ) : null}
           </a>
         );
       })}
@@ -167,6 +171,7 @@ export function AppShell({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const { t } = useLocale();
 
   async function chooseOrganization(organizationId: string) {
     await fetch("/session/organizacao", {
@@ -204,17 +209,19 @@ export function AppShell({
               type="button"
               className="vj-button vj-button-secondary vj-menu-button"
               onClick={() => setOpen(true)}
+              aria-expanded={open}
+              aria-controls="vj-mobile-nav"
             >
               <MenuIcon size={20} aria-hidden="true" />
-              Menu
+              {t("nav.menu", "Menu")}
             </button>
             {organization ? (
               organizations.length > 1 ? (
                 <label className="vj-meta">
-                  Organização ativa
+                  {t("nav.activeOrganization", "Organização ativa")}
                   <select
                     className="vj-select"
-                    aria-label="Organização ativa"
+                    aria-label={t("nav.activeOrganization", "Organização ativa")}
                     value={organization.organizationId}
                     onChange={(event) => void chooseOrganization(event.target.value)}
                   >
@@ -227,11 +234,12 @@ export function AppShell({
                 </label>
               ) : (
                 <p className="vj-meta">
-                  Organização ativa: <strong>{organization.organizationName}</strong>
+                  {t("nav.activeOrganization", "Organização ativa")}:{" "}
+                  <strong>{organization.organizationName}</strong>
                 </p>
               )
             ) : (
-              <p className="vj-meta">Nenhuma organização ativa</p>
+              <p className="vj-meta">{t("nav.noOrganization", "Nenhuma organização ativa")}</p>
             )}
           </div>
           <div className="vj-header-actions">
@@ -241,10 +249,10 @@ export function AppShell({
                 {email}
               </p>
               <a href="/app/configuracoes/seguranca" role="menuitem">
-                Segurança
+                {t("nav.security", "Segurança")}
               </a>
               <button type="button" role="menuitem" onClick={() => void logout()}>
-                <LogOut size={16} aria-hidden="true" /> Sair
+                <LogOut size={16} aria-hidden="true" /> {t("auth.logout", "Sair")}
               </button>
             </Menu>
           </div>
@@ -252,7 +260,9 @@ export function AppShell({
         <div className="vj-content" id="conteudo">
           {organization ? (
             <p className="vj-meta">
-              Papel: {organization.roles.map(roleLabel).join(", ") || "não informado"}
+              {t("nav.role", "Papel")}:{" "}
+              {organization.roles.map(roleLabel).join(", ") ||
+                t("common.unspecified", "não informado")}
             </p>
           ) : null}
           {children}
@@ -263,10 +273,16 @@ export function AppShell({
           <button
             type="button"
             className="vj-overlay-dismiss"
-            aria-label="Fechar menu"
+            aria-label={t("nav.closeMenu", "Fechar menu")}
             onClick={() => setOpen(false)}
           />
-          <aside className="vj-sidebar" role="dialog" aria-modal="true" aria-label="Menu">
+          <aside
+            id="vj-mobile-nav"
+            className="vj-sidebar"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("nav.menu", "Menu")}
+          >
             {brand}
             <NavLinks items={items} pathname={pathname} />
             <button
@@ -274,7 +290,7 @@ export function AppShell({
               className="vj-button vj-button-secondary"
               onClick={() => setOpen(false)}
             >
-              Fechar menu
+              {t("nav.closeMenu", "Fechar menu")}
             </button>
           </aside>
         </div>

@@ -35,8 +35,32 @@ function toApi(row: typeof accessibilityPreferences.$inferSelect) {
     highVisibilityCursor: row.highVisibilityCursor,
     readingGuide: row.readingGuide,
     interfaceDensity: row.interfaceDensity,
+    activeProfile: row.activeProfile,
+    reducedTransparency: row.reducedTransparency,
   };
 }
+
+type PutInput = Partial<{
+  fontScalePercent: number;
+  contrastMode: string;
+  colorBlindnessMode: "none" | "protanopia" | "deuteranopia" | "tritanopia" | "achromatopsia";
+  reduceMotion: boolean;
+  screenReaderHints: boolean;
+  largeControls: boolean;
+  captionsEnabled: boolean;
+  signLanguageEnabled: boolean;
+  lineSpacing: string;
+  focusEnhancement: boolean;
+  simplifiedLanguage: boolean;
+  dyslexiaFriendlyMode: boolean;
+  cognitiveSupportMode: boolean;
+  keyboardOnly: boolean;
+  highVisibilityCursor: boolean;
+  readingGuide: boolean;
+  interfaceDensity: "comfortable" | "compact" | "spacious";
+  activeProfile: string | null;
+  reducedTransparency: boolean;
+}>;
 
 export class AccessibilityService {
   constructor(private readonly db: AppDatabase) {}
@@ -56,42 +80,59 @@ export class AccessibilityService {
           largeControls: false,
           captionsEnabled: true,
           signLanguageEnabled: false,
+          lineSpacing: "normal",
+          focusEnhancement: false,
+          simplifiedLanguage: false,
+          dyslexiaFriendlyMode: false,
+          cognitiveSupportMode: false,
+          keyboardOnly: false,
+          highVisibilityCursor: false,
+          readingGuide: false,
+          interfaceDensity: "comfortable",
+          activeProfile: null,
+          reducedTransparency: false,
         },
       };
     }
     return { preferences: toApi(row) };
   }
 
-  async put(
-    account: SessionAccount,
-    input: Partial<{
-      fontScalePercent: number;
-      contrastMode: string;
-      colorBlindnessMode: "none" | "protanopia" | "deuteranopia" | "tritanopia" | "achromatopsia";
-      reduceMotion: boolean;
-      screenReaderHints: boolean;
-      largeControls: boolean;
-      captionsEnabled: boolean;
-      signLanguageEnabled: boolean;
-    }>,
-  ) {
+  async put(account: SessionAccount, input: PutInput) {
     const existing = await this.db.query.accessibilityPreferences.findFirst({
       where: eq(accessibilityPreferences.userId, account.user.id),
     });
+
+    let interfaceDensity =
+      input.interfaceDensity ?? existing?.interfaceDensity ?? ("comfortable" as const);
+    if (input.largeControls === true) interfaceDensity = "spacious";
+    if (input.largeControls === false && input.interfaceDensity === undefined) {
+      // Only collapse spacious → comfortable; keep compact untouched.
+      interfaceDensity =
+        existing?.interfaceDensity === "spacious"
+          ? "comfortable"
+          : (existing?.interfaceDensity ?? "comfortable");
+    }
+
     const values = {
       fontScale: String(input.fontScalePercent ?? (existing ? Number(existing.fontScale) : 100)),
       contrastMode: mapContrast(input.contrastMode ?? existing?.contrastMode),
       colorVisionMode: input.colorBlindnessMode ?? existing?.colorVisionMode ?? "none",
       reducedMotion: input.reduceMotion ?? existing?.reducedMotion ?? false,
       screenReaderOptimized: input.screenReaderHints ?? existing?.screenReaderOptimized ?? false,
-      interfaceDensity:
-        input.largeControls === true
-          ? ("spacious" as const)
-          : input.largeControls === false
-            ? ("comfortable" as const)
-            : (existing?.interfaceDensity ?? ("comfortable" as const)),
+      interfaceDensity,
       captionsPreferred: input.captionsEnabled ?? existing?.captionsPreferred ?? false,
       signLanguagePreferred: input.signLanguageEnabled ?? existing?.signLanguagePreferred ?? false,
+      lineSpacing: input.lineSpacing ?? existing?.lineSpacing ?? "normal",
+      focusEnhancement: input.focusEnhancement ?? existing?.focusEnhancement ?? false,
+      simplifiedLanguage: input.simplifiedLanguage ?? existing?.simplifiedLanguage ?? false,
+      dyslexiaFriendlyMode: input.dyslexiaFriendlyMode ?? existing?.dyslexiaFriendlyMode ?? false,
+      cognitiveSupportMode: input.cognitiveSupportMode ?? existing?.cognitiveSupportMode ?? false,
+      keyboardOnly: input.keyboardOnly ?? existing?.keyboardOnly ?? false,
+      highVisibilityCursor: input.highVisibilityCursor ?? existing?.highVisibilityCursor ?? false,
+      readingGuide: input.readingGuide ?? existing?.readingGuide ?? false,
+      activeProfile:
+        input.activeProfile !== undefined ? input.activeProfile : (existing?.activeProfile ?? null),
+      reducedTransparency: input.reducedTransparency ?? existing?.reducedTransparency ?? false,
       updatedAt: new Date(),
     };
     if (existing) {

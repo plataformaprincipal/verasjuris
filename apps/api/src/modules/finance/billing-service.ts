@@ -27,7 +27,8 @@ import type { RequestMeta } from "../auth/service.js";
 import { AccountsReceivableService } from "./accounts-receivable.js";
 import { LedgerBalanceService } from "./ledger-balance-service.js";
 import { LedgerPostingService } from "./ledger-posting-service.js";
-import type { PaymentProvider } from "@verasjuris/ai";
+import type { BillingProvider, PaymentProvider } from "@verasjuris/ai";
+import { NotConfiguredBillingProvider } from "@verasjuris/ai";
 
 function parseDate(value: string | null | undefined): Date | null | undefined {
   if (value === undefined) return undefined;
@@ -127,6 +128,7 @@ export class BillingService {
   constructor(
     private readonly db: AppDatabase,
     private readonly paymentProvider?: PaymentProvider,
+    private readonly billingProvider: BillingProvider = new NotConfiguredBillingProvider(),
   ) {
     this.ar = new AccountsReceivableService(db);
     this.balances = new LedgerBalanceService(db);
@@ -454,6 +456,46 @@ export class BillingService {
     });
     if (!version) throw new AppError("NOT_FOUND", "Não encontramos esta versão do plano.");
 
+    // Não liberar assinatura `active` sem confirmação financeira / ID externo do PSP.
+    const paymentProvider = this.paymentProvider;
+    const providerConfigured = Boolean(
+      paymentProvider &&
+        paymentProvider.id !== "not_configured" &&
+        (await paymentProvider.healthCheck()).status !== "not_configured",
+    );
+    let status = input.status;
+    let providerKey = input.providerKey ?? "not_configured";
+    let externalSubscriptionId = input.externalSubscriptionId ?? null;
+
+    if (
+      !externalSubscriptionId &&
+      this.billingProvider.id !== "not_configured" &&
+      version.priceCents > 0
+    ) {
+      const external = await this.billingProvider.createSubscription({
+        organizationId,
+        userId: input.userId,
+        planKey: plan.key,
+        billingInterval: version.billingInterval,
+        idempotencyKey: `sub:${organizationId}:${input.planVersionId}:${input.userId ?? "org"}`,
+        metadata: {
+          amountCents: String(version.priceCents),
+          billingType: "PIX",
+        },
+      });
+      if (external.externalSubscriptionId) {
+        externalSubscriptionId = external.externalSubscriptionId;
+        providerKey = external.providerKey;
+        // Criação externa ≠ pagamento confirmado — nunca promove a active aqui.
+        if (status === "active") status = "incomplete";
+      }
+    }
+
+    if (providerConfigured && paymentProvider && status === "active" && !externalSubscriptionId) {
+      status = "incomplete";
+      providerKey = paymentProvider.id;
+    }
+
     try {
       const [row] = await this.db
         .insert(subscriptions)
@@ -462,13 +504,13 @@ export class BillingService {
           userId: input.userId ?? null,
           planId: input.planId,
           planVersionId: input.planVersionId,
-          status: input.status,
+          status,
           billingCycleAnchor: parseDate(input.billingCycleAnchor) ?? null,
           currentPeriodStart: parseDate(input.currentPeriodStart) ?? null,
           currentPeriodEnd: parseDate(input.currentPeriodEnd) ?? null,
           trialEndsAt: parseDate(input.trialEndsAt) ?? null,
-          providerKey: input.providerKey ?? "not_configured",
-          externalSubscriptionId: input.externalSubscriptionId ?? null,
+          providerKey,
+          externalSubscriptionId,
         })
         .returning();
 
@@ -480,7 +522,7 @@ export class BillingService {
         "subscription",
         row!.id,
         meta,
-        { planId: input.planId, status: input.status },
+        { planId: input.planId, status },
       );
       return { subscription: row };
     } catch (error) {

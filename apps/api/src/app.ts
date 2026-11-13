@@ -50,6 +50,7 @@ import {
   NotConfiguredDocumentVerificationProvider,
   NotConfiguredBiometricVerificationProvider,
   NotConfiguredFeeTableProvider,
+  NotConfiguredBillingProvider,
   NotConfiguredPaymentProvider,
   NotConfiguredPayoutProvider,
   NotConfiguredBankingProvider,
@@ -97,6 +98,7 @@ import {
   type FeeTableProvider,
   type OABVerificationProvider,
   type OCRProvider,
+  type BillingProvider,
   type PaymentProvider,
   type PayoutProvider,
   type BankingProvider,
@@ -255,6 +257,8 @@ export type BuildAppOptions = {
   /** Registros públicos; ausente = NOT_CONFIGURED. */
   registryProvider?: RegistryProvider;
   paymentProvider?: PaymentProvider;
+  /** Padrão: BillingProvider NOT_CONFIGURED. */
+  billingProvider?: BillingProvider;
   /** Padrão: PayoutProvider NOT_CONFIGURED (nunca marca PAID). */
   payoutProvider?: PayoutProvider;
   /** Padrão: BankingProvider NOT_CONFIGURED. */
@@ -364,6 +368,7 @@ export async function buildApp(options: BuildAppOptions) {
       options.environmentalDataProvider ?? new NotConfiguredEnvironmentalDataProvider(),
     registryProvider: options.registryProvider ?? new NotConfiguredRegistryProvider(),
     paymentProvider: options.paymentProvider ?? new NotConfiguredPaymentProvider(),
+    billingProvider: options.billingProvider ?? new NotConfiguredBillingProvider(),
     payoutProvider: options.payoutProvider ?? new NotConfiguredPayoutProvider(),
     bankingProvider: options.bankingProvider ?? new NotConfiguredBankingProvider(),
     taxWithholdingProvider:

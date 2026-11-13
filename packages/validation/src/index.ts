@@ -792,6 +792,8 @@ export function parseInput<S extends z.ZodTypeAny>(schema: S, data: unknown): z.
   return parsed.data;
 }
 
+export * from "./br-documents.js";
+export * from "./onboarding.js";
 export * from "./ai.js";
 export * from "./legal-review.js";
 export * from "./legal-research.js";

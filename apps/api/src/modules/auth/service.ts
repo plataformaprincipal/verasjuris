@@ -11,9 +11,15 @@ import type { AppDatabase } from "@verasjuris/database";
 import {
   emailVerificationTokens,
   isUniqueViolation,
+  lawyerProfiles,
+  membershipRoles,
+  organizationMembers,
+  organizations,
+  partnerProfiles,
   passwordResetTokens,
   professionalProfiles,
   profiles,
+  roles,
   sessions,
   users,
 } from "@verasjuris/database";
@@ -34,7 +40,18 @@ import {
   verifyPasswordOrDummy,
 } from "@verasjuris/security";
 import { AppError } from "@verasjuris/types";
+import {
+  ONBOARDING_PERSONA_META,
+  slugifyName,
+  type OnboardingPersona,
+  type OnboardingRegisterInput,
+} from "@verasjuris/validation";
 import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
+import { ensureCrmCatalog } from "../crm/catalog.js";
+import { ensureLegalAreasCatalog } from "../intake/catalog.js";
+import { ensureJudicialReferenceCatalog } from "../judicial/catalog.js";
+import { ensureDemandTypesCatalog } from "../matters/catalog.js";
+import { ensureLossReasonsCatalog } from "../pipeline/catalog.js";
 
 export type RequestMeta = {
   requestId: string;
@@ -131,53 +148,80 @@ async function createVerificationToken(
   return token;
 }
 
+export type RegisterAccountInput =
+  | { mode: "legacy"; displayName: string; email: string; password: string }
+  | ({ mode: "onboarding" } & OnboardingRegisterInput);
+
+function organizationNameFor(input: RegisterAccountInput): string {
+  if (input.mode === "legacy") return `Espaço de ${input.displayName}`;
+  if (input.organizationName?.trim()) return input.organizationName.trim();
+  if (input.persona === "lawyer") return `Escritório de ${input.fullName}`;
+  if (input.persona === "partner_legal" || input.persona === "partner_service") {
+    return `Espaço profissional de ${input.fullName}`;
+  }
+  return `Espaço de ${input.fullName}`;
+}
+
+function redirectFor(persona: OnboardingPersona | "legacy"): "/app" | "/portal" {
+  if (persona === "legacy") return "/app";
+  return ONBOARDING_PERSONA_META[persona].redirectTo;
+}
+
 export async function registerAccount(
   db: AppDatabase,
-  input: { displayName: string; email: string; password: string },
+  input: RegisterAccountInput,
   meta: RequestMeta,
   events: InProcessEventBus,
-  email: AuthEmailContext,
+  _email: AuthEmailContext,
 ): Promise<{
-  status: "accepted";
-  emailDelivery: EmailDeliveryStatus;
+  status: "created";
+  token: string;
+  account: ReturnType<typeof toPublicSession>;
+  redirectTo: "/app" | "/portal";
+  emailVerified: false;
   message: string;
 }> {
-  const existing = await db.query.users.findFirst({ where: eq(users.email, input.email) });
+  const emailAddress = input.email;
+  const displayName = input.mode === "legacy" ? input.displayName : input.displayName;
+  const password = input.password;
+  const persona: OnboardingPersona | "legacy" =
+    input.mode === "legacy" ? "legacy" : input.persona;
+
+  const existing = await db.query.users.findFirst({ where: eq(users.email, emailAddress) });
   if (existing) {
-    if (existing.status === "pending_verification" && !existing.emailVerifiedAt) {
-      const token = await createVerificationToken(db, existing.id);
-      const sent = await email.provider.send({
-        kind: "email_verification",
-        to: existing.email,
-        subject: "Confirme seu e-mail no VerasJuris",
-        text: `Confirme seu e-mail: ${verificationLink(email.webOrigin, token)}`,
-        token,
-      });
-      await recordAudit(db, {
-        actorUserId: existing.id,
-        action: "email.verification_requested",
-        resourceType: "user",
-        resourceId: existing.id,
-        source: "api",
-        requestId: meta.requestId,
-        ip: meta.ip,
-        metadata: { reason: "register_existing_pending", delivery: sent.status },
-      });
-    }
-    return neutralAccepted(email.provider);
+    throw new AppError(
+      "CONFLICT",
+      "Não foi possível criar a conta com os dados informados. Se você já possui acesso, entre com seu e-mail e senha.",
+    );
   }
 
-  const passwordHash = await hashPassword(input.password);
+  if (input.mode === "onboarding" && input.cpf) {
+    const cpfOwner = await db.query.profiles.findFirst({
+      where: eq(profiles.cpfNormalized, input.cpf),
+    });
+    if (cpfOwner) {
+      throw new AppError(
+        "CONFLICT",
+        "Não foi possível criar a conta com os dados informados. Se você já possui acesso, entre com seu e-mail e senha.",
+      );
+    }
+  }
+
+  const passwordHash = await hashPassword(password);
+  const now = new Date();
   let userId = "";
-  let rawToken = "";
+  let sessionToken = "";
+
   try {
     const created = await db.transaction(async (tx) => {
       const [user] = await tx
         .insert(users)
         .values({
-          email: input.email,
+          email: emailAddress,
           passwordHash,
-          status: "pending_verification",
+          status: "active",
+          emailVerifiedAt: null,
+          lastLoginAt: now,
         })
         .returning({ id: users.id });
       if (!user) {
@@ -186,48 +230,170 @@ export async function registerAccount(
           "Não foi possível criar a conta. Nenhuma conta foi registrada. Tente novamente.",
         );
       }
-      await tx.insert(profiles).values({ userId: user.id, displayName: input.displayName });
-      await tx.insert(professionalProfiles).values({ userId: user.id });
-      const token = await createVerificationToken(tx, user.id);
+
+      await tx.insert(profiles).values({
+        userId: user.id,
+        displayName,
+        socialName: input.mode === "onboarding" ? input.socialName ?? null : null,
+        phoneE164: input.mode === "onboarding" ? input.phone : null,
+        cpfNormalized: input.mode === "onboarding" ? input.cpf ?? null : null,
+        birthDate:
+          input.mode === "onboarding" && input.birthDate
+            ? new Date(`${input.birthDate}T12:00:00.000Z`)
+            : null,
+        addressJson:
+          input.mode === "onboarding" ? JSON.stringify(input.address) : null,
+        onboardingPersona: persona === "legacy" ? "client_pf" : persona,
+        termsAcceptedAt: now,
+        termsVersion: input.mode === "onboarding" ? input.termsVersion : "2026-11",
+        privacyAcceptedAt: now,
+        privacyVersion: input.mode === "onboarding" ? input.privacyVersion : "2026-11",
+      });
+      await tx.insert(professionalProfiles).values({
+        userId: user.id,
+        verificationStatus:
+          persona === "lawyer" || persona === "law_firm" || persona === "partner_legal"
+            ? "pending"
+            : "not_submitted",
+      });
+
+      const orgName = organizationNameFor(input);
+      const baseSlug = slugifyName(orgName);
+      let slug = baseSlug;
+      for (let index = 0; index < 20; index += 1) {
+        const candidate = index === 0 ? baseSlug : `${baseSlug}-${index + 1}`.slice(0, 70);
+        const clash = await tx.query.organizations.findFirst({
+          where: eq(organizations.slug, candidate),
+        });
+        if (!clash) {
+          slug = candidate;
+          break;
+        }
+      }
+
+      const ownerRole = await tx.query.roles.findFirst({
+        where: and(eq(roles.key, "owner"), eq(roles.isSystem, true)),
+      });
+      if (!ownerRole) {
+        throw new AppError(
+          "INTERNAL_ERROR",
+          "Os papéis de referência não estão disponíveis. Nenhuma alteração foi confirmada. Execute a carga inicial do banco.",
+        );
+      }
+
+      const [organization] = await tx
+        .insert(organizations)
+        .values({ name: orgName, slug, createdByUserId: user.id })
+        .returning({ id: organizations.id });
+      if (!organization) {
+        throw new AppError(
+          "INTERNAL_ERROR",
+          "Não foi possível criar a organização. Nenhuma conta foi concluída. Tente novamente.",
+        );
+      }
+      const [membership] = await tx
+        .insert(organizationMembers)
+        .values({ organizationId: organization.id, userId: user.id, status: "active" })
+        .returning({ id: organizationMembers.id });
+      if (!membership) {
+        throw new AppError(
+          "INTERNAL_ERROR",
+          "Não foi possível vincular a organização. Nenhuma conta foi concluída. Tente novamente.",
+        );
+      }
+      await tx.insert(membershipRoles).values({ membershipId: membership.id, roleId: ownerRole.id });
+
+      if (
+        (persona === "lawyer" || persona === "law_firm") &&
+        input.mode === "onboarding" &&
+        input.oabNumber &&
+        input.oabUf
+      ) {
+        await tx.insert(lawyerProfiles).values({
+          userId: user.id,
+          professionalName: input.fullName,
+          oabNumber: input.oabNumber,
+          oabUf: input.oabUf,
+          oabSection: input.oabUf,
+          practiceAreas: input.practiceAreas,
+          oabVerificationStatus: "informed",
+          visibility: "private",
+        });
+      }
+
+      if (
+        (persona === "partner_legal" || persona === "partner_service") &&
+        input.mode === "onboarding" &&
+        input.partnerCategory
+      ) {
+        await tx.insert(partnerProfiles).values({
+          userId: user.id,
+          category: input.partnerCategory,
+          presentation: input.partnerDescription,
+          visibility: "organization",
+        });
+      }
+
+      const session = await issueSession(tx, user.id, meta, now);
       await recordAudit(tx, {
         actorUserId: user.id,
+        organizationId: organization.id,
         action: "user.registered",
         resourceType: "user",
         resourceId: user.id,
         source: "api",
         requestId: meta.requestId,
         ip: meta.ip,
-        after: { status: "pending_verification" },
+        after: {
+          status: "active",
+          emailVerified: false,
+          persona,
+          organizationId: organization.id,
+        },
       });
-      await recordAudit(tx, {
-        actorUserId: user.id,
-        action: "email.verification_requested",
-        resourceType: "user",
-        resourceId: user.id,
-        source: "api",
-        requestId: meta.requestId,
-        ip: meta.ip,
-      });
-      return { userId: user.id, token };
+      return {
+        userId: user.id,
+        token: session.token,
+        organizationId: organization.id,
+      };
     });
     userId = created.userId;
-    rawToken = created.token;
+    sessionToken = created.token;
+
+    await ensureCrmCatalog(db, created.organizationId);
+    await ensureLegalAreasCatalog(db, created.organizationId);
+    await ensureDemandTypesCatalog(db, created.organizationId);
+    await ensureLossReasonsCatalog(db, created.organizationId);
+    await ensureJudicialReferenceCatalog(db);
   } catch (error) {
     if (isUniqueViolation(error)) {
-      return neutralAccepted(email.provider);
+      throw new AppError(
+        "CONFLICT",
+        "Não foi possível criar a conta com os dados informados. Se você já possui acesso, entre com seu e-mail e senha.",
+      );
     }
     throw error;
   }
 
-  await email.provider.send({
-    kind: "email_verification",
-    to: input.email,
-    subject: "Confirme seu e-mail no VerasJuris",
-    text: `Confirme seu e-mail: ${verificationLink(email.webOrigin, rawToken)}`,
-    token: rawToken,
-  });
+  const account = await findSession(db, sessionToken);
+  if (!account) {
+    throw new AppError(
+      "INTERNAL_ERROR",
+      "A conta foi criada, mas a sessão não pôde ser confirmada. Entre com seu e-mail e senha.",
+    );
+  }
+
   events.publish("auth.registered", { userId, requestId: meta.requestId });
-  return neutralAccepted(email.provider);
+  events.publish("auth.login_succeeded", { userId, requestId: meta.requestId });
+  return {
+    status: "created",
+    token: sessionToken,
+    account: toPublicSession(account),
+    redirectTo: redirectFor(persona),
+    emailVerified: false,
+    message:
+      "Conta criada com sucesso. Seu e-mail ainda não foi verificado; isso não impede o acesso básico nesta fase.",
+  };
 }
 
 export async function requestEmailVerification(
@@ -342,8 +508,7 @@ export async function loginAccount(
 ): Promise<{ token: string; account: ReturnType<typeof toPublicSession> }> {
   const user = await db.query.users.findFirst({ where: eq(users.email, input.email) });
   const matches = await verifyPasswordOrDummy(input.password, user?.passwordHash ?? null);
-  const eligible =
-    Boolean(user) && matches && user?.status === "active" && Boolean(user.emailVerifiedAt);
+  const eligible = Boolean(user) && matches && user?.status === "active";
   if (!eligible || !user) {
     await recordAudit(db, {
       actorUserId: user?.id ?? null,
@@ -410,7 +575,8 @@ export async function requestPasswordReset(
   email: AuthEmailContext,
 ): Promise<{ status: "accepted"; emailDelivery: EmailDeliveryStatus; message: string }> {
   const user = await db.query.users.findFirst({ where: eq(users.email, emailAddress) });
-  if (user && user.status === "active" && user.emailVerifiedAt) {
+  // Recuperação por e-mail só funciona com provider configurado; conta ativa basta.
+  if (user && user.status === "active") {
     const now = new Date();
     await db
       .update(passwordResetTokens)

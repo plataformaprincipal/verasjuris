@@ -54,15 +54,31 @@ export const users = pgTable(
   (table) => [uniqueIndex("users_email_unique").on(table.email)],
 );
 
-export const profiles = pgTable("profiles", {
-  userId: uuid("user_id")
-    .primaryKey()
-    .references(() => users.id, { onDelete: "cascade" }),
-  displayName: text("display_name").notNull(),
-  locale: text("locale").notNull().default("pt-BR"),
-  timeZone: text("time_zone").notNull().default("America/Sao_Paulo"),
-  ...timestamps,
-});
+export const profiles = pgTable(
+  "profiles",
+  {
+    userId: uuid("user_id")
+      .primaryKey()
+      .references(() => users.id, { onDelete: "cascade" }),
+    displayName: text("display_name").notNull(),
+    socialName: text("social_name"),
+    phoneE164: text("phone_e164"),
+    cpfNormalized: text("cpf_normalized"),
+    birthDate: timestamp("birth_date", { withTimezone: true, mode: "date" }),
+    addressJson: text("address_json"),
+    onboardingPersona: text("onboarding_persona"),
+    termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true, mode: "date" }),
+    termsVersion: text("terms_version"),
+    privacyAcceptedAt: timestamp("privacy_accepted_at", { withTimezone: true, mode: "date" }),
+    privacyVersion: text("privacy_version"),
+    locale: text("locale").notNull().default("pt-BR"),
+    timeZone: text("time_zone").notNull().default("America/Sao_Paulo"),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("profiles_cpf_normalized_unique").on(table.cpfNormalized),
+  ],
+);
 
 export const professionalProfiles = pgTable("professional_profiles", {
   userId: uuid("user_id")

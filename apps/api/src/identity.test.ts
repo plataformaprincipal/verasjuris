@@ -31,59 +31,45 @@ describe("Etapa 1 — identidade", () => {
     await database.close();
   });
 
-  it("cadastra sem enumeração e exige verificação de e-mail", async () => {
+  it("cadastra conta ativa com sessão imediata e sem exigir e-mail", async () => {
     const database = await started;
     const first = await call(app, "POST", "/v1/auth/register", {
-      displayName: "Helena",
+      displayName: "Helena Costa",
       email: "Helena@Exemplo.com",
       password,
     });
     expect(first.statusCode).toBe(201);
     const firstBody = first.json<{
       status: string;
-      emailDelivery: string;
       message: string;
-      account?: unknown;
+      account?: { user: { email: string; emailVerifiedAt: string | null } };
+      redirectTo?: string;
+      emailVerified?: boolean;
     }>();
-    expect(firstBody.status).toBe("accepted");
-    expect(firstBody.account).toBeUndefined();
-    expect(first.headers["set-cookie"]).toBeUndefined();
-    expect(firstBody.emailDelivery).toBe("captured");
+    expect(firstBody.status).toBe("created");
+    expect(firstBody.account?.user.email).toBe("helena@exemplo.com");
+    expect(firstBody.emailVerified).toBe(false);
+    expect(firstBody.redirectTo).toBe("/app");
+    expect(first.headers["set-cookie"]).toBeTruthy();
+    expect(email.latest("email_verification", "helena@exemplo.com")).toBeUndefined();
 
     const user = await database.db.query.users.findFirst({
       where: eq(users.email, "helena@exemplo.com"),
     });
-    expect(user?.status).toBe("pending_verification");
+    expect(user?.status).toBe("active");
     expect(user?.emailVerifiedAt).toBeNull();
 
+    const membership = await database.db.query.organizationMembers.findFirst({
+      where: eq(organizationMembers.userId, user?.id ?? ""),
+    });
+    expect(membership?.status).toBe("active");
+
     const duplicate = await call(app, "POST", "/v1/auth/register", {
-      displayName: "Outra",
+      displayName: "Outra Pessoa",
       email: "helena@exemplo.com",
       password,
     });
-    expect(duplicate.statusCode).toBe(201);
-    expect(duplicate.json<{ status: string }>().status).toBe("accepted");
-    expect(JSON.stringify(duplicate.json())).not.toMatch(/já existe|already/i);
-
-    const pendingLogin = await call(app, "POST", "/v1/auth/login", {
-      email: "helena@exemplo.com",
-      password,
-    });
-    expect(pendingLogin.statusCode).toBe(401);
-
-    const mail = email.latest("email_verification", "helena@exemplo.com");
-    expect(mail?.token).toBeTruthy();
-    expect(JSON.stringify(first.json())).not.toContain(mail?.token);
-
-    const confirmed = await call(app, "POST", "/v1/auth/email-verification/confirm", {
-      token: mail?.token,
-    });
-    expect(confirmed.statusCode).toBe(200);
-
-    const reuse = await call(app, "POST", "/v1/auth/email-verification/confirm", {
-      token: mail?.token,
-    });
-    expect(reuse.statusCode).toBe(409);
+    expect(duplicate.statusCode).toBe(409);
 
     const login = await call(app, "POST", "/v1/auth/login", {
       email: "helena@exemplo.com",
@@ -91,13 +77,14 @@ describe("Etapa 1 — identidade", () => {
     });
     expect(login.statusCode).toBe(200);
 
+    const session = await call(app, "GET", "/v1/auth/session", undefined, sessionFrom(first.headers));
+    expect(session.statusCode).toBe(200);
+
     const audits = await database.db
       .select()
       .from(auditEvents)
       .where(eq(auditEvents.actorUserId, user?.id ?? ""));
     expect(audits.some((event) => event.action === "user.registered")).toBe(true);
-    expect(audits.some((event) => event.action === "email.verified")).toBe(true);
-    expect(JSON.stringify(audits)).not.toContain(mail?.token);
   });
 
   it("recupera senha com resposta neutra e revoga sessões", async () => {
@@ -261,7 +248,8 @@ describe("Etapa 1 — identidade", () => {
     const memberships = session.json<{
       account: { memberships: Array<{ organizationId: string; roles: string[] }> };
     }>().account.memberships;
-    expect(memberships).toHaveLength(2);
+    // Organização pessoal criada no cadastro + dois vínculos por convite.
+    expect(memberships).toHaveLength(3);
     expect(memberships.find((item) => item.organizationId === id2)?.roles).toEqual(["member"]);
     expect(memberships.find((item) => item.organizationId === id3)?.roles).toEqual([
       "administrator",
@@ -287,7 +275,7 @@ describe("Etapa 1 — identidade", () => {
     const ownerSession = await call(app, "GET", "/v1/auth/session", undefined, ownerCookie);
     expect(
       ownerSession.json<{ account: { memberships: unknown[] } }>().account.memberships,
-    ).toHaveLength(3);
+    ).toHaveLength(4);
     void invite2;
   });
 

@@ -11,6 +11,8 @@ Métodos: `createPayment`, `createPaymentIntent`, `createCheckoutSession`, statu
 - Default: `NotConfiguredPaymentProvider` → status/`PAYMENT_PROVIDER_NOT_CONFIGURED`
 - Health: `status: not_configured`
 - Checkout sem adapter: `checkoutUrl: null`, status `not_configured` — nunca finge sessão paga
+- Adapter concreto: **Asaas** (`AsaasPaymentProvider`, factory `createPaymentProviderFromEnv`) — ver `docs/ASAAS.md`
+- Webhook events preferem `externalEventId` do PSP para idempotência (paid→refunded no mesmo pagamento)
 
 ## Escopos no produto
 

@@ -816,6 +816,79 @@ export function CheckoutSummary({
           </dd>
         </div>
       </dl>
+      <PaymentInstructions metadata={meta} paymentMethod={intent.paymentMethod} />
+    </section>
+  );
+}
+
+/** Instruções PIX / boleto / fatura Asaas — nunca exibe dados de cartão. */
+export function PaymentInstructions({
+  metadata,
+  paymentMethod,
+}: {
+  metadata: Record<string, unknown>;
+  paymentMethod: string;
+}) {
+  const pixCopy = typeof metadata.pixCopyPaste === "string" ? metadata.pixCopyPaste : null;
+  const pixQr = typeof metadata.pixQrCodeBase64 === "string" ? metadata.pixQrCodeBase64 : null;
+  const boletoLine =
+    typeof metadata.boletoDigitableLine === "string" ? metadata.boletoDigitableLine : null;
+  const bankSlipUrl = typeof metadata.bankSlipUrl === "string" ? metadata.bankSlipUrl : null;
+  const checkoutUrl =
+    typeof metadata.checkoutUrl === "string"
+      ? metadata.checkoutUrl
+      : typeof metadata.invoiceUrl === "string"
+        ? metadata.invoiceUrl
+        : null;
+
+  if (!pixCopy && !pixQr && !boletoLine && !bankSlipUrl && !checkoutUrl) return null;
+
+  return (
+    <section className="vj-stack" aria-labelledby="payment-instructions">
+      <h2 id="payment-instructions" className="vj-subtitle">
+        Como pagar
+      </h2>
+      {pixQr ? (
+        <div>
+          <p className="vj-meta">QR Code Pix</p>
+          <img
+            src={pixQr.startsWith("data:") ? pixQr : `data:image/png;base64,${pixQr}`}
+            alt="QR Code Pix para pagamento"
+            width={220}
+            height={220}
+          />
+        </div>
+      ) : null}
+      {pixCopy ? (
+        <div>
+          <p className="vj-meta">Pix copia e cola</p>
+          <p>
+            <code style={{ wordBreak: "break-all" }}>{pixCopy}</code>
+          </p>
+        </div>
+      ) : null}
+      {boletoLine ? (
+        <div>
+          <p className="vj-meta">Linha digitável do boleto</p>
+          <p>
+            <code style={{ wordBreak: "break-all" }}>{boletoLine}</code>
+          </p>
+        </div>
+      ) : null}
+      {bankSlipUrl ? (
+        <p>
+          <a href={bankSlipUrl} target="_blank" rel="noreferrer">
+            Abrir boleto (PDF)
+          </a>
+        </p>
+      ) : null}
+      {checkoutUrl && (paymentMethod === "credit_card" || !pixCopy) ? (
+        <p>
+          <a href={checkoutUrl} target="_blank" rel="noreferrer">
+            Abrir fatura segura do provedor
+          </a>
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -1642,36 +1715,42 @@ export function PublicPlansComparison({ items }: { items: MonetizationProduct[] 
     );
   }
   return (
-    <div className="vj-card-grid">
-      {items.map((plan) => {
-        const price = plan.prices?.find((p) => p.active) ?? plan.prices?.[0];
-        const features = Array.isArray(plan.features) ? plan.features : null;
-        return (
-          <article key={plan.id} className="vj-card" aria-labelledby={`plan-${plan.id}`}>
-            <h2 id={`plan-${plan.id}`} className="vj-card-title">
-              {plan.name}
-            </h2>
-            <p className="vj-title">
-              {price ? formatMoneyCents(price.amountCents) : "Sob consulta"}
-            </p>
-            <p className="vj-meta">{plan.description ?? plan.planTier ?? plan.key}</p>
-            {features && features.length > 0 ? (
-              <ul>
-                {features.map((f, i) => (
-                  <li key={typeof f === "string" ? f : `feature-${i}`}>
-                    {typeof f === "string" ? f : JSON.stringify(f)}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="vj-meta">
-                Features: não configuradas nesta listagem pública (fonte:{" "}
-                {plan.featureSource ?? "entitlement_service"}).
+    <div className="vj-stack">
+      <Alert tone="warning" title="Checkout público desabilitado">
+        A contratação self-serve permanece desligada até homologação financeira
+        (FEATURE_PUBLIC_CHECKOUT). Use o painel autenticado após liberação.
+      </Alert>
+      <div className="vj-card-grid">
+        {items.map((plan) => {
+          const price = plan.prices?.find((p) => p.active) ?? plan.prices?.[0];
+          const features = Array.isArray(plan.features) ? plan.features : null;
+          return (
+            <article key={plan.id} className="vj-card" aria-labelledby={`plan-${plan.id}`}>
+              <h2 id={`plan-${plan.id}`} className="vj-card-title">
+                {plan.name}
+              </h2>
+              <p className="vj-title">
+                {price ? formatMoneyCents(price.amountCents) : "Sob consulta"}
               </p>
-            )}
-          </article>
-        );
-      })}
+              <p className="vj-meta">{plan.description ?? plan.planTier ?? plan.key}</p>
+              {features && features.length > 0 ? (
+                <ul>
+                  {features.map((f, i) => (
+                    <li key={typeof f === "string" ? f : `feature-${i}`}>
+                      {typeof f === "string" ? f : JSON.stringify(f)}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="vj-meta">
+                  Features: não configuradas nesta listagem pública (fonte:{" "}
+                  {plan.featureSource ?? "entitlement_service"}).
+                </p>
+              )}
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 }

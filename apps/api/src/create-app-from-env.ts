@@ -1,5 +1,7 @@
 import {
   createAiGatewayFromEnv,
+  createBillingProviderFromEnv,
+  createPaymentProviderFromEnv,
   NotConfiguredAuctionBidProvider,
   NotConfiguredAuctionProvider,
   NotConfiguredOCRProvider,
@@ -72,6 +74,29 @@ export async function createAppFromEnv(
     publicOpportunityProvider: new NotConfiguredPublicOpportunityProvider(),
     auctionProvider: new NotConfiguredAuctionProvider(),
     auctionBidProvider: new NotConfiguredAuctionBidProvider(),
+    paymentProvider: createPaymentProviderFromEnv({
+      PAYMENT_PROVIDER: env.PAYMENT_PROVIDER,
+      BILLING_PROVIDER: env.BILLING_PROVIDER,
+      ...(env.ASAAS_API_KEY ? { ASAAS_API_KEY: env.ASAAS_API_KEY } : {}),
+      ...(env.ASAAS_API_URL ? { ASAAS_API_URL: env.ASAAS_API_URL } : {}),
+      ASAAS_ENVIRONMENT: env.ASAAS_ENVIRONMENT,
+      ...(env.ASAAS_WEBHOOK_TOKEN ? { ASAAS_WEBHOOK_TOKEN: env.ASAAS_WEBHOOK_TOKEN } : {}),
+      ...(env.ASAAS_USER_AGENT ? { ASAAS_USER_AGENT: env.ASAAS_USER_AGENT } : {}),
+      ASAAS_HEALTHCHECK: env.ASAAS_HEALTHCHECK,
+      PAYMENTS_LIVE: env.PAYMENTS_LIVE,
+      FEATURE_PUBLIC_CHECKOUT: env.FEATURE_PUBLIC_CHECKOUT,
+    }),
+    billingProvider: createBillingProviderFromEnv({
+      PAYMENT_PROVIDER: env.PAYMENT_PROVIDER,
+      BILLING_PROVIDER: env.BILLING_PROVIDER,
+      ...(env.ASAAS_API_KEY ? { ASAAS_API_KEY: env.ASAAS_API_KEY } : {}),
+      ...(env.ASAAS_API_URL ? { ASAAS_API_URL: env.ASAAS_API_URL } : {}),
+      ASAAS_ENVIRONMENT: env.ASAAS_ENVIRONMENT,
+      ...(env.ASAAS_WEBHOOK_TOKEN ? { ASAAS_WEBHOOK_TOKEN: env.ASAAS_WEBHOOK_TOKEN } : {}),
+      ...(env.ASAAS_USER_AGENT ? { ASAAS_USER_AGENT: env.ASAAS_USER_AGENT } : {}),
+      ASAAS_HEALTHCHECK: env.ASAAS_HEALTHCHECK,
+      PAYMENTS_LIVE: env.PAYMENTS_LIVE,
+    }),
   });
 
   return {

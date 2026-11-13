@@ -61,6 +61,25 @@ export const apiEnvSchema = z.object({
   PUBLIC_OPPORTUNITY_PROVIDER: z.enum(["not_configured"]).default("not_configured"),
   AUCTION_PROVIDER: z.enum(["not_configured"]).default("not_configured"),
   LEGAL_SOURCE_PROVIDER: z.enum(["not_configured"]).default("not_configured"),
+  /** PSP: not_configured (padrão) | asaas. */
+  PAYMENT_PROVIDER: z.enum(["not_configured", "asaas"]).default("not_configured"),
+  /** Assinaturas externas; se omitido e PAYMENT_PROVIDER=asaas, espelha asaas na factory. */
+  BILLING_PROVIDER: z.enum(["not_configured", "asaas"]).default("not_configured"),
+  ASAAS_API_KEY: optionalSecret,
+  /** Override da base URL (padrão: sandbox ou production conforme ASAAS_ENVIRONMENT). */
+  ASAAS_API_URL: optionalString,
+  ASAAS_ENVIRONMENT: z.enum(["sandbox", "production"]).default("sandbox"),
+  /** Token do webhook (header asaas-access-token). Definido por nós no cadastro do webhook. */
+  ASAAS_WEBHOOK_TOKEN: optionalSecret,
+  ASAAS_USER_AGENT: optionalString,
+  ASAAS_HEALTHCHECK: z.enum(["0", "1"]).default("0"),
+  /**
+   * Gate de cobrança real: produção Asaas só com PAYMENTS_LIVE=1.
+   * Sandbox não exige este flag.
+   */
+  PAYMENTS_LIVE: z.enum(["0", "1"]).default("0"),
+  /** Self-serve público; permanece 0 até homologação. */
+  FEATURE_PUBLIC_CHECKOUT: z.enum(["0", "1"]).default("0"),
 });
 
 export const workerEnvSchema = z.object({

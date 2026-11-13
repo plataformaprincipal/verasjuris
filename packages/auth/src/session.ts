@@ -54,12 +54,9 @@ export async function findSession(
       },
     },
   });
-  if (
-    !row?.user.profile ||
-    !row.user.professionalProfile ||
-    row.user.status !== "active" ||
-    !row.user.emailVerifiedAt
-  ) {
+  // Contas ativas podem manter sessão com e-mail ainda não verificado.
+  // Funcionalidades sensíveis devem exigir emailVerifiedAt separadamente.
+  if (!row?.user.profile || !row.user.professionalProfile || row.user.status !== "active") {
     return null;
   }
 

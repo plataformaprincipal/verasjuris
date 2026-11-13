@@ -71,9 +71,9 @@ function financeDeps(deps: ApiDeps) {
     throw new Error("PaymentProvider não configurado em ApiDeps.");
   }
   return {
-    billing: new BillingService(deps.db, deps.paymentProvider),
-    checkout: new CheckoutService(deps.db, deps.paymentProvider),
-    payments: new PaymentService(deps.db, deps.paymentProvider),
+    billing: new BillingService(deps.db, deps.paymentProvider, deps.billingProvider),
+    checkout: new CheckoutService(deps.db, deps.paymentProvider, deps.billingProvider),
+    payments: new PaymentService(deps.db, deps.paymentProvider, deps.billingProvider),
     ledger: new LedgerOps(deps.db, deps.paymentProvider),
     entitlements: new EntitlementService(deps.db),
   };

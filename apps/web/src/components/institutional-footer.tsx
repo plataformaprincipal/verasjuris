@@ -2,66 +2,51 @@
 
 import { LanguageSwitcher, useLocale } from "./locale-provider";
 
-type FooterLink = { href: string; labelKey: string };
+type FooterLink = { href: string; label: string };
 
-const PRODUCT: FooterLink[] = [
-  { href: "/planos", labelKey: "footer.plans" },
-  { href: "/marketplace", labelKey: "footer.marketplace" },
-  { href: "/educacao", labelKey: "footer.education" },
-  { href: "/status", labelKey: "footer.status" },
+const PLATFORM: FooterLink[] = [
+  { href: "/", label: "Início" },
+  { href: "/ferramentas", label: "Ferramentas" },
+  { href: "/explorar", label: "Explorar" },
+  { href: "/juris-one", label: "Juris One" },
+  { href: "/marketplace-juridico", label: "Marketplace" },
+  { href: "/planos", label: "Planos" },
+  { href: "/integracoes", label: "Integrações" },
+];
+
+const SOLUTIONS: FooterLink[] = [
+  { href: "/solucoes/advogados", label: "Advogados" },
+  { href: "/solucoes/escritorios", label: "Escritórios" },
+  { href: "/solucoes/empresas", label: "Empresas" },
+  { href: "/solucoes/departamentos-juridicos", label: "Departamentos jurídicos" },
+  { href: "/solucoes/clientes", label: "Clientes" },
 ];
 
 const COMPANY: FooterLink[] = [
-  { href: "/institucional/sobre", labelKey: "footer.about" },
-  { href: "/institucional/contato", labelKey: "footer.contact" },
-  { href: "/institucional/ajuda", labelKey: "footer.help" },
+  { href: "/institucional/sobre", label: "Sobre" },
+  { href: "/institucional/contato", label: "Contato" },
+  { href: "/politicas/seguranca", label: "Segurança" },
+  { href: "/acessibilidade", label: "Acessibilidade" },
+  { href: "/institucional/ajuda", label: "Central de ajuda" },
+  { href: "/idiomas", label: "Idiomas" },
+  { href: "/status", label: "Status" },
 ];
 
 const LEGAL: FooterLink[] = [
-  { href: "/politicas/termos", labelKey: "footer.terms" },
-  { href: "/politicas/privacidade", labelKey: "footer.privacyPolicy" },
-  { href: "/politicas/cookies", labelKey: "footer.cookies" },
-  { href: "/politicas/uso-aceitavel", labelKey: "footer.aup" },
-  { href: "/politicas/ia", labelKey: "footer.aiPolicy" },
-  { href: "/politicas/marketplace", labelKey: "footer.marketplacePolicy" },
-  { href: "/politicas/pagamentos", labelKey: "footer.paymentsPolicy" },
-  { href: "/politicas/verificacao-profissional", labelKey: "footer.verificationPolicy" },
-  { href: "/politicas/direitos-autorais", labelKey: "footer.copyrightPolicy" },
+  { href: "/politicas/termos", label: "Termos de uso" },
+  { href: "/politicas/privacidade", label: "Privacidade" },
+  { href: "/politicas/cookies", label: "Cookies" },
+  { href: "/politicas/lgpd", label: "Informações legais / LGPD" },
 ];
 
-const SECURITY: FooterLink[] = [
-  { href: "/politicas/seguranca", labelKey: "footer.securityPolicy" },
-  { href: "/institucional/compliance", labelKey: "footer.whistleblowing" },
-];
-
-const PRIVACY: FooterLink[] = [
-  { href: "/politicas/lgpd", labelKey: "footer.lgpd" },
-  { href: "/institucional/preferencias-privacidade", labelKey: "footer.privacyPrefs" },
-];
-
-const A11Y: FooterLink[] = [
-  { href: "/acessibilidade", labelKey: "footer.accessibility" },
-  { href: "/acessibilidade/declaracao", labelKey: "a11y.statement" },
-];
-
-const DEVELOPERS: FooterLink[] = [{ href: "/developers", labelKey: "footer.api" }];
-
-function Section({
-  title,
-  links,
-  t,
-}: {
-  title: string;
-  links: FooterLink[];
-  t: (k: string) => string;
-}) {
+function Section({ title, links }: { title: string; links: FooterLink[] }) {
   return (
     <section>
       <h2 className="vj-footer-heading">{title}</h2>
       <ul className="vj-footer-list">
         {links.map((link) => (
           <li key={link.href}>
-            <a href={link.href}>{t(link.labelKey)}</a>
+            <a href={link.href}>{link.label}</a>
           </li>
         ))}
       </ul>
@@ -74,18 +59,10 @@ export function InstitutionalFooter() {
   return (
     <footer className="vj-institutional-footer" role="contentinfo">
       <div className="vj-institutional-footer-grid">
-        <Section title={t("footer.product")} links={PRODUCT} t={t} />
-        <Section title={t("footer.company")} links={COMPANY} t={t} />
-        <Section title={t("footer.legal")} links={LEGAL} t={t} />
-        <Section title={t("footer.security")} links={SECURITY} t={t} />
-        <Section title={t("footer.privacy")} links={PRIVACY} t={t} />
-        <Section title={t("footer.accessibility")} links={A11Y} t={t} />
-        <Section title={t("footer.developers")} links={DEVELOPERS} t={t} />
-        <Section
-          title={t("footer.support")}
-          links={[{ href: "/institucional/ajuda", labelKey: "footer.help" }]}
-          t={t}
-        />
+        <Section title="Plataforma" links={PLATFORM} />
+        <Section title="Soluções" links={SOLUTIONS} />
+        <Section title="Institucional" links={COMPANY} />
+        <Section title="Jurídico" links={LEGAL} />
         <section>
           <h2 className="vj-footer-heading">{t("footer.languages")}</h2>
           <LanguageSwitcher />

@@ -33,11 +33,22 @@ export type ApiFailure = {
 
 /**
  * Base URL da API para fetches do servidor Next (RSC, route handlers, BFF).
- * Prefere `API_INTERNAL_URL`. Não use `NEXT_PUBLIC_API_URL` no servidor.
+ * Prefere `API_INTERNAL_URL`. Em produção na Vercel, usa `NEXT_PUBLIC_API_URL`
+ * como fallback seguro (HTTPS). Nunca cai em localhost em runtime Vercel.
  */
 export function apiInternalUrl(): string {
   const internal = process.env.API_INTERNAL_URL?.trim();
-  if (internal) return internal;
+  if (internal) return internal.replace(/\/$/, "");
+
+  const publicUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (publicUrl?.startsWith("https://")) return publicUrl.replace(/\/$/, "");
+
+  if (process.env.VERCEL === "1" || process.env.NODE_ENV === "production") {
+    throw new Error(
+      "API_INTERNAL_URL (ou NEXT_PUBLIC_API_URL https) é obrigatória em produção para o BFF /api/v1.",
+    );
+  }
+
   return "http://127.0.0.1:4000";
 }
 

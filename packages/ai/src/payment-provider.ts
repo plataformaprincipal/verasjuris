@@ -176,6 +176,12 @@ export type PaymentWebhookEventType =
 
 export type PaymentWebhookEvent = {
   type: PaymentWebhookEventType;
+  /**
+   * Identificador estável do evento no PSP (preferido para idempotência).
+   * Sem isto, o serviço usa payment/intent/session id — insuficiente para
+   * sequências paid→refunded no mesmo pagamento.
+   */
+  externalEventId?: string | null;
   externalPaymentId?: string | null;
   externalIntentId?: string | null;
   externalSessionId?: string | null;

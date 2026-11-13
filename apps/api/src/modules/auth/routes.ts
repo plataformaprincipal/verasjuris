@@ -21,6 +21,7 @@ import type {
   DocumentVerificationProvider,
   BiometricVerificationProvider,
   FeeTableProvider,
+  BillingProvider,
   PaymentProvider,
   PayoutProvider,
   BankingProvider,
@@ -75,6 +76,7 @@ import {
   confirmTokenSchema,
   emailOnlySchema,
   loginSchema,
+  onboardingRegisterSchema,
   parseInput,
   passwordResetConfirmSchema,
   registerSchema,
@@ -155,6 +157,8 @@ export type ApiDeps = {
   environmentalDataProvider?: EnvironmentalDataProvider;
   registryProvider?: RegistryProvider;
   paymentProvider?: PaymentProvider;
+  /** Assinaturas externas (Asaas etc.); ausente = NOT_CONFIGURED. */
+  billingProvider?: BillingProvider;
   /** Repasses externos; ausente = NOT_CONFIGURED (nunca marca PAID). */
   payoutProvider?: PayoutProvider;
   /** Contas/extratos bancários; ausente = NOT_CONFIGURED. */
@@ -299,15 +303,26 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: ApiDeps): P
         "Houve tentativas demais em pouco tempo. Aguarde alguns minutos. Nenhuma conta foi criada.",
       );
     }
-    const input = parseInput(registerSchema, request.body);
+    const body = (request.body ?? {}) as Record<string, unknown>;
+    const registerInput =
+      typeof body.persona === "string"
+        ? { mode: "onboarding" as const, ...parseInput(onboardingRegisterSchema, body) }
+        : { mode: "legacy" as const, ...parseInput(registerSchema, body) };
     const result = await registerAccount(
       deps.db,
-      input,
+      registerInput,
       meta(request),
       deps.events,
       emailContext(deps),
     );
-    return reply.status(201).send(result);
+    setSessionCookie(reply, result.token, deps.secureCookies);
+    return reply.status(201).send({
+      status: result.status,
+      account: result.account,
+      redirectTo: result.redirectTo,
+      emailVerified: result.emailVerified,
+      message: result.message,
+    });
   });
 
   app.post("/auth/login", async (request, reply) => {

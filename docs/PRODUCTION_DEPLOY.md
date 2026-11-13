@@ -6,18 +6,21 @@ Três projetos Vercel, cada um com **Root Directory** distinto. Segredos só em 
 
 | Projeto | Root Directory | Build | Start / Output |
 | --- | --- | --- | --- |
-| **web** | `apps/web` | `pnpm` + Next.js padrão | Next managed |
-| **api** | `apps/api` | `pnpm build` → `dist/vercel.js` | `vercel.json` → `@vercel/node` |
-| **worker** | `apps/worker` | `pnpm build` → `dist/vercel.js` | `vercel.json` → `@vercel/node` |
+| **web** | `apps/web` | `pnpm --filter @verasjuris/web build` | Next managed (`apps/web/vercel.json`) |
+| **api** | `apps/api` | `pnpm --filter @verasjuris/api build` → `dist/vercel.cjs` | `vercel.json` → `@vercel/node` |
+| **worker** | `apps/worker` | `pnpm --filter @verasjuris/worker build` → `dist/vercel.cjs` | `vercel.json` → `@vercel/node` |
 
-Antes do deploy da API/worker: instalar deps na raiz do monorepo (`pnpm install`) e garantir que o build rode a partir do pacote (`pnpm --filter @verasjuris/api build`).
+Os `vercel.json` de api/worker/web já definem `installCommand`/`buildCommand` a partir da raiz do monorepo (`pnpm install --frozen-lockfile`).
 
 Arquivos de roteamento:
 
-- `apps/api/vercel.json` — todas as rotas → `dist/vercel.js`
+- `apps/api/vercel.json` — todas as rotas → `dist/vercel.cjs` (CJS para compatibilidade `@vercel/node`)
 - `apps/worker/vercel.json` — idem
+- `apps/web/vercel.json` — framework Next.js
 
-O entry `src/main.ts` continua para Node longo (`pnpm start` / containers). Serverless usa `src/vercel.ts`.
+O entry `src/main.ts` continua para Node longo (`pnpm start` / containers). Serverless usa `src/vercel.ts` (API via `app.inject`; worker com rotas `/health` e `/internal/jobs/run`).
+
+O BFF Next em `/api/v1/[...path]` encaminha **GET/HEAD/POST/PUT/PATCH/DELETE/OPTIONS** para a API (necessário para preferências de acessibilidade, i18n e vários módulos).
 
 ## Variáveis por app
 
@@ -44,6 +47,12 @@ O entry `src/main.ts` continua para Node longo (`pnpm start` / containers). Serv
 | `FEATURE_AI` | não | Deve ser `1` para habilitar IA. Sem isso, OpenAI **não** é registrado. |
 | `OPENAI_API_KEY` / `OPENAI_DEFAULT_MODEL` / `OPENAI_HEALTHCHECK` | se openai | Health de rede só com `OPENAI_HEALTHCHECK=1`. |
 | `DOCUMENT_DOWNLOAD_TOKEN_SECRET` | recomendado | ≥ 16 chars. |
+| `PAYMENT_PROVIDER` | não | `not_configured` (padrão) ou `asaas`. |
+| `BILLING_PROVIDER` | não | `not_configured` ou `asaas`. |
+| `ASAAS_API_KEY` / `ASAAS_ENVIRONMENT` / `ASAAS_WEBHOOK_TOKEN` | se asaas | Ver `docs/ASAAS.md`. Sandbox padrão. |
+| `ASAAS_API_URL` / `ASAAS_USER_AGENT` / `ASAAS_HEALTHCHECK` | opcional | URL override; UA default `VerasJuris`. |
+| `PAYMENTS_LIVE` | produção asaas | Deve ser `1` para `ASAAS_ENVIRONMENT=production`. |
+| `FEATURE_PUBLIC_CHECKOUT` | não | Manter `0` até homologação. |
 
 ### Worker (`apps/worker`)
 

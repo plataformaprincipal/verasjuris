@@ -553,6 +553,34 @@ export {
   type PaymentWebhookVerifyInput,
 } from "./payment-provider.js";
 export {
+  ASAAS_PROVIDER_ID,
+  AsaasClient,
+  type AsaasClientOptions,
+  type AsaasEnvironment,
+  type AsaasPayment,
+  type AsaasSubscription,
+  asaasValueToCents,
+  centsToAsaasValue,
+  mapAsaasBillingType,
+  mapAsaasPaymentStatus,
+  resolveAsaasBaseUrl,
+  safeEqualToken,
+} from "./asaas-client.js";
+export {
+  AsaasPaymentProvider,
+  type AsaasPaymentProviderOptions,
+} from "./asaas-payment-provider.js";
+export {
+  AsaasBillingProvider,
+  type AsaasBillingProviderOptions,
+} from "./asaas-billing-provider.js";
+export {
+  createBillingProviderFromEnv,
+  createPaymentProviderFromEnv,
+  isPublicCheckoutEnabled,
+  type PaymentProviderEnv,
+} from "./create-payment-provider.js";
+export {
   type EducationMediaAsset,
   type EducationMediaHealth,
   type EducationMediaKind,

@@ -14,7 +14,20 @@ const contentSecurityPolicy = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@verasjuris/ui", "@verasjuris/security"],
+  transpilePackages: [
+    "@verasjuris/ui",
+    "@verasjuris/security",
+    "@verasjuris/validation",
+    "@verasjuris/types",
+  ],
+  // Workspace packages use TypeScript ESM (import './x.js' → x.ts).
+  webpack: (config) => {
+    config.resolve.extensionAlias = {
+      ".js": [".ts", ".tsx", ".js"],
+      ".mjs": [".mts", ".mjs"],
+    };
+    return config;
+  },
   poweredByHeader: false,
   agentRules: false,
   async headers() {

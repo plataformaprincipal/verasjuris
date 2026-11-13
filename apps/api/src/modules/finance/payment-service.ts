@@ -1,8 +1,10 @@
 import type {
+  BillingProvider,
   PaymentProvider,
   PaymentWebhookEvent,
   PaymentWebhookVerificationResult,
 } from "@verasjuris/ai";
+import { NotConfiguredBillingProvider } from "@verasjuris/ai";
 import { recordAudit } from "@verasjuris/audit";
 import {
   policyPayment,
@@ -144,9 +146,10 @@ export class PaymentService {
   constructor(
     private readonly db: AppDatabase,
     private readonly paymentProvider: PaymentProvider,
+    billingProvider: BillingProvider = new NotConfiguredBillingProvider(),
   ) {
     this.ledger = new LedgerPostingService(db);
-    this.billing = new BillingService(db, paymentProvider);
+    this.billing = new BillingService(db, paymentProvider, billingProvider);
   }
 
   async providerStatus() {
@@ -228,8 +231,14 @@ export class PaymentService {
             : "not_configured",
           externalIntentId: providerResult.externalIntentId,
           idempotencyKey: input.idempotencyKey,
-          expiresAt: parseDate(input.expiresAt) ?? null,
-          metadata: input.metadata ?? null,
+          expiresAt:
+            parseDate(input.expiresAt) ?? parseDate(providerResult.expiresAt ?? undefined) ?? null,
+          metadata: {
+            ...(input.metadata ?? {}),
+            ...(providerResult.metadata ?? {}),
+            ...(providerResult.checkoutUrl ? { checkoutUrl: providerResult.checkoutUrl } : {}),
+            ...(providerResult.clientSecret ? { clientSecretPresent: "1" } : {}),
+          },
         })
         .returning();
 
@@ -1315,6 +1324,7 @@ export class PaymentService {
 
     const payloadHash = hashPayload(input.rawBody);
     const externalEventId =
+      parsed.externalEventId ||
       parsed.externalPaymentId ||
       parsed.externalIntentId ||
       parsed.externalSessionId ||

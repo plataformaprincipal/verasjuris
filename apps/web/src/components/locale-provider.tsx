@@ -12,6 +12,8 @@ import {
 import {
   DEFAULT_LOCALE,
   LOCALE_LABELS,
+  LOCALE_META,
+  LOCALE_STORAGE_KEY,
   SUPPORTED_LOCALES,
   browserPreferredLocale,
   resolveLocale,
@@ -30,6 +32,29 @@ type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
+function readStoredLocale(): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(LOCALE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredLocale(locale: Locale): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+  } catch {
+    // private mode / blocked storage
+  }
+}
+
+function applyDocumentLocale(locale: Locale): void {
+  document.documentElement.lang = locale;
+  document.documentElement.dir = LOCALE_META[locale].dir;
+}
+
 export function LocaleProvider({
   children,
   userLocale,
@@ -45,6 +70,7 @@ export function LocaleProvider({
     resolveLocale({
       userLocale,
       orgLocale,
+      storedLocale: typeof window !== "undefined" ? readStoredLocale() : null,
       browserLocale: typeof navigator !== "undefined" ? browserPreferredLocale() : null,
     }),
   );
@@ -54,19 +80,21 @@ export function LocaleProvider({
       resolveLocale({
         userLocale,
         orgLocale,
+        storedLocale: readStoredLocale(),
         browserLocale: browserPreferredLocale(),
       }),
     );
   }, [userLocale, orgLocale]);
 
   useEffect(() => {
-    document.documentElement.lang = locale;
+    applyDocumentLocale(locale);
   }, [locale]);
 
   const setLocale = useCallback(
     async (next: Locale, options?: { persist?: boolean }) => {
       setLocaleState(next);
-      document.documentElement.lang = next;
+      applyDocumentLocale(next);
+      writeStoredLocale(next);
       const shouldPersist = options?.persist ?? persist;
       if (!shouldPersist) return;
       try {

@@ -1,4 +1,5 @@
-import type { PaymentProvider } from "@verasjuris/ai";
+import type { BillingProvider, PaymentProvider } from "@verasjuris/ai";
+import { NotConfiguredBillingProvider } from "@verasjuris/ai";
 import { recordAudit } from "@verasjuris/audit";
 import { policyPaymentIntent, type SessionAccount } from "@verasjuris/auth";
 import {
@@ -30,8 +31,9 @@ export class CheckoutService {
   constructor(
     private readonly db: AppDatabase,
     private readonly paymentProvider: PaymentProvider,
+    billingProvider: BillingProvider = new NotConfiguredBillingProvider(),
   ) {
-    this.billing = new BillingService(db, paymentProvider);
+    this.billing = new BillingService(db, paymentProvider, billingProvider);
   }
 
   async checkout(
@@ -67,6 +69,20 @@ export class CheckoutService {
     meta: RequestMeta,
   ) {
     authorize(account, organizationId, (m) => policyPaymentIntent(m, "finance.payment.read"));
+
+    // Checkout self-serve público permanece desabilitado até homologação explícita.
+    if (
+      input.metadata?.publicCheckout === true ||
+      input.metadata?.publicCheckout === "1" ||
+      input.metadata?.publicCheckout === "true"
+    ) {
+      if (process.env.FEATURE_PUBLIC_CHECKOUT !== "1") {
+        throw new AppError(
+          "AUTHORIZATION_ERROR",
+          "Checkout público desabilitado até homologação (FEATURE_PUBLIC_CHECKOUT≠1).",
+        );
+      }
+    }
 
     if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) {
       throw new AppError("VALIDATION_ERROR", "Informe um valor positivo em centavos.", [
@@ -216,6 +232,8 @@ export class CheckoutService {
             parseDate(input.expiresAt) ?? parseDate(providerResult.expiresAt ?? undefined) ?? null,
           metadata: {
             ...(input.metadata ?? {}),
+            ...(providerResult.metadata ?? {}),
+            ...(providerResult.checkoutUrl ? { checkoutUrl: providerResult.checkoutUrl } : {}),
             ...(checkoutSession?.externalSessionId
               ? { externalSessionId: checkoutSession.externalSessionId }
               : {}),

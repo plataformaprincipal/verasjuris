@@ -21,7 +21,7 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: { default: "VerasJuris", template: "%s · VerasJuris" },
   description:
-    "Plataforma para organizar trabalho jurídico com controle humano. Esta versão inicial cria conta, organização e controle de acesso.",
+    "Plataforma jurídica para organizar processos, clientes, documentos, atendimentos e operações, com automação e inteligência artificial assistida.",
   applicationName: "VerasJuris",
   manifest: "/manifest.webmanifest",
 };

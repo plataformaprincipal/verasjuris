@@ -19,7 +19,13 @@ export type AssistantConversation = {
   aiAvailable?: boolean;
 };
 
-const FAQ: Record<Locale, Array<{ q: string; a: string; mode?: AssistantMode }>> = {
+type FaqEntry = { q: string; a: string; mode?: AssistantMode };
+
+const FAQ: Partial<Record<Locale, FaqEntry[]>> & {
+  "pt-BR": FaqEntry[];
+  "en-US": FaqEntry[];
+  "es-ES": FaqEntry[];
+} = {
   "pt-BR": [
     {
       q: "Como entrar na conta?",
@@ -88,16 +94,24 @@ const FAQ: Record<Locale, Array<{ q: string; a: string; mode?: AssistantMode }>>
   ],
 };
 
+function faqForLocale(locale: Locale): FaqEntry[] {
+  if (FAQ[locale]) return FAQ[locale]!;
+  if (locale.startsWith("es")) return FAQ["es-ES"];
+  if (locale.startsWith("en")) return FAQ["en-US"];
+  return FAQ["pt-BR"];
+}
+
 export function faqFor(locale: Locale, mode: AssistantMode): Array<{ q: string; a: string }> {
-  return FAQ[locale]
+  const entries = faqForLocale(locale);
+  return entries
     .filter((item) => !item.mode || item.mode === mode)
-    .concat(FAQ[locale].filter((item) => item.mode && item.mode !== mode).slice(0, 2));
+    .concat(entries.filter((item) => item.mode && item.mode !== mode).slice(0, 2));
 }
 
 export function matchFaq(locale: Locale, mode: AssistantMode, question: string): string | null {
   const q = question.trim().toLowerCase();
   if (!q) return null;
-  const entries = FAQ[locale];
+  const entries = faqForLocale(locale);
   const hit =
     entries.find(
       (item) => (!item.mode || item.mode === mode) && item.q.toLowerCase().includes(q),
@@ -107,7 +121,7 @@ export function matchFaq(locale: Locale, mode: AssistantMode, question: string):
     );
   if (hit) return hit.a;
   if (mode === "legal" || /advogad|lawyer|abogad|consultoria|parecer/i.test(q)) {
-    return FAQ[locale].find((item) => item.mode === "legal")?.a ?? null;
+    return entries.find((item) => item.mode === "legal")?.a ?? null;
   }
   return null;
 }
@@ -172,12 +186,15 @@ export async function sendAssistantMessage(input: {
 export function localFallbackReply(locale: Locale, mode: AssistantMode, question: string): string {
   const faq = matchFaq(locale, mode, question);
   if (faq) return faq;
-  const disclaimers: Record<Locale, string> = {
+  const disclaimers: Partial<Record<Locale, string>> = {
     "pt-BR":
       "Não encontrei uma resposta no FAQ. Consulte a Central de Ajuda ou o suporte. Lembrete: não sou advogado.",
     "en-US": "No FAQ match. Check Help Center or support. Reminder: I am not a lawyer.",
     "es-ES":
       "No hay coincidencia en el FAQ. Consulte Ayuda o soporte. Recordatorio: no soy abogado.",
   };
-  return disclaimers[locale];
+  if (disclaimers[locale]) return disclaimers[locale]!;
+  if (locale.startsWith("es")) return disclaimers["es-ES"]!;
+  if (locale.startsWith("en")) return disclaimers["en-US"]!;
+  return disclaimers["pt-BR"]!;
 }

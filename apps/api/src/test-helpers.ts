@@ -32,9 +32,10 @@ export function sessionFrom(headers: { [key: string]: unknown }): string {
   return match[1];
 }
 
+/** Cria conta ativa com sessão imediata (sem depender de e-mail). */
 export async function registerVerified(
   app: FastifyInstance,
-  email: MemoryEmailProvider,
+  _email: MemoryEmailProvider,
   input: { displayName: string; email: string; password?: string },
 ): Promise<string> {
   const password = input.password ?? testPassword;
@@ -44,17 +45,5 @@ export async function registerVerified(
     password,
   });
   expect(registered.statusCode).toBe(201);
-  expect(registered.headers["set-cookie"]).toBeUndefined();
-  const mail = email.latest("email_verification", input.email);
-  expect(mail?.token).toBeTruthy();
-  const confirmed = await call(app, "POST", "/v1/auth/email-verification/confirm", {
-    token: mail?.token,
-  });
-  expect(confirmed.statusCode).toBe(200);
-  const login = await call(app, "POST", "/v1/auth/login", {
-    email: input.email,
-    password,
-  });
-  expect(login.statusCode).toBe(200);
-  return sessionFrom(login.headers);
+  return sessionFrom(registered.headers);
 }

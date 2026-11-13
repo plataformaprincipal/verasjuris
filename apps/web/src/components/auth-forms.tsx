@@ -3,8 +3,10 @@
 import { CSRF_HEADER } from "@verasjuris/security/constants";
 import { Button, FormField, Input } from "@verasjuris/ui";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useId, useState, type ReactNode } from "react";
+import { resolvePostAuthRedirect } from "../lib/safe-redirect";
 import type { ApiFailure } from "../lib/types";
+import { useLocale } from "./locale-provider";
 
 async function submit(path: string, body: Record<string, string>) {
   const response = await fetch(path, {
@@ -29,8 +31,68 @@ function fieldError(data: ApiFailure, path: string): string | undefined {
   return data.error?.details?.find((detail) => detail.path === path)?.message;
 }
 
-export function LoginForm() {
+function PasswordField({
+  id,
+  name,
+  label,
+  hint,
+  error,
+  autoComplete,
+  minLength,
+}: {
+  id: string;
+  name: string;
+  label: string;
+  hint?: string;
+  error?: string;
+  autoComplete: string;
+  minLength?: number;
+}) {
+  const { t } = useLocale();
+  const [visible, setVisible] = useState(false);
+  const hintId = hint ? `${id}-hint` : undefined;
+  const errorId = error ? `${id}-error` : undefined;
+  const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
+
+  return (
+    <FormField id={id} label={label} hint={hint} error={error}>
+      <div className="vj-password-field">
+        <Input
+          id={id}
+          name={name}
+          type={visible ? "text" : "password"}
+          autoComplete={autoComplete}
+          required
+          minLength={minLength}
+          aria-invalid={Boolean(error)}
+          aria-describedby={describedBy}
+        />
+        <button
+          type="button"
+          className="vj-button vj-button-secondary vj-password-toggle"
+          aria-pressed={visible}
+          aria-controls={id}
+          aria-label={visible ? t("auth.hidePassword") : t("auth.showPassword")}
+          onClick={() => setVisible((value) => !value)}
+        >
+          {visible ? t("auth.hidePassword") : t("auth.showPassword")}
+        </button>
+      </div>
+    </FormField>
+  );
+}
+
+function AuthAlert({ children }: { children: ReactNode }) {
+  return (
+    <p role="alert" className="vj-field-error">
+      {children}
+    </p>
+  );
+}
+
+export function LoginForm({ redirectTo }: { redirectTo?: string | null } = {}) {
   const router = useRouter();
+  const { t } = useLocale();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<ApiFailure>({});
@@ -45,21 +107,20 @@ export function LoginForm() {
     setPending(false);
     if (!result.response.ok) {
       setFields(result.data);
-      setError(result.data.error?.message ?? "Não foi possível entrar. Nenhuma sessão foi aberta.");
+      setError(
+        result.data.error?.message ??
+          t("auth.loginFailed", "Não foi possível entrar. Nenhuma sessão foi aberta."),
+      );
       return;
     }
-    router.push("/app");
+    router.push(resolvePostAuthRedirect(redirectTo ?? null));
     router.refresh();
   }
 
   return (
     <form className="vj-stack" action={onSubmit} noValidate>
-      {error ? (
-        <p role="alert" className="vj-field-error">
-          {error}
-        </p>
-      ) : null}
-      <FormField id="email" label="E-mail" error={fieldError(fields, "email")}>
+      {error ? <AuthAlert>{error}</AuthAlert> : null}
+      <FormField id="email" label={t("auth.email")} error={fieldError(fields, "email")}>
         <Input
           id="email"
           name="email"
@@ -70,34 +131,37 @@ export function LoginForm() {
           aria-describedby={fieldError(fields, "email") ? "email-error" : undefined}
         />
       </FormField>
-      <FormField id="password" label="Senha" error={fieldError(fields, "password")}>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          aria-invalid={Boolean(fieldError(fields, "password"))}
-          aria-describedby={fieldError(fields, "password") ? "password-error" : undefined}
-        />
-      </FormField>
+      <PasswordField
+        id="password"
+        name="password"
+        label={t("auth.password")}
+        error={fieldError(fields, "password")}
+        autoComplete="current-password"
+      />
       <p>
-        <a href="/recuperar-conta">Esqueci a senha</a>
+        <a href="/recuperar-conta">{t("auth.forgotPassword")}</a>
       </p>
-      <Button type="submit" loading={pending} loadingLabel="Entrando">
-        Entrar
+      <Button type="submit" loading={pending} loadingLabel={t("auth.entering")}>
+        {t("auth.login")}
       </Button>
     </form>
   );
 }
 
 export function RegisterForm() {
+  const { t } = useLocale();
+  const termsId = useId();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [fields, setFields] = useState<ApiFailure>({});
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   async function onSubmit(formData: FormData) {
+    if (!termsAccepted) {
+      setError(t("auth.termsRequired", "Aceite os termos para continuar."));
+      return;
+    }
     setPending(true);
     setError(null);
     setSuccess(null);
@@ -111,25 +175,32 @@ export function RegisterForm() {
       setFields(result.data);
       setError(
         result.data.error?.message ??
-          "Não foi possível criar a conta. Nenhum cadastro foi confirmado.",
+          t("auth.signupFailed", "Não foi possível criar a conta. Nenhum cadastro foi confirmado."),
       );
       return;
     }
     setSuccess(
       result.data.message ??
-        "Se existir uma conta elegível para este e-mail, enviaremos as próximas instruções.",
+        t(
+          "auth.signupSuccess",
+          "Se existir uma conta elegível para este e-mail, enviaremos as próximas instruções.",
+        ),
     );
   }
 
   return (
     <form className="vj-stack" action={onSubmit} noValidate>
-      {error ? (
-        <p role="alert" className="vj-field-error">
-          {error}
+      {error ? <AuthAlert>{error}</AuthAlert> : null}
+      {success ? (
+        <p role="status">
+          {success} <a href="/verificar-email">{t("auth.verifyEmail", "Verificar e-mail")}</a>
         </p>
       ) : null}
-      {success ? <p role="status">{success}</p> : null}
-      <FormField id="displayName" label="Nome" error={fieldError(fields, "displayName")}>
+      <FormField
+        id="displayName"
+        label={t("auth.displayName")}
+        error={fieldError(fields, "displayName")}
+      >
         <Input
           id="displayName"
           name="displayName"
@@ -139,7 +210,7 @@ export function RegisterForm() {
           aria-describedby={fieldError(fields, "displayName") ? "displayName-error" : undefined}
         />
       </FormField>
-      <FormField id="email" label="E-mail" error={fieldError(fields, "email")}>
+      <FormField id="email" label={t("auth.email")} error={fieldError(fields, "email")}>
         <Input
           id="email"
           name="email"
@@ -150,63 +221,75 @@ export function RegisterForm() {
           aria-describedby={fieldError(fields, "email") ? "email-error" : undefined}
         />
       </FormField>
-      <FormField
+      <PasswordField
         id="password"
-        label="Senha"
-        hint="Use pelo menos 12 caracteres."
+        name="password"
+        label={t("auth.password")}
+        hint={t("auth.passwordHint")}
         error={fieldError(fields, "password")}
-      >
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
+        autoComplete="new-password"
+        minLength={12}
+      />
+      <label className="vj-check-row" htmlFor={termsId}>
+        <input
+          id={termsId}
+          type="checkbox"
+          checked={termsAccepted}
+          onChange={(event) => setTermsAccepted(event.target.checked)}
           required
-          minLength={12}
-          aria-invalid={Boolean(fieldError(fields, "password"))}
-          aria-describedby={
-            fieldError(fields, "password") ? "password-hint password-error" : "password-hint"
-          }
         />
-      </FormField>
-      <Button type="submit" loading={pending} loadingLabel="Criando a conta">
-        Criar conta
+        <span>
+          {t("auth.termsAccept")} <a href="/politicas/termos">{t("footer.terms")}</a>
+          {" · "}
+          <a href="/politicas/privacidade">{t("footer.privacyPolicy")}</a>
+        </span>
+      </label>
+      <Button type="submit" loading={pending} loadingLabel={t("auth.creating")}>
+        {t("auth.signup")}
       </Button>
       <p>
-        Já tem conta? <a href="/entrar">Entrar</a> · <a href="/verificar-email">Verificar e-mail</a>
+        {t("auth.alreadyHaveAccount")} <a href="/entrar">{t("auth.login")}</a> ·{" "}
+        <a href="/verificar-email">{t("auth.verifyEmail", "Verificar e-mail")}</a>
       </p>
     </form>
   );
 }
 
 export function RequestResetForm() {
+  const { t } = useLocale();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<ApiFailure>({});
 
   async function onSubmit(formData: FormData) {
     setPending(true);
     setMessage(null);
+    setError(null);
     const result = await submit("/api/v1/auth/password-reset/request", {
       email: String(formData.get("email") ?? ""),
     });
     setPending(false);
     if (!result.response.ok) {
       setFields(result.data);
-      setMessage(result.data.error?.message ?? "Não foi possível processar o pedido.");
+      setError(result.data.error?.message ?? t("common.error"));
       return;
     }
-    setMessage(result.data.message ?? "Se existir uma conta elegível, enviaremos as instruções.");
+    setMessage(
+      result.data.message ??
+        t("auth.resetRequested", "Se existir uma conta elegível, enviaremos as instruções."),
+    );
   }
 
   return (
     <form className="vj-stack" action={onSubmit} noValidate>
+      {error ? <AuthAlert>{error}</AuthAlert> : null}
       {message ? <p role="status">{message}</p> : null}
-      <FormField id="email" label="E-mail" error={fieldError(fields, "email")}>
+      <FormField id="email" label={t("auth.email")} error={fieldError(fields, "email")}>
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </FormField>
-      <Button type="submit" loading={pending} loadingLabel="Enviando pedido">
-        Solicitar redefinição
+      <Button type="submit" loading={pending} loadingLabel={t("auth.sending")}>
+        {t("auth.requestReset", "Solicitar redefinição")}
       </Button>
     </form>
   );
@@ -214,6 +297,7 @@ export function RequestResetForm() {
 
 export function ConfirmResetForm({ token }: { token: string }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fields, setFields] = useState<ApiFailure>({});
@@ -228,7 +312,9 @@ export function ConfirmResetForm({ token }: { token: string }) {
     setPending(false);
     if (!result.response.ok) {
       setFields(result.data);
-      setError(result.data.error?.message ?? "Não foi possível redefinir a senha.");
+      setError(
+        result.data.error?.message ?? t("auth.resetFailed", "Não foi possível redefinir a senha."),
+      );
       return;
     }
     router.push("/entrar");
@@ -237,42 +323,33 @@ export function ConfirmResetForm({ token }: { token: string }) {
 
   if (!token) {
     return (
-      <p role="alert" className="vj-field-error">
-        Este link de redefinição está incompleto ou já expirou.
-      </p>
+      <AuthAlert>
+        {t("auth.resetLinkInvalid", "Este link de redefinição está incompleto ou já expirou.")}
+      </AuthAlert>
     );
   }
 
   return (
     <form className="vj-stack" action={onSubmit} noValidate>
-      {error ? (
-        <p role="alert" className="vj-field-error">
-          {error}
-        </p>
-      ) : null}
-      <FormField
+      {error ? <AuthAlert>{error}</AuthAlert> : null}
+      <PasswordField
         id="password"
-        label="Nova senha"
-        hint="Use pelo menos 12 caracteres."
+        name="password"
+        label={t("auth.newPassword", "Nova senha")}
+        hint={t("auth.passwordHint")}
         error={fieldError(fields, "password")}
-      >
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={12}
-        />
-      </FormField>
-      <Button type="submit" loading={pending} loadingLabel="Salvando">
-        Redefinir senha
+        autoComplete="new-password"
+        minLength={12}
+      />
+      <Button type="submit" loading={pending} loadingLabel={t("auth.saving")}>
+        {t("auth.confirmReset", "Redefinir senha")}
       </Button>
     </form>
   );
 }
 
 export function VerifyEmailForm({ initialToken = "" }: { initialToken?: string }) {
+  const { t } = useLocale();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -284,10 +361,13 @@ export function VerifyEmailForm({ initialToken = "" }: { initialToken?: string }
     const result = await submit("/api/v1/auth/email-verification/confirm", { token });
     setPending(false);
     if (!result.response.ok) {
-      setError(result.data.error?.message ?? "Não foi possível verificar o e-mail.");
+      setError(
+        result.data.error?.message ??
+          t("auth.verifyFailed", "Não foi possível verificar o e-mail."),
+      );
       return;
     }
-    setMessage("E-mail verificado. Você já pode entrar.");
+    setMessage(t("auth.verifySuccess", "E-mail verificado. Você já pode entrar."));
   }
 
   async function request(formData: FormData) {
@@ -299,35 +379,34 @@ export function VerifyEmailForm({ initialToken = "" }: { initialToken?: string }
     });
     setPending(false);
     if (!result.response.ok) {
-      setError(result.data.error?.message ?? "Não foi possível processar o pedido.");
+      setError(result.data.error?.message ?? t("common.error"));
       return;
     }
-    setMessage(result.data.message ?? "Se existir uma conta elegível, enviaremos as instruções.");
+    setMessage(
+      result.data.message ??
+        t("auth.resetRequested", "Se existir uma conta elegível, enviaremos as instruções."),
+    );
   }
 
   if (initialToken) {
     return (
       <div className="vj-stack">
-        {error ? (
-          <p role="alert" className="vj-field-error">
-            {error}
-          </p>
-        ) : null}
+        {error ? <AuthAlert>{error}</AuthAlert> : null}
         {message ? (
           <p role="status">{message}</p>
         ) : (
           <Button
             type="button"
             loading={pending}
-            loadingLabel="Verificando"
+            loadingLabel={t("common.loading")}
             onClick={() => void confirm(initialToken)}
           >
-            Confirmar e-mail
+            {t("auth.confirmEmail", "Confirmar e-mail")}
           </Button>
         )}
         {message ? (
           <p>
-            <a href="/entrar">Entrar</a>
+            <a href="/entrar">{t("auth.login")}</a>
           </p>
         ) : null}
       </div>
@@ -336,17 +415,13 @@ export function VerifyEmailForm({ initialToken = "" }: { initialToken?: string }
 
   return (
     <form className="vj-stack" action={request} noValidate>
-      {error ? (
-        <p role="alert" className="vj-field-error">
-          {error}
-        </p>
-      ) : null}
+      {error ? <AuthAlert>{error}</AuthAlert> : null}
       {message ? <p role="status">{message}</p> : null}
-      <FormField id="email" label="E-mail">
+      <FormField id="email" label={t("auth.email")}>
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </FormField>
-      <Button type="submit" loading={pending} loadingLabel="Solicitando">
-        Reenviar verificação
+      <Button type="submit" loading={pending} loadingLabel={t("auth.sending")}>
+        {t("auth.resendVerification", "Reenviar verificação")}
       </Button>
     </form>
   );
