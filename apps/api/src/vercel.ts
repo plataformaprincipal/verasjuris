@@ -53,15 +53,13 @@ export function publicBootDetail(message: string): string {
 export type VercelHandler = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 
 /**
- * Factory do handler `@vercel/node`.
+ * Factory do handler `@vercel/node` / Build Output API.
  * - Singleton lazy da app Fastify (sem `listen`).
  * - Reutiliza a mesma Promise entre cold starts / concorrência.
  * - Em falha de boot, descarta a Promise para permitir retry na próxima invocação.
  * - Encaminha via `inject` (padrão estável serverless; não depende de server HTTP persistente).
  */
-export function createVercelHandler(options?: {
-  createApp?: CreateAppFn;
-}): VercelHandler {
+export function createVercelHandler(options?: { createApp?: CreateAppFn }): VercelHandler {
   const createApp = options?.createApp ?? createAppFromEnv;
   let appPromise: Promise<FastifyInstance> | null = null;
 
@@ -127,7 +125,7 @@ export function createVercelHandler(options?: {
 }
 
 /**
- * Handler Node.js compatível com Vercel (`@vercel/node`).
+ * Handler Node.js compatível com Vercel (Build Output API / `@vercel/node`).
  * Default export exigido pelo runtime.
  */
 const handler = createVercelHandler();

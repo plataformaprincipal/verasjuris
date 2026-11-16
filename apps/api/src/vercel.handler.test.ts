@@ -88,20 +88,20 @@ describe("vercel serverless bootstrap", () => {
     expect(source.includes("server.emit")).toBe(false);
   });
 
-  it("vercel.json aponta para artefato CJS e build monorepo", () => {
+  it("vercel.json usa Build Output API (sem builds/routes legados)", () => {
     const file = path.join(apiRoot, "vercel.json");
     const json = JSON.parse(readFileSync(file, "utf8")) as {
+      framework: null;
       installCommand: string;
       buildCommand: string;
-      builds: Array<{ src: string; use: string }>;
-      routes: Array<{ src: string; dest: string }>;
+      builds?: unknown;
+      routes?: unknown;
     };
+    expect(json.framework).toBeNull();
     expect(json.installCommand).toContain("pnpm install");
     expect(json.buildCommand).toContain("@verasjuris/api");
-    expect(json.builds[0]?.src).toBe("dist/vercel.cjs");
-    expect(json.builds[0]?.use).toBe("@vercel/node");
-    expect(json.routes[0]?.src).toBe("/(.*)");
-    expect(json.routes[0]?.dest).toBe("dist/vercel.cjs");
+    expect(json.builds).toBeUndefined();
+    expect(json.routes).toBeUndefined();
   });
 
   it("publicBootDetail redige URLs e segredos", () => {
@@ -225,7 +225,7 @@ describe("vercel compiled artifact", () => {
   it("dist/vercel.cjs existe após build (ou pré-existente no workspace)", () => {
     const artifact = path.join(apiRoot, "dist", "vercel.cjs");
     // Se o build desta sessão já rodou, o arquivo deve existir.
-    // O teste de build dedicado valida geração fresca.
+    // O teste de build dedicado valida geração fresca; verify-vercel-cjs.mjs no build.
     if (!existsSync(artifact)) {
       expect(existsSync(artifact)).toBe(true);
     } else {

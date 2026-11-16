@@ -12,14 +12,15 @@ export default defineConfig([
     splitting: false,
   },
   {
-    // @vercel/node consome CJS de forma mais previsível que ESM puro.
+    // Função Vercel (Build Output API): o .func não inclui node_modules do monorepo.
+    // Por isso o entry serverless precisa embutir dependências npm (exceto built-ins do Node).
     entry: { vercel: "src/vercel.ts" },
     format: ["cjs"],
     target: "node24",
     outDir: "dist",
     clean: false,
     sourcemap: true,
-    noExternal: [/^@verasjuris\//],
+    noExternal: [/.*/],
     splitting: false,
     outExtension: () => ({ js: ".cjs" }),
   },

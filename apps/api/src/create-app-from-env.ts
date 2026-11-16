@@ -23,6 +23,9 @@ export type AppFromEnv = {
 /**
  * Bootstrap compartilhado: monta Fastify + deps a partir do ambiente, sem `listen`.
  * Usado por `main.ts` (Node longo) e `vercel.ts` (serverless).
+ *
+ * Inclui provedores reais quando configurados (Asaas, Resend, OpenAI) e mantém
+ * os stubs `not_configured` para OCR/leilões/oportunidades públicas.
  */
 export async function createAppFromEnv(
   envSource: NodeJS.ProcessEnv = process.env,
