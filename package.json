@@ -3,18 +3,19 @@
   "private": true,
   "type": "module",
   "version": "0.1.0",
-  "description": "VerasJuris \u2014 funda\u00e7\u00e3o do ecossistema jur\u00eddico digital",
+  "description": "VerasJuris — fundação do ecossistema jurídico digital",
   "packageManager": "pnpm@10.18.3",
   "engines": {
     "node": ">=24"
   },
   "scripts": {
     "dev": "pnpm run --parallel --filter @verasjuris/api --filter @verasjuris/worker --filter @verasjuris/web dev",
-    "build": "pnpm -r --if-present run build",
+    "build": "pnpm -r --if-present run build && pnpm test:artifacts",
     "lint": "biome check .",
     "format": "biome check --write .",
     "typecheck": "pnpm -r --if-present --sort run typecheck",
     "test": "vitest run",
+    "test:artifacts": "vitest run --config vitest.artifacts.config.ts",
     "db:generate": "pnpm --filter @verasjuris/database run db:generate",
     "db:migrate": "pnpm --filter @verasjuris/database run db:migrate",
     "db:seed": "pnpm --filter @verasjuris/database run db:seed"

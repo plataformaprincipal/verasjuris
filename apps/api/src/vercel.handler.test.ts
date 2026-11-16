@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -218,19 +218,5 @@ describe("vercel serverless bootstrap", () => {
     expect(second.statusCode).toBe(200);
     expect(attempt).toBe(2);
     await app.close();
-  });
-});
-
-describe("vercel compiled artifact", () => {
-  it("dist/vercel.cjs, quando presente, exporta handler CJS", () => {
-    const artifact = path.join(apiRoot, "dist", "vercel.cjs");
-    // CI roda testes antes do build; o artefato só existe após `pnpm --filter @verasjuris/api build`
-    // (verify-vercel-cjs.mjs). Sem o arquivo, este check é irrelevante — não falhar a suíte.
-    if (!existsSync(artifact)) {
-      return;
-    }
-    const source = readFileSync(artifact, "utf8");
-    expect(source.length).toBeGreaterThan(100);
-    expect(source).toMatch(/exports\.default|module\.exports/);
   });
 });
