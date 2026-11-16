@@ -88,6 +88,7 @@ import {
   changePassword,
   confirmEmailVerification,
   confirmPasswordReset,
+  getAccountProfile,
   listSessions,
   loginAccount,
   logoutAccount,
@@ -421,14 +422,7 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: ApiDeps): P
 
   app.get("/account/profile", async (request, reply) => {
     const account = await requireAccount(deps, request);
-    return reply.send({
-      profile: {
-        displayName: account.user.displayName,
-        locale: account.user.locale,
-        timeZone: account.user.timeZone,
-        email: account.user.email,
-      },
-    });
+    return reply.send(await getAccountProfile(deps.db, account));
   });
 
   app.get("/sessions", async (request, reply) => {

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { AuthPageChrome } from "../../components/auth-page-chrome";
 import { LoginForm } from "../../components/auth-forms";
 import { AuthPageFooterLink } from "../../components/auth-page-footer";
-import { resolvePostAuthRedirect } from "../../lib/safe-redirect";
+import { resolveAuthenticatedHome } from "../../lib/persona-home";
 import { getSession } from "../../lib/session";
 
 export const metadata: Metadata = { title: "Entrar" };
@@ -14,9 +14,10 @@ export default async function LoginPage({
   searchParams: Promise<{ redirect?: string }>;
 }) {
   const params = await searchParams;
-  const nextPath = resolvePostAuthRedirect(params.redirect ?? null);
   const session = await getSession();
-  if (session.state === "authenticated") redirect(nextPath);
+  if (session.state === "authenticated") {
+    redirect(resolveAuthenticatedHome(session.account, params.redirect ?? null));
+  }
 
   const signupHref = params.redirect
     ? `/cadastro?redirect=${encodeURIComponent(params.redirect)}`

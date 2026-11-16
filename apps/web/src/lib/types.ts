@@ -18,6 +18,8 @@ export type Account = {
     timeZone: string;
     status?: string;
     emailVerified?: boolean;
+    /** Persona do cadastro público — guia o shell inicial (/portal vs /app). */
+    onboardingPersona?: string | null;
   };
   professionalVerificationStatus: "not_submitted" | "pending" | "verified" | "rejected";
   memberships: Membership[];

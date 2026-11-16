@@ -44,14 +44,27 @@ export default function PortalDashboardPage() {
       <Breadcrumb items={breadcrumb} />
       <PageHeader
         title="Portal do Cliente"
-        description="Acompanhe casos, documentos, mensagens e pagamentos do escritório."
+        description="Ambiente simplificado para acompanhar atendimentos, documentos, mensagens e pagamentos autorizados."
       />
+      <div className="vj-inline-actions">
+        <a className="vj-button vj-button-secondary" href="/portal/perfil">
+          Meu perfil
+        </a>
+        <a className="vj-button vj-button-ghost" href="/portal/solicitacoes">
+          Solicitações
+        </a>
+        <a className="vj-button vj-button-ghost" href="/portal/notificacoes">
+          Notificações
+        </a>
+      </div>
       {!portal.ready ? <LoadingState label="Carregando portal" /> : null}
       {error ? <ErrorState title="Erro">{error}</ErrorState> : null}
       {portal.dashboard ? <PortalDashboardCards counts={portal.dashboard} /> : null}
       {portal.ready && portal.linked && recentCount === 0 && !error ? (
-        <EmptyState title="Sem casos visíveis">
-          Quando houver casos vinculados, eles aparecerão aqui.
+        <EmptyState title="Sem casos visíveis ainda">
+          Seu vínculo portal está ativo. Quando um escritório compartilhar casos ou documentos
+          autorizados, eles aparecerão aqui. Você pode abrir solicitações e acompanhar notificações
+          enquanto isso.
         </EmptyState>
       ) : null}
     </div>

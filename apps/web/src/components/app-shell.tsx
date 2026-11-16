@@ -248,6 +248,15 @@ export function AppShell({
               <p className="vj-meta" role="presentation">
                 {email}
               </p>
+              <a href="/app/conta" role="menuitem">
+                {t("nav.account", "Minha conta")}
+              </a>
+              <a href="/app/perfis" role="menuitem">
+                {t("nav.profiles", "Perfis profissionais")}
+              </a>
+              <a href="/app/previsualizacao" role="menuitem">
+                {t("nav.modulePreview", "Catálogo de módulos")}
+              </a>
               <a href="/app/configuracoes/seguranca" role="menuitem">
                 {t("nav.security", "Segurança")}
               </a>

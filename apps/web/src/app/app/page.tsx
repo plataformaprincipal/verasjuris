@@ -1,6 +1,9 @@
 import { SESSION_COOKIE } from "@verasjuris/security/constants";
+import { ONBOARDING_PERSONA_META } from "@verasjuris/validation";
 import { cookies } from "next/headers";
 import { DashboardHome } from "../../components/dashboard-home";
+import { personaFromAccount } from "../../lib/persona-home";
+import { modulesForPersona } from "../../lib/persona-workspace";
 import { activeOrganizationId, getSession } from "../../lib/session";
 import { actionLabel, apiInternalUrl } from "../../lib/types";
 
@@ -68,6 +71,10 @@ export default async function DashboardPage() {
     actionLabels[event.action] = actionLabel(event.action);
   }
 
+  const persona = personaFromAccount(session.account);
+  const personaLabel = persona ? ONBOARDING_PERSONA_META[persona].label : "";
+  const modules = modulesForPersona(persona, permissions);
+
   return (
     <DashboardHome
       organizationName={organization?.organizationName ?? null}
@@ -79,6 +86,10 @@ export default async function DashboardPage() {
       calendarUpcoming={calendarUpcoming}
       deadlineSuggested={deadlineSuggested}
       deadlineConfirmed={deadlineConfirmed}
+      persona={persona}
+      personaLabel={personaLabel}
+      displayName={session.account.user.displayName}
+      modules={modules}
     />
   );
 }

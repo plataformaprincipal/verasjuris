@@ -9,11 +9,13 @@ import {
 } from "@verasjuris/auth";
 import type { AppDatabase } from "@verasjuris/database";
 import {
+  crmClients,
   emailVerificationTokens,
   isUniqueViolation,
   uniqueViolationInfo,
   lawyerProfiles,
   membershipRoles,
+  organizationClientUsers,
   organizationMembers,
   organizations,
   partnerProfiles,
@@ -166,6 +168,67 @@ function organizationNameFor(input: RegisterAccountInput): string {
 function redirectFor(persona: OnboardingPersona | "legacy"): "/app" | "/portal" {
   if (persona === "legacy") return "/app";
   return ONBOARDING_PERSONA_META[persona].redirectTo;
+}
+
+async function ensurePersonalPortalClientLink(
+  db: AppDatabase,
+  input: {
+    userId: string;
+    organizationId: string;
+    membershipId: string | undefined;
+    displayName: string;
+    email: string;
+    phone: string | null;
+    cpf: string | null;
+    socialName: string | null;
+    birthDate: string | null;
+  },
+): Promise<void> {
+  const existingLink = await db.query.organizationClientUsers.findFirst({
+    where: and(
+      eq(organizationClientUsers.organizationId, input.organizationId),
+      eq(organizationClientUsers.userId, input.userId),
+    ),
+  });
+  if (existingLink?.crmClientId) return;
+
+  let crmClientId = existingLink?.crmClientId ?? null;
+  if (!crmClientId) {
+    const [client] = await db
+      .insert(crmClients)
+      .values({
+        organizationId: input.organizationId,
+        personType: "person",
+        status: "active",
+        fullName: input.displayName,
+        socialName: input.socialName,
+        cpfNormalized: input.cpf,
+        birthDate: input.birthDate ? new Date(`${input.birthDate}T12:00:00.000Z`) : null,
+        email: input.email,
+        phone: input.phone,
+        ownerMembershipId: input.membershipId ?? null,
+        createdByUserId: input.userId,
+        notes: "Cliente criado automaticamente no cadastro (portal pessoal).",
+      })
+      .returning({ id: crmClients.id });
+    crmClientId = client?.id ?? null;
+  }
+  if (!crmClientId) return;
+
+  if (existingLink) {
+    await db
+      .update(organizationClientUsers)
+      .set({ crmClientId, updatedAt: new Date() })
+      .where(eq(organizationClientUsers.id, existingLink.id));
+    return;
+  }
+
+  await db.insert(organizationClientUsers).values({
+    organizationId: input.organizationId,
+    userId: input.userId,
+    crmClientId,
+    notes: "Vínculo portal criado no cadastro client_pf.",
+  });
 }
 
 export async function registerAccount(
@@ -373,6 +436,29 @@ export async function registerAccount(
     await ensureDemandTypesCatalog(db, created.organizationId);
     await ensureLossReasonsCatalog(db, created.organizationId);
     await ensureJudicialReferenceCatalog(db);
+
+    // Cliente PF: cria registro CRM próprio e vínculo portal na org pessoal,
+    // para /portal não cair em "não vinculado" logo após o cadastro.
+    if (persona === "client_pf") {
+      await ensurePersonalPortalClientLink(db, {
+        userId: created.userId,
+        organizationId: created.organizationId,
+        membershipId: (
+          await db.query.organizationMembers.findFirst({
+            where: and(
+              eq(organizationMembers.organizationId, created.organizationId),
+              eq(organizationMembers.userId, created.userId),
+            ),
+          })
+        )?.id,
+        displayName,
+        email: emailAddress,
+        phone: input.mode === "onboarding" ? input.phone : null,
+        cpf: input.mode === "onboarding" ? (input.cpf ?? null) : null,
+        socialName: input.mode === "onboarding" ? (input.socialName ?? null) : null,
+        birthDate: input.mode === "onboarding" ? (input.birthDate ?? null) : null,
+      });
+    }
   } catch (error) {
     if (isUniqueViolation(error)) {
       const info = uniqueViolationInfo(error);
@@ -749,6 +835,32 @@ export async function listSessions(db: AppDatabase, account: SessionAccount) {
     ipHint: row.ip ? `${row.ip.split(".").slice(0, 2).join(".")}.*` : null,
     userAgentHint: row.userAgent ? row.userAgent.slice(0, 48) : null,
   }));
+}
+
+export async function getAccountProfile(db: AppDatabase, account: SessionAccount) {
+  const row = await db.query.profiles.findFirst({
+    where: eq(profiles.userId, account.user.id),
+  });
+  return {
+    profile: {
+      displayName: account.user.displayName,
+      locale: account.user.locale,
+      timeZone: account.user.timeZone,
+      email: account.user.email,
+      emailVerified: Boolean(account.user.emailVerifiedAt),
+      onboardingPersona: account.user.onboardingPersona,
+      professionalVerificationStatus: account.professionalVerificationStatus,
+      socialName: row?.socialName ?? null,
+      phoneE164: row?.phoneE164 ?? null,
+      cpfNormalized: row?.cpfNormalized ?? null,
+      birthDate: row?.birthDate ? row.birthDate.toISOString().slice(0, 10) : null,
+      addressJson: row?.addressJson ?? null,
+      termsVersion: row?.termsVersion ?? null,
+      privacyVersion: row?.privacyVersion ?? null,
+      termsAcceptedAt: row?.termsAcceptedAt?.toISOString() ?? null,
+      privacyAcceptedAt: row?.privacyAcceptedAt?.toISOString() ?? null,
+    },
+  };
 }
 
 export async function updateProfile(

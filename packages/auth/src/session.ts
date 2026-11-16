@@ -19,6 +19,8 @@ export type SessionAccount = {
     timeZone: string;
     status: UserStatus;
     emailVerifiedAt: Date | null;
+    /** Persona escolhida no cadastro público (ou legado normalizado). */
+    onboardingPersona: string | null;
   };
   professionalVerificationStatus: "not_submitted" | "pending" | "verified" | "rejected";
   memberships: Array<{
@@ -104,6 +106,7 @@ export async function findSession(
       timeZone: row.user.profile.timeZone,
       status: row.user.status,
       emailVerifiedAt: row.user.emailVerifiedAt,
+      onboardingPersona: row.user.profile.onboardingPersona ?? null,
     },
     professionalVerificationStatus: row.user.professionalProfile.verificationStatus,
     memberships: membershipRows.map((membership) => {
@@ -132,6 +135,7 @@ export function toPublicSession(account: SessionAccount) {
       timeZone: account.user.timeZone,
       status: account.user.status,
       emailVerified: Boolean(account.user.emailVerifiedAt),
+      onboardingPersona: account.user.onboardingPersona,
     },
     professionalVerificationStatus: account.professionalVerificationStatus,
     memberships: account.memberships

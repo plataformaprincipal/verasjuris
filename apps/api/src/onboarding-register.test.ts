@@ -1,4 +1,4 @@
-import { profiles, seedReferenceData, users } from "@verasjuris/database";
+import { organizationClientUsers, profiles, seedReferenceData, users } from "@verasjuris/database";
 import { createTestDatabase } from "@verasjuris/database/testing";
 import { MemoryEmailProvider } from "@verasjuris/email";
 import { eq } from "drizzle-orm";
@@ -58,12 +58,13 @@ describe("onboarding register multi-persona", () => {
       status: string;
       redirectTo: string;
       emailVerified: boolean;
-      account: { user: { email: string } };
+      account: { user: { email: string; onboardingPersona?: string | null } };
     }>();
     expect(body.status).toBe("created");
     expect(body.redirectTo).toBe("/portal");
     expect(body.emailVerified).toBe(false);
     expect(body.account.user.email).toBe("ana.cliente@exemplo.com");
+    expect(body.account.user.onboardingPersona).toBe("client_pf");
     expect(sessionFrom(response.headers)).toBeTruthy();
     expect(email.latest("email_verification", "ana.cliente@exemplo.com")).toBeUndefined();
 
@@ -84,6 +85,11 @@ describe("onboarding register multi-persona", () => {
     expect(profile?.privacyVersion).toBe("2026-11-16");
     expect(profile?.termsAcceptedAt).toBeTruthy();
     expect(profile?.privacyAcceptedAt).toBeTruthy();
+
+    const portalLink = await database.db.query.organizationClientUsers.findFirst({
+      where: eq(organizationClientUsers.userId, user?.id ?? ""),
+    });
+    expect(portalLink?.crmClientId).toBeTruthy();
   });
 
   it("aceita payload do wizard sem displayName e deriva do fullName", async () => {

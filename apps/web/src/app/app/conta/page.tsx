@@ -26,6 +26,16 @@ export default function AccountPage() {
     displayName: "",
     locale: "pt-BR",
     timeZone: "America/Sao_Paulo",
+    email: "",
+    emailVerified: false,
+    onboardingPersona: null as string | null,
+    professionalVerificationStatus: null as string | null,
+    socialName: null as string | null,
+    phoneE164: null as string | null,
+    cpfNormalized: null as string | null,
+    birthDate: null as string | null,
+    termsVersion: null as string | null,
+    privacyVersion: null as string | null,
   });
 
   useEffect(() => {
@@ -42,10 +52,8 @@ export default function AccountPage() {
         if (!cancelled) setSessions(body.sessions);
       }
       if (profileResponse.ok) {
-        const body = (await profileResponse.json()) as {
-          profile: { displayName: string; locale: string; timeZone: string };
-        };
-        if (!cancelled) setProfile(body.profile);
+        const body = (await profileResponse.json()) as { profile: typeof profile };
+        if (!cancelled) setProfile((current) => ({ ...current, ...body.profile }));
       }
     })();
     return () => {
@@ -84,7 +92,14 @@ export default function AccountPage() {
       setError(data.error?.message ?? t("account.profileUpdateError"));
       return;
     }
-    if (data.profile) setProfile(data.profile);
+    if (data.profile) {
+      setProfile((current) => ({
+        ...current,
+        displayName: data.profile!.displayName,
+        locale: data.profile!.locale,
+        timeZone: data.profile!.timeZone,
+      }));
+    }
     setProfileMessage(t("account.profileUpdated"));
   }
 
@@ -149,6 +164,78 @@ export default function AccountPage() {
           {error}
         </p>
       ) : null}
+      <section className="vj-card vj-stack">
+        <h2 className="vj-section-title">{t("account.identity", "Identidade e cadastro")}</h2>
+        <dl className="vj-stack">
+          <div>
+            <dt className="vj-label">{t("auth.email")}</dt>
+            <dd>
+              {profile.email || "—"}
+              {profile.emailVerified
+                ? ` · ${t("account.emailVerified", "verificado")}`
+                : ` · ${t("account.emailUnverified", "não verificado")}`}
+            </dd>
+          </div>
+          {profile.onboardingPersona ? (
+            <div>
+              <dt className="vj-label">{t("dashboard.persona", "Perfil de cadastro")}</dt>
+              <dd>{profile.onboardingPersona}</dd>
+            </div>
+          ) : null}
+          {profile.professionalVerificationStatus ? (
+            <div>
+              <dt className="vj-label">
+                {t("account.verificationStatus", "Verificação profissional")}
+              </dt>
+              <dd>{profile.professionalVerificationStatus}</dd>
+            </div>
+          ) : null}
+          {profile.socialName ? (
+            <div>
+              <dt className="vj-label">{t("register.field.socialName", "Nome social")}</dt>
+              <dd>{profile.socialName}</dd>
+            </div>
+          ) : null}
+          {profile.phoneE164 ? (
+            <div>
+              <dt className="vj-label">{t("register.field.phone", "Telefone")}</dt>
+              <dd>{profile.phoneE164}</dd>
+            </div>
+          ) : null}
+          {profile.cpfNormalized ? (
+            <div>
+              <dt className="vj-label">CPF</dt>
+              <dd>{profile.cpfNormalized}</dd>
+            </div>
+          ) : null}
+          {profile.birthDate ? (
+            <div>
+              <dt className="vj-label">{t("register.field.birthDate", "Data de nascimento")}</dt>
+              <dd>{profile.birthDate}</dd>
+            </div>
+          ) : null}
+        </dl>
+        <p className="vj-meta">
+          {t(
+            "account.readonlyIdentityHint",
+            "E-mail, CPF, telefone e endereço coletados no cadastro são somente leitura aqui. Alterações cadastrais sensíveis seguem fluxos específicos de verificação.",
+          )}
+        </p>
+        {(profile.termsVersion || profile.privacyVersion) && (
+          <p className="vj-meta">
+            {t("account.consents", "Consentimentos")}: termos {profile.termsVersion ?? "—"} ·
+            privacidade {profile.privacyVersion ?? "—"}
+          </p>
+        )}
+        <div className="vj-inline-actions">
+          <ButtonLink href="/app/configuracoes/seguranca" variant="secondary">
+            {t("nav.security", "Segurança e MFA")}
+          </ButtonLink>
+          <ButtonLink href="/institucional/preferencias-privacidade" variant="ghost">
+            {t("account.privacyPreferences", "Preferências de privacidade")}
+          </ButtonLink>
+        </div>
+      </section>
       <section className="vj-card vj-stack">
         <h2 className="vj-section-title">{t("account.profile")}</h2>
         {profileMessage ? <p role="status">{profileMessage}</p> : null}

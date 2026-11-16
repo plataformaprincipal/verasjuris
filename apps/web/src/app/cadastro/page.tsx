@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { AuthPageChrome } from "../../components/auth-page-chrome";
 import { AuthPageFooterLink } from "../../components/auth-page-footer";
 import { RegistrationWizard } from "../../components/registration-wizard";
-import { isSafeRedirectPath, resolvePostAuthRedirect, withRedirect } from "../../lib/safe-redirect";
+import { resolveAuthenticatedHome } from "../../lib/persona-home";
+import { isSafeRedirectPath, withRedirect } from "../../lib/safe-redirect";
 import { getSession } from "../../lib/session";
 
 export const metadata: Metadata = {
@@ -23,7 +24,7 @@ export default async function RegisterPage({
 
   const session = await getSession();
   if (session.state === "authenticated") {
-    redirect(resolvePostAuthRedirect(redirectParam));
+    redirect(resolveAuthenticatedHome(session.account, redirectParam));
   }
 
   return (

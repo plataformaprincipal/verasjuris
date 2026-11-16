@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { useId, useState, type ReactNode } from "react";
 import { translateApiFailure, translateFieldError } from "../lib/i18n/api-errors";
 import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from "../lib/legal";
+import { resolveAuthenticatedHome } from "../lib/persona-home";
 import { resolvePostAuthRedirect } from "../lib/safe-redirect";
-import type { ApiFailure } from "../lib/types";
+import type { Account, ApiFailure } from "../lib/types";
 import { useLocale } from "./locale-provider";
 
 async function submit(path: string, body: Record<string, string>) {
@@ -25,6 +26,8 @@ async function submit(path: string, body: Record<string, string>) {
     emailDelivery?: string;
     verified?: boolean;
     reset?: boolean;
+    account?: Account;
+    redirectTo?: string;
   };
   return { response, data };
 }
@@ -124,7 +127,12 @@ export function LoginForm({ redirectTo }: { redirectTo?: string | null } = {}) {
       );
       return;
     }
-    router.push(resolvePostAuthRedirect(redirectTo ?? null));
+    const account = result.data.account;
+    router.push(
+      account
+        ? resolveAuthenticatedHome(account, redirectTo ?? null)
+        : resolvePostAuthRedirect(redirectTo ?? null),
+    );
     router.refresh();
   }
 
