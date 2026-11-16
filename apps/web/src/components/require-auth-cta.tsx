@@ -3,6 +3,7 @@
 import { Button, ButtonLink, Dialog } from "@verasjuris/ui";
 import { useCallback, useState } from "react";
 import { isSafeRedirectPath, withRedirect } from "../lib/safe-redirect";
+import { useLocale } from "./locale-provider";
 
 type RequireAuthCtaProps = {
   actionLabel: string;
@@ -21,14 +22,16 @@ function currentPath(): string | null {
 export function RequireAuthCta({
   actionLabel,
   message,
-  title = "Entre para continuar",
+  title,
   redirectTo,
   variant = "primary",
   disabled,
 }: RequireAuthCtaProps) {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [target, setTarget] = useState<string | null>(null);
   const close = useCallback(() => setOpen(false), []);
+  const dialogTitle = title ?? t("auth.loginToContinue");
 
   function show() {
     const candidate = redirectTo ?? currentPath();
@@ -41,18 +44,16 @@ export function RequireAuthCta({
       <Button variant={variant} disabled={disabled} aria-haspopup="dialog" onClick={show}>
         {actionLabel}
       </Button>
-      <Dialog open={open} title={title} onClose={close}>
+      <Dialog open={open} title={dialogTitle} onClose={close}>
         <p>{message}</p>
-        <p className="vj-meta">
-          Ao entrar ou criar sua conta, você volta para esta página para continuar.
-        </p>
+        <p className="vj-meta">{t("auth.returnAfterLogin")}</p>
         <div className="vj-inline-actions">
-          <ButtonLink href={withRedirect("/entrar", target)}>Entrar</ButtonLink>
+          <ButtonLink href={withRedirect("/entrar", target)}>{t("nav.login")}</ButtonLink>
           <ButtonLink variant="secondary" href={withRedirect("/cadastro", target)}>
-            Criar conta
+            {t("nav.signup")}
           </ButtonLink>
           <Button variant="ghost" onClick={close}>
-            Agora não
+            {t("auth.notNow")}
           </Button>
         </div>
       </Dialog>

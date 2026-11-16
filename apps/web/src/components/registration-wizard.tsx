@@ -1,7 +1,6 @@
 "use client";
 
 import { CSRF_HEADER } from "@verasjuris/security/constants";
-import { ONBOARDING_PERSONA_META } from "@verasjuris/validation";
 import { Button, FormField, Input, Select, Textarea } from "@verasjuris/ui";
 import { useRouter } from "next/navigation";
 import {
@@ -44,7 +43,11 @@ import {
   type WizardStepId,
 } from "../lib/registration-wizard";
 import { isCommonPassword, isValidCep } from "../lib/br-masks";
+import { interpolate } from "../lib/i18n";
+import { translateApiFailure, translateFieldError } from "../lib/i18n/api-errors";
 import type { ApiFailure } from "../lib/types";
+import { LegalPreviewCards } from "./legal/legal-preview-cards";
+import { useLocale } from "./locale-provider";
 
 type CepStatus = "idle" | "loading" | "found" | "failed";
 
@@ -73,7 +76,10 @@ type TextFieldProps = {
 };
 
 function describedBy(id: string, hint?: string, error?: string) {
-  return [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ") || undefined;
+  return (
+    [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(" ") ||
+    undefined
+  );
 }
 
 function TextField({
@@ -124,6 +130,8 @@ function PasswordInput({
   autoComplete,
   show,
   onToggle,
+  showLabel,
+  hideLabel,
 }: {
   id: string;
   label: string;
@@ -134,6 +142,8 @@ function PasswordInput({
   autoComplete: string;
   show: boolean;
   onToggle: () => void;
+  showLabel: string;
+  hideLabel: string;
 }) {
   return (
     <FormField id={id} label={`${label} *`} hint={hint} error={error}>
@@ -156,9 +166,10 @@ function PasswordInput({
           className="vj-button vj-button-secondary vj-password-toggle"
           aria-pressed={show}
           aria-controls={id}
+          aria-label={show ? hideLabel : showLabel}
           onClick={onToggle}
         >
-          {show ? "Ocultar" : "Mostrar"}
+          {show ? hideLabel : showLabel}
         </button>
       </div>
     </FormField>
@@ -211,8 +222,17 @@ function ReviewRow({ label, value }: { label: string; value?: string }) {
   );
 }
 
+function strengthLabelKey(score: 0 | 1 | 2 | 3, common: boolean, empty: boolean): string {
+  if (empty) return "register.password.strength.none";
+  if (common) return "register.password.strength.common";
+  if (score <= 1) return "register.password.strength.fail";
+  if (score === 2) return "register.password.strength.good";
+  return "register.password.strength.excellent";
+}
+
 export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null }) {
   const router = useRouter();
+  const { t } = useLocale();
   const uid = useId();
   const [state, setState] = useState<WizardState>(INITIAL_WIZARD_STATE);
   const [errors, setErrors] = useState<WizardErrors>({});
@@ -222,7 +242,8 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [success, setSuccess] = useState<RegisterSuccess | null>(null);
   const [cepStatus, setCepStatus] = useState<CepStatus>("idle");
-  const [cepMessage, setCepMessage] = useState<string | null>(null);
+  const [cepMessageKey, setCepMessageKey] = useState<string | null>(null);
+  const [cepServerMessage, setCepServerMessage] = useState<string | null>(null);
   const [focusTick, setFocusTick] = useState(0);
 
   const submittingRef = useRef(false);
@@ -241,6 +262,7 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
   const isOrg = personaIsOrganization(state.persona);
 
   const fid = (name: string) => `${uid}-${name}`;
+  const te = (key?: string) => (key ? t(key, key) : undefined);
 
   useEffect(
     () => () => {
@@ -266,18 +288,15 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
     headingRef.current?.focus();
   }, [stepId, focusTick]);
 
-  const setField = useCallback(
-    <K extends keyof WizardState>(key: K, value: WizardState[K]) => {
-      setState((current) => ({ ...current, [key]: value }));
-      setErrors((current) => {
-        if (!current[key]) return current;
-        const next = { ...current };
-        delete next[key];
-        return next;
-      });
-    },
-    [],
-  );
+  const setField = useCallback(<K extends keyof WizardState>(key: K, value: WizardState[K]) => {
+    setState((current) => ({ ...current, [key]: value }));
+    setErrors((current) => {
+      if (!current[key]) return current;
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  }, []);
 
   async function lookupCep(rawCep: string) {
     const cep = digitsOnly(rawCep);
@@ -287,7 +306,8 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
     const controller = new AbortController();
     cepAbortRef.current = controller;
     setCepStatus("loading");
-    setCepMessage(null);
+    setCepMessageKey(null);
+    setCepServerMessage(null);
     try {
       const response = await fetch(`/api/address/cep/${cep}`, {
         signal: controller.signal,
@@ -303,9 +323,8 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
       if (controller.signal.aborted) return;
       if (!response.ok) {
         setCepStatus("failed");
-        setCepMessage(
-          data.error?.message ?? "Não foi possível consultar o CEP. Preencha o endereço manualmente.",
-        );
+        setCepMessageKey("register.field.cepFailed");
+        setCepServerMessage(data.error?.message ?? null);
         return;
       }
       setState((current) => ({
@@ -325,11 +344,13 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
         return next;
       });
       setCepStatus("found");
-      setCepMessage("Endereço preenchido a partir do CEP. Confira e informe o número.");
+      setCepMessageKey("register.field.cepFound");
+      setCepServerMessage(null);
     } catch {
       if (controller.signal.aborted) return;
       setCepStatus("failed");
-      setCepMessage("Não foi possível consultar o CEP. Preencha o endereço manualmente.");
+      setCepMessageKey("register.field.cepFailed");
+      setCepServerMessage(null);
     }
   }
 
@@ -341,7 +362,8 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
       lastCepRef.current = "";
       if (cepStatus !== "idle") {
         setCepStatus("idle");
-        setCepMessage(null);
+        setCepMessageKey(null);
+        setCepServerMessage(null);
       }
       return;
     }
@@ -396,12 +418,12 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
       const data = (await response.json().catch(() => ({}))) as ApiFailure & RegisterSuccess;
 
       if (response.status !== 201) {
-        const mapped = mapServerErrors(data.error?.details);
+        const mapped = mapServerErrors(data.error?.details, (path, message) =>
+          translateFieldError(path, message, t),
+        );
         const fallback =
-          response.status >= 500
-            ? "Não foi possível concluir o cadastro neste momento. Nenhuma conta foi confirmada. Tente novamente em instantes."
-            : "Não foi possível criar a conta. Nenhum cadastro foi confirmado.";
-        setSubmitError(data.error?.message ?? fallback);
+          response.status >= 500 ? t("register.errors.server") : t("register.errors.createFailed");
+        setSubmitError(translateApiFailure(data, t, fallback));
         if (hasErrors(mapped.errors)) {
           setErrors(mapped.errors);
           if (mapped.firstStep && steps.includes(mapped.firstStep)) setStepId(mapped.firstStep);
@@ -420,9 +442,7 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
       router.push(target);
       router.refresh();
     } catch {
-      setSubmitError(
-        "Não foi possível confirmar a criação da conta. Verifique sua conexão e tente novamente.",
-      );
+      setSubmitError(t("register.errors.network"));
       submittingRef.current = false;
       setPending(false);
     }
@@ -445,35 +465,32 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
       <div className="vj-stack">
         <div role="group" aria-labelledby={fid("persona-legend")}>
           <p id={fid("persona-legend")} className="vj-label">
-            Como você usará a VerasJuris? *
+            {t("register.persona.question")} *
           </p>
           <div className="vj-persona-grid">
-            {PUBLIC_PERSONAS.map((persona: WizardPersona) => {
-              const meta = ONBOARDING_PERSONA_META[persona];
-              return (
-                <button
-                  key={persona}
-                  type="button"
-                  className="vj-persona-card"
-                  aria-pressed={state.persona === persona}
-                  aria-describedby={fid(`persona-${persona}`)}
-                  onClick={() => setField("persona", persona)}
-                >
-                  <strong>{meta.label}</strong>
-                  <span id={fid(`persona-${persona}`)}>{meta.description}</span>
-                </button>
-              );
-            })}
+            {PUBLIC_PERSONAS.map((persona: WizardPersona) => (
+              <button
+                key={persona}
+                type="button"
+                className="vj-persona-card"
+                aria-pressed={state.persona === persona}
+                aria-describedby={fid(`persona-${persona}`)}
+                onClick={() => setField("persona", persona)}
+              >
+                <strong>{t(`register.persona.${persona}`)}</strong>
+                <span id={fid(`persona-${persona}`)}>{t(`register.persona.${persona}.desc`)}</span>
+              </button>
+            ))}
           </div>
           {errors.persona ? (
             <p className="vj-field-error" role="alert">
-              {errors.persona}
+              {te(errors.persona)}
             </p>
           ) : null}
         </div>
         <p className="vj-hint" id={collaboratorId}>
-          É colaborador de uma organização já cadastrada? O acesso de colaboradores é feito por
-          convite. <a href="/convite">Acessar convite</a>.
+          {t("register.persona.inviteFull")}{" "}
+          <a href="/convite">{t("register.persona.inviteLink")}</a>.
         </p>
       </div>
     );
@@ -485,30 +502,30 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
       <div className="vj-stack">
         <TextField
           id={fid("fullName")}
-          label={org ? "Nome completo do responsável" : "Nome completo"}
+          label={org ? t("register.field.fullNameResponsible") : t("register.field.fullName")}
           value={state.fullName}
           onChange={(value) => setField("fullName", value)}
-          error={errors.fullName}
+          error={te(errors.fullName)}
           autoComplete="name"
           maxLength={120}
           required
         />
         <TextField
           id={fid("socialName")}
-          label="Nome social (opcional)"
+          label={t("register.field.socialNameOptional")}
           value={state.socialName}
           onChange={(value) => setField("socialName", value)}
-          error={errors.socialName}
-          hint="Se informado, será usado para tratamento nas comunicações."
+          error={te(errors.socialName)}
+          hint={t("register.field.socialNameHint")}
           autoComplete="nickname"
           maxLength={120}
         />
         <TextField
           id={fid("cpf")}
-          label={org ? "CPF do responsável" : "CPF"}
+          label={org ? t("register.field.cpfResponsible") : t("register.field.cpf")}
           value={state.cpf}
           onChange={(value) => setField("cpf", maskCpf(value))}
-          error={errors.cpf}
+          error={te(errors.cpf)}
           inputMode="numeric"
           autoComplete="off"
           maxLength={14}
@@ -518,11 +535,11 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
         {personaNeedsBirthDate(state.persona) ? (
           <TextField
             id={fid("birthDate")}
-            label="Data de nascimento"
+            label={t("register.field.birthDate")}
             type="date"
             value={state.birthDate}
             onChange={(value) => setField("birthDate", value)}
-            error={errors.birthDate}
+            error={te(errors.birthDate)}
             autoComplete="bday"
             max={new Date().toISOString().slice(0, 10)}
             required
@@ -537,11 +554,11 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
       <div className="vj-stack">
         <TextField
           id={fid("email")}
-          label="E-mail"
+          label={t("register.field.email")}
           type="email"
           value={state.email}
           onChange={(value) => setField("email", value)}
-          error={errors.email}
+          error={te(errors.email)}
           autoComplete="email"
           inputMode="email"
           maxLength={320}
@@ -549,9 +566,9 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
         />
         <FormField
           id={fid("phone")}
-          label="Celular com DDD *"
-          hint="Código do país +55 aplicado automaticamente."
-          error={errors.phone}
+          label={`${t("register.field.phoneWithDdd")} *`}
+          hint={t("register.field.phoneHint")}
+          error={te(errors.phone)}
         >
           <div className="vj-wizard-phone">
             <span className="vj-wizard-phone-prefix" aria-hidden="true">
@@ -579,15 +596,20 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
   }
 
   function renderAddress() {
+    const cepMessage =
+      cepServerMessage ??
+      (cepMessageKey ? t(cepMessageKey) : null) ??
+      (cepStatus === "loading" ? t("register.field.cepLoading") : null);
+
     return (
       <div className="vj-stack">
         <TextField
           id={fid("postalCode")}
-          label="CEP"
+          label={t("register.field.postalCode")}
           value={state.postalCode}
           onChange={onCepChange}
-          error={errors.postalCode}
-          hint="Preenchemos o endereço automaticamente quando possível."
+          error={te(errors.postalCode)}
+          hint={t("register.field.cepHint")}
           autoComplete="postal-code"
           inputMode="numeric"
           maxLength={9}
@@ -596,10 +618,10 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
         />
         {cepStatus === "loading" ? (
           <p className="vj-hint" role="status">
-            Consultando CEP…
+            {t("register.field.cepLoading")}
           </p>
         ) : null}
-        {cepMessage ? (
+        {cepMessage && cepStatus !== "loading" ? (
           <p
             className={cepStatus === "failed" ? "vj-field-error" : "vj-hint"}
             role={cepStatus === "failed" ? "alert" : "status"}
@@ -609,10 +631,10 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
         ) : null}
         <TextField
           id={fid("street")}
-          label="Logradouro"
+          label={t("register.field.street")}
           value={state.street}
           onChange={(value) => setField("street", value)}
-          error={errors.street}
+          error={te(errors.street)}
           autoComplete="address-line1"
           maxLength={160}
           required
@@ -620,30 +642,30 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
         <div className="vj-wizard-row">
           <TextField
             id={fid("number")}
-            label="Número"
+            label={t("register.field.number")}
             value={state.number}
             onChange={(value) => setField("number", value)}
-            error={errors.number}
+            error={te(errors.number)}
             autoComplete="off"
             maxLength={20}
             required
           />
           <TextField
             id={fid("complement")}
-            label="Complemento (opcional)"
+            label={t("register.field.complementOptional")}
             value={state.complement}
             onChange={(value) => setField("complement", value)}
-            error={errors.complement}
+            error={te(errors.complement)}
             autoComplete="address-line2"
             maxLength={80}
           />
         </div>
         <TextField
           id={fid("district")}
-          label="Bairro"
+          label={t("register.field.district")}
           value={state.district}
           onChange={(value) => setField("district", value)}
-          error={errors.district}
+          error={te(errors.district)}
           autoComplete="address-level3"
           maxLength={80}
           required
@@ -651,15 +673,19 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
         <div className="vj-wizard-row">
           <TextField
             id={fid("city")}
-            label="Cidade"
+            label={t("register.field.city")}
             value={state.city}
             onChange={(value) => setField("city", value)}
-            error={errors.city}
+            error={te(errors.city)}
             autoComplete="address-level2"
             maxLength={80}
             required
           />
-          <FormField id={fid("state")} label="UF *" error={errors.state}>
+          <FormField
+            id={fid("state")}
+            label={`${t("register.field.uf")} *`}
+            error={te(errors.state)}
+          >
             <Select
               id={fid("state")}
               name="state"
@@ -672,7 +698,7 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
               aria-invalid={errors.state ? true : undefined}
               aria-describedby={describedBy(fid("state"), undefined, errors.state)}
             >
-              <option value="">Selecione</option>
+              <option value="">{t("common.select")}</option>
               {BR_STATES.map((uf) => (
                 <option key={uf} value={uf}>
                   {uf}
@@ -694,10 +720,14 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
           <>
             <TextField
               id={fid("organizationName")}
-              label={partner ? "Razão social ou nome da empresa (opcional)" : "Razão social"}
+              label={
+                partner
+                  ? t("register.field.organizationNameOptional")
+                  : t("register.field.organizationName")
+              }
               value={state.organizationName}
               onChange={(value) => setField("organizationName", value)}
-              error={errors.organizationName}
+              error={te(errors.organizationName)}
               autoComplete="organization"
               maxLength={120}
               required={!partner}
@@ -705,19 +735,19 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
             {isOrg ? (
               <TextField
                 id={fid("tradeName")}
-                label="Nome fantasia (opcional)"
+                label={t("register.field.tradeNameOptional")}
                 value={state.tradeName}
                 onChange={(value) => setField("tradeName", value)}
-                error={errors.tradeName}
+                error={te(errors.tradeName)}
                 maxLength={120}
               />
             ) : null}
             <TextField
               id={fid("cnpj")}
-              label={partner ? "CNPJ (opcional)" : "CNPJ"}
+              label={partner ? t("register.field.cnpjOptional") : t("register.field.cnpj")}
               value={state.cnpj}
               onChange={(value) => setField("cnpj", maskCnpj(value))}
-              error={errors.cnpj}
+              error={te(errors.cnpj)}
               inputMode="numeric"
               autoComplete="off"
               maxLength={18}
@@ -727,10 +757,10 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
             {isOrg ? (
               <TextField
                 id={fid("jobTitle")}
-                label="Seu cargo (opcional)"
+                label={t("register.field.jobTitleOptional")}
                 value={state.jobTitle}
                 onChange={(value) => setField("jobTitle", value)}
-                error={errors.jobTitle}
+                error={te(errors.jobTitle)}
                 autoComplete="organization-title"
                 maxLength={80}
               />
@@ -743,16 +773,20 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
             <div className="vj-wizard-row">
               <TextField
                 id={fid("oabNumber")}
-                label="Número da OAB"
+                label={t("register.field.oabNumber")}
                 value={state.oabNumber}
                 onChange={(value) => setField("oabNumber", digitsOnly(value).slice(0, 20))}
-                error={errors.oabNumber}
+                error={te(errors.oabNumber)}
                 inputMode="numeric"
                 autoComplete="off"
                 maxLength={20}
                 required
               />
-              <FormField id={fid("oabUf")} label="Seccional (UF) *" error={errors.oabUf}>
+              <FormField
+                id={fid("oabUf")}
+                label={`${t("register.field.oabUfShort")} *`}
+                error={te(errors.oabUf)}
+              >
                 <Select
                   id={fid("oabUf")}
                   name="oabUf"
@@ -764,7 +798,7 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
                   aria-invalid={errors.oabUf ? true : undefined}
                   aria-describedby={describedBy(fid("oabUf"), undefined, errors.oabUf)}
                 >
-                  <option value="">Selecione</option>
+                  <option value="">{t("common.select")}</option>
                   {BR_STATES.map((uf) => (
                     <option key={uf} value={uf}>
                       {uf}
@@ -773,14 +807,11 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
                 </Select>
               </FormField>
             </div>
-            <p className="vj-hint">
-              A inscrição na OAB é declaratória neste momento e será verificada depois, no fluxo de
-              habilitação profissional. Nenhum selo de verificação é concedido no cadastro.
-            </p>
+            <p className="vj-hint">{t("register.field.oabDeclaratoryHint")}</p>
             <FormField
               id={fid("practiceAreas")}
-              label="Áreas de atuação (opcional)"
-              error={errors.practiceAreas}
+              label={t("register.field.practiceAreasOptional")}
+              error={te(errors.practiceAreas)}
             >
               <Textarea
                 id={fid("practiceAreas")}
@@ -792,7 +823,11 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
                 maxLength={400}
                 rows={3}
                 aria-invalid={errors.practiceAreas ? true : undefined}
-                aria-describedby={describedBy(fid("practiceAreas"), undefined, errors.practiceAreas)}
+                aria-describedby={describedBy(
+                  fid("practiceAreas"),
+                  undefined,
+                  errors.practiceAreas,
+                )}
               />
             </FormField>
           </>
@@ -802,8 +837,8 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
           <>
             <FormField
               id={fid("partnerCategory")}
-              label="Categoria de atuação *"
-              error={errors.partnerCategory}
+              label={`${t("register.field.partnerCategory")} *`}
+              error={te(errors.partnerCategory)}
             >
               <Select
                 id={fid("partnerCategory")}
@@ -820,18 +855,18 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
                   errors.partnerCategory,
                 )}
               >
-                <option value="">Selecione</option>
+                <option value="">{t("common.select")}</option>
                 {PARTNER_CATEGORIES.map((item) => (
                   <option key={item.value} value={item.value}>
-                    {item.label}
+                    {t(item.labelKey)}
                   </option>
                 ))}
               </Select>
             </FormField>
             <FormField
               id={fid("partnerDescription")}
-              label="Descrição dos serviços (opcional)"
-              error={errors.partnerDescription}
+              label={t("register.field.partnerDescriptionOptional")}
+              error={te(errors.partnerDescription)}
             >
               <Textarea
                 id={fid("partnerDescription")}
@@ -860,36 +895,52 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
     const meterId = fid("password-meter");
     const requirementsId = fid("password-requirements");
     const requirements = strength.requirements;
-    const requirementItems: Array<{ key: keyof typeof requirements; label: string; ok: boolean }> = [
-      { key: "minLength", label: "Pelo menos 8 caracteres", ok: requirements.minLength },
-      { key: "uppercase", label: "Uma letra maiúscula", ok: requirements.uppercase },
-      { key: "lowercase", label: "Uma letra minúscula", ok: requirements.lowercase },
-      { key: "number", label: "Um número", ok: requirements.number },
-      { key: "special", label: "Um caractere especial", ok: requirements.special },
+    const requirementItems: Array<{
+      key: keyof typeof requirements;
+      labelKey: string;
+      ok: boolean;
+    }> = [
+      { key: "minLength", labelKey: "register.password.req.minLength", ok: requirements.minLength },
+      { key: "uppercase", labelKey: "register.password.req.uppercase", ok: requirements.uppercase },
+      { key: "lowercase", labelKey: "register.password.req.lowercase", ok: requirements.lowercase },
+      { key: "number", labelKey: "register.password.req.number", ok: requirements.number },
+      { key: "special", labelKey: "register.password.req.special", ok: requirements.special },
     ];
+    const label = t(strengthLabelKey(strength.score, commonPassword, state.password.length === 0));
+    const acceptanceNote =
+      strength.classification === "boa" || strength.classification === "excelente"
+        ? t("register.password.accepted")
+        : state.password.length > 0
+          ? t("register.password.notAcceptedYet")
+          : "";
+
     return (
       <div className="vj-stack">
         <PasswordInput
           id={fid("password")}
-          label="Senha"
+          label={t("register.field.password")}
           value={state.password}
           onChange={(value) => setField("password", value)}
-          error={errors.password}
-          hint="Mínimo de 8 caracteres, com maiúscula, minúscula, número e caractere especial. Evite senhas comuns."
+          error={te(errors.password)}
+          hint={t("register.password.hintExtended")}
           autoComplete="new-password"
           show={showPassword}
           onToggle={() => setShowPassword((value) => !value)}
+          showLabel={t("register.show")}
+          hideLabel={t("register.hide")}
         />
         <ul
           className="vj-password-requirements"
           id={requirementsId}
-          aria-label="Requisitos da senha"
+          aria-label={t("register.password.requirementsAria")}
         >
           {requirementItems.map((item) => (
             <li key={item.key} data-met={item.ok ? "true" : "false"}>
               <span className="vj-password-requirement-mark" aria-hidden="true" />
-              <span className="vj-visually-hidden">{item.ok ? "Atendido: " : "Pendente: "}</span>
-              {item.label}
+              <span className="vj-visually-hidden">
+                {item.ok ? t("register.password.met") : t("register.password.pending")}{" "}
+              </span>
+              {t(item.labelKey)}
             </li>
           ))}
         </ul>
@@ -898,151 +949,175 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
             <div className="vj-password-meter-bar" data-score={strength.score} />
           </div>
           <span>
-            Classificação: <strong>{strength.label}</strong>
-            {strength.classification === "boa"
-              ? " · aceita para cadastro"
-              : strength.classification === "excelente"
-                ? " · aceita para cadastro"
-                : state.password.length > 0
-                  ? " · ainda não atende aos requisitos"
-                  : ""}
+            {t("register.password.classification")}: <strong>{label}</strong>
+            {acceptanceNote ? ` · ${acceptanceNote}` : ""}
           </span>
         </div>
         {commonPassword ? (
           <p className="vj-field-error" role="status">
-            Esta senha é muito comum e não será aceita. Escolha outra.
+            {t("register.password.commonWarning")}
           </p>
         ) : null}
         <PasswordInput
           id={fid("passwordConfirm")}
-          label="Confirmar senha"
+          label={t("register.field.passwordConfirm")}
           value={state.passwordConfirm}
           onChange={(value) => setField("passwordConfirm", value)}
-          error={errors.passwordConfirm}
+          error={te(errors.passwordConfirm)}
           autoComplete="new-password"
           show={showPassword}
           onToggle={() => setShowPassword((value) => !value)}
+          showLabel={t("register.show")}
+          hideLabel={t("register.hide")}
         />
-        <p className="vj-hint">
-          A classificação é um indicador de conformidade com a política, não uma garantia
-          criptográfica. Sua senha não é armazenada no navegador e é enviada somente ao concluir o
-          cadastro.
-        </p>
+        <p className="vj-hint">{t("register.password.policyNote")}</p>
       </div>
     );
   }
 
   function renderReview() {
     const persona = state.persona;
-    const meta = persona ? ONBOARDING_PERSONA_META[persona] : null;
-    const partnerLabel = PARTNER_CATEGORIES.find((item) => item.value === state.partnerCategory)?.label;
-    const rows: Array<{ step: WizardStepId; title: string; items: Array<[string, string | undefined]> }> = [
-      { step: "persona", title: "Perfil", items: [["Tipo de conta", meta?.label]] },
+    const partnerLabelKey = PARTNER_CATEGORIES.find(
+      (item) => item.value === state.partnerCategory,
+    )?.labelKey;
+    const rows: Array<{
+      step: WizardStepId;
+      titleKey: string;
+      items: Array<[string, string | undefined]>;
+    }> = [
+      {
+        step: "persona",
+        titleKey: "register.step.persona",
+        items: [
+          [
+            t("register.review.accountType"),
+            persona ? t(`register.persona.${persona}`) : undefined,
+          ],
+        ],
+      },
       {
         step: "identification",
-        title: "Identificação",
+        titleKey: "register.step.identification",
         items: [
-          ["Nome", state.fullName.trim()],
-          ["Nome social", state.socialName.trim()],
-          ["CPF", state.cpf],
-          ["Nascimento", personaNeedsBirthDate(persona) ? state.birthDate : undefined],
+          [t("register.review.name"), state.fullName.trim()],
+          [t("register.field.socialName"), state.socialName.trim()],
+          [t("register.field.cpf"), state.cpf],
+          [
+            t("register.review.birth"),
+            personaNeedsBirthDate(persona) ? state.birthDate : undefined,
+          ],
         ],
       },
       {
         step: "contact",
-        title: "Contato",
+        titleKey: "register.step.contact",
         items: [
-          ["E-mail", state.email.trim()],
-          ["Celular", state.phone ? `+55 ${state.phone}` : undefined],
+          [t("register.field.email"), state.email.trim()],
+          [t("register.review.mobile"), state.phone ? `+55 ${state.phone}` : undefined],
         ],
       },
       {
         step: "address",
-        title: "Endereço",
+        titleKey: "register.step.address",
         items: [
           [
-            "Endereço",
+            t("register.review.addressLine"),
             `${state.street.trim()}, ${state.number.trim()}${state.complement.trim() ? ` – ${state.complement.trim()}` : ""}`,
           ],
-          ["Bairro", state.district.trim()],
-          ["Cidade/UF", `${state.city.trim()} / ${state.state.trim().toUpperCase()}`],
-          ["CEP", state.postalCode],
+          [t("register.field.district"), state.district.trim()],
+          [
+            t("register.review.cityState"),
+            `${state.city.trim()} / ${state.state.trim().toUpperCase()}`,
+          ],
+          [t("register.field.postalCode"), state.postalCode],
         ],
       },
     ];
     if (steps.includes("profile")) {
       rows.push({
         step: "profile",
-        title: "Dados profissionais",
+        titleKey: "register.step.profile",
         items: [
-          ["Organização", state.organizationName.trim()],
-          ["CNPJ", state.cnpj],
-          ["OAB", personaNeedsOab(persona) ? `${state.oabNumber}/${state.oabUf}` : undefined],
-          ["Categoria", partnerLabel],
+          [t("register.review.organization"), state.organizationName.trim()],
+          [t("register.field.cnpj"), state.cnpj],
+          [
+            t("register.review.oab"),
+            personaNeedsOab(persona) ? `${state.oabNumber}/${state.oabUf}` : undefined,
+          ],
+          [t("register.review.category"), partnerLabelKey ? t(partnerLabelKey) : undefined],
         ],
       });
     }
 
     return (
       <div className="vj-stack">
-        <div className="vj-stack" role="list" aria-label="Resumo do cadastro">
-          {rows.map((row) => (
-            <section key={row.step} className="vj-wizard-review" role="listitem">
-              <div className="vj-wizard-review-head">
-                <h3 className="vj-wizard-review-title">{row.title}</h3>
-                <button
-                  type="button"
-                  className="vj-button vj-button-ghost"
-                  onClick={() => goTo(row.step)}
-                  aria-label={`Editar ${row.title}`}
-                >
-                  Editar
-                </button>
-              </div>
-              <dl>
-                {row.items.map(([label, value]) => (
-                  <ReviewRow key={label} label={label} value={value} />
-                ))}
-              </dl>
-            </section>
-          ))}
+        <div className="vj-stack" role="list" aria-label={t("register.review.summary")}>
+          {rows.map((row) => {
+            const title = t(row.titleKey);
+            return (
+              <section key={row.step} className="vj-wizard-review" role="listitem">
+                <div className="vj-wizard-review-head">
+                  <h3 className="vj-wizard-review-title">{title}</h3>
+                  <button
+                    type="button"
+                    className="vj-button vj-button-ghost"
+                    onClick={() => goTo(row.step)}
+                    aria-label={interpolate(t("register.review.editAria"), { step: title })}
+                  >
+                    {t("register.review.edit")}
+                  </button>
+                </div>
+                <dl>
+                  {row.items.map(([label, value]) => (
+                    <ReviewRow key={label} label={label} value={value} />
+                  ))}
+                </dl>
+              </section>
+            );
+          })}
         </div>
 
+        <LegalPreviewCards />
+
         <fieldset className="vj-wizard-fieldset">
-          <legend className="vj-label">Termos e consentimentos</legend>
+          <legend className="vj-label">{t("register.review.consents")}</legend>
           <CheckField
             id={fid("acceptTerms")}
-            checked={state.acceptTerms}
-            onChange={(value) => setField("acceptTerms", value)}
-            error={errors.acceptTerms}
+            checked={state.acceptTerms && state.acceptPrivacy}
+            onChange={(value) => {
+              setField("acceptTerms", value);
+              setField("acceptPrivacy", value);
+            }}
+            error={te(errors.acceptTerms) ?? te(errors.acceptPrivacy)}
           >
-            Li e aceito os{" "}
-            <a href="/politicas/termos" target="_blank" rel="noopener noreferrer">
-              Termos de Uso
+            {t("register.field.acceptLegalBundle", "Declaro que li e concordo com os")}{" "}
+            <a href="/termos-de-uso" target="_blank" rel="noopener noreferrer">
+              {t("footer.terms", "Termos de Uso")}
+            </a>{" "}
+            {t("register.field.acceptLegalAnd", "e os")}{" "}
+            <a href="/termos-de-servico" target="_blank" rel="noopener noreferrer">
+              {t("footer.termsOfService", "Termos de Serviço")}
+            </a>{" "}
+            {t("register.field.acceptLegalOf", "do VerasJuris e que tomei conhecimento da")}{" "}
+            <a href="/politica-de-privacidade" target="_blank" rel="noopener noreferrer">
+              {t("footer.privacyPolicy", "Política de Privacidade")}
             </a>
             . *
           </CheckField>
-          <CheckField
-            id={fid("acceptPrivacy")}
-            checked={state.acceptPrivacy}
-            onChange={(value) => setField("acceptPrivacy", value)}
-            error={errors.acceptPrivacy}
-          >
-            Li e aceito a{" "}
-            <a href="/politicas/privacidade" target="_blank" rel="noopener noreferrer">
-              Política de Privacidade
-            </a>
-            . *
-          </CheckField>
+          <p className="vj-hint">
+            {t(
+              "register.field.privacyAckHint",
+              "A ciência da Política de Privacidade não constitui consentimento genérico para todos os tratamentos de dados.",
+            )}
+          </p>
           {isOrg ? (
             <CheckField
               id={fid("representationDeclaration")}
               checked={state.representationDeclaration}
               onChange={(value) => setField("representationDeclaration", value)}
-              error={errors.representationDeclaration}
+              error={te(errors.representationDeclaration)}
             >
-              Declaro possuir poderes para representar a organização informada e aceitar estes
-              termos em seu nome. *
+              {t("register.field.representationFull")} *
             </CheckField>
           ) : null}
           <CheckField
@@ -1050,7 +1125,7 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
             checked={state.acceptMarketing}
             onChange={(value) => setField("acceptMarketing", value)}
           >
-            Desejo receber novidades e comunicações de marketing da VerasJuris (opcional).
+            {t("register.field.acceptMarketingFull")}
           </CheckField>
         </fieldset>
       </div>
@@ -1076,28 +1151,18 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
     }
   }
 
-  const stepIntro: Record<WizardStepId, string> = {
-    persona: "Escolha o perfil que melhor descreve como você atuará na plataforma.",
-    identification: "Use os dados oficiais. Eles são necessários para identificar sua conta.",
-    contact: "Usaremos estes dados para comunicações essenciais da sua conta.",
-    address: "Informe o endereço principal. Você pode ajustar os campos manualmente.",
-    profile: "Informe os dados da organização ou da sua atuação profissional.",
-    password: "Crie uma senha forte e exclusiva para a VerasJuris.",
-    review: "Confira os dados e aceite os termos para criar sua conta.",
-  };
-
   if (success) {
     return (
       <div className="vj-wizard vj-stack">
         <div role="status" className="vj-alert vj-alert-success">
           <div>
             <p>
-              <strong>Conta criada com sucesso.</strong> Redirecionando para a plataforma…
+              <strong>{t("register.success.title")}</strong> {t("register.success.redirecting")}
             </p>
             {success.emailVerified === false ? (
               <p className="vj-hint">
-                Seu e-mail ainda não foi verificado. Você poderá confirmá-lo depois em{" "}
-                <a href="/verificar-email">Verificar e-mail</a>.
+                {t("register.success.verifyHint")}{" "}
+                <a href="/verificar-email">{t("auth.verifyEmail")}</a>.
               </p>
             ) : null}
           </div>
@@ -1114,9 +1179,12 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
       noValidate
       aria-busy={pending || undefined}
     >
-      <nav aria-label="Progresso do cadastro">
+      <nav aria-label={t("register.progressNav")}>
         <p className="vj-hint" aria-live="polite">
-          Etapa {stepIndex + 1} de {steps.length}
+          {interpolate(t("register.progress"), {
+            current: stepIndex + 1,
+            total: steps.length,
+          })}
         </p>
         <ol className="vj-wizard-steps">
           {steps.map((id, index) => (
@@ -1128,7 +1196,7 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
               <span className="vj-wizard-step-dot" aria-hidden="true">
                 {index + 1}
               </span>
-              <span className="vj-wizard-step-label">{STEP_TITLES[id]}</span>
+              <span className="vj-wizard-step-label">{t(STEP_TITLES[id])}</span>
             </li>
           ))}
         </ol>
@@ -1137,9 +1205,9 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
       <div className="vj-stack">
         <div>
           <h2 className="vj-section-title" tabIndex={-1} ref={headingRef}>
-            {STEP_TITLES[stepId]}
+            {t(STEP_TITLES[stepId])}
           </h2>
-          <p className="vj-hint">{stepIntro[stepId]}</p>
+          <p className="vj-hint">{t(`register.stepIntro.${stepId}`)}</p>
         </div>
 
         {submitError ? (
@@ -1154,17 +1222,17 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
       <div className="vj-wizard-actions">
         {stepIndex > 0 ? (
           <Button type="button" variant="secondary" onClick={handleBack} disabled={pending}>
-            Voltar
+            {t("register.back")}
           </Button>
         ) : (
           <span />
         )}
         {isLast ? (
-          <Button type="submit" loading={pending} loadingLabel="Criando conta…">
-            Criar minha conta
+          <Button type="submit" loading={pending} loadingLabel={t("register.submitting")}>
+            {t("register.submitFull")}
           </Button>
         ) : (
-          <Button type="submit">Avançar</Button>
+          <Button type="submit">{t("register.next")}</Button>
         )}
       </div>
     </form>

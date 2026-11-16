@@ -38,6 +38,15 @@ describe("validação", () => {
     }
   });
 
+  it("aceita cadastro legado com senha BOA de 8 caracteres", () => {
+    const parsed = parseInput(registerSchema, {
+      displayName: "Ana Silva",
+      email: "ana@exemplo.com",
+      password: "Veras@12",
+    });
+    expect(parsed.password).toBe("Veras@12");
+  });
+
   it("normaliza e mascara CPF/CNPJ válidos", () => {
     expect(normalizeCpf("390.533.447-05")).toBe("39053344705");
     expect(normalizeCpf("11111111111")).toBeNull();

@@ -77,8 +77,89 @@ describe("onboarding register multi-persona", () => {
       where: eq(profiles.userId, user?.id ?? ""),
     });
     expect(profile?.onboardingPersona).toBe("client_pf");
+    expect(profile?.displayName).toBe("Ana Souza Silva");
     expect(profile?.cpfNormalized).toBe("39053344705");
     expect(profile?.phoneE164).toBe("+5511988887777");
+  });
+
+  it("aceita payload do wizard sem displayName e deriva do fullName", async () => {
+    const response = await call(app, "POST", "/v1/auth/register", {
+      persona: "client_pf",
+      fullName: "Helena Prado Nunes",
+      cpf: "112.233.445-17",
+      birthDate: "1990-08-08",
+      email: "helena.display@exemplo.com",
+      phone: "11955554444",
+      address: {
+        postalCode: "01310-100",
+        street: "Avenida Paulista",
+        number: "500",
+        district: "Bela Vista",
+        city: "São Paulo",
+        state: "SP",
+        country: "Brasil",
+      },
+      password,
+      passwordConfirm: password,
+      acceptTerms: true,
+      acceptPrivacy: true,
+    });
+    expect(response.statusCode).toBe(201);
+    expect(sessionFrom(response.headers)).toBeTruthy();
+    const body = response.json<{ account: { user: { displayName: string } } }>();
+    expect(body.account.user.displayName).toBe("Helena Prado Nunes");
+
+    const database = await started;
+    const user = await database.db.query.users.findFirst({
+      where: eq(users.email, "helena.display@exemplo.com"),
+    });
+    const profile = await database.db.query.profiles.findFirst({
+      where: eq(profiles.userId, user?.id ?? ""),
+    });
+    expect(profile?.displayName).toBe("Helena Prado Nunes");
+  });
+
+  it("aceita payload do wizard com displayName explícito e autentica em seguida", async () => {
+    const response = await call(app, "POST", "/v1/auth/register", {
+      persona: "client_pf",
+      fullName: "Igor Martins Costa",
+      displayName: "Igor Martins Costa",
+      cpf: "556.677.889-50",
+      birthDate: "1988-02-02",
+      email: "igor.display@exemplo.com",
+      phone: "11944443333",
+      address: {
+        postalCode: "01310-100",
+        street: "Avenida Paulista",
+        number: "501",
+        district: "Bela Vista",
+        city: "São Paulo",
+        state: "SP",
+        country: "Brasil",
+      },
+      password,
+      passwordConfirm: password,
+      acceptTerms: true,
+      acceptPrivacy: true,
+    });
+    expect(response.statusCode).toBe(201);
+    const cookie = sessionFrom(response.headers);
+
+    const session = await call(app, "GET", "/v1/auth/session", undefined, cookie);
+    expect(session.statusCode).toBe(200);
+    expect(
+      session.json<{ account: { user: { displayName: string; email: string } } }>().account.user,
+    ).toMatchObject({
+      displayName: "Igor Martins Costa",
+      email: "igor.display@exemplo.com",
+    });
+
+    const login = await call(app, "POST", "/v1/auth/login", {
+      email: "igor.display@exemplo.com",
+      password,
+    });
+    expect(login.statusCode).toBe(200);
+    expect(sessionFrom(login.headers)).toBeTruthy();
   });
 
   it("cadastra advogado com OAB pendente de verificação", async () => {
@@ -107,7 +188,10 @@ describe("onboarding register multi-persona", () => {
       acceptPrivacy: true,
     });
     expect(response.statusCode).toBe(201);
-    const body = response.json<{ redirectTo: string; account: { professionalVerificationStatus: string } }>();
+    const body = response.json<{
+      redirectTo: string;
+      account: { professionalVerificationStatus: string };
+    }>();
     expect(body.redirectTo).toBe("/app");
     expect(body.account.professionalVerificationStatus).toBe("pending");
   });
@@ -246,7 +330,9 @@ describe("onboarding register multi-persona", () => {
       cpf: "135.792.468-28",
     });
     expect(duplicate.statusCode).toBe(409);
-    const body = duplicate.json<{ error: { message: string; details?: Array<{ path: string }> } }>();
+    const body = duplicate.json<{
+      error: { message: string; details?: Array<{ path: string }> };
+    }>();
     expect(body.error.message).toMatch(/e-mail já está cadastrado/i);
     expect(body.error.details?.some((detail) => detail.path === "email")).toBe(true);
   });

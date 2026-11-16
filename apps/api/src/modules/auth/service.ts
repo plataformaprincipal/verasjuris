@@ -248,9 +248,9 @@ export async function registerAccount(
           input.mode === "onboarding" ? JSON.stringify(input.address) : null,
         onboardingPersona: persona === "legacy" ? "client_pf" : persona,
         termsAcceptedAt: now,
-        termsVersion: input.mode === "onboarding" ? input.termsVersion : "2026-11",
+        termsVersion: input.mode === "onboarding" ? input.termsVersion : "2026-11-16",
         privacyAcceptedAt: now,
-        privacyVersion: input.mode === "onboarding" ? input.privacyVersion : "2026-11",
+        privacyVersion: input.mode === "onboarding" ? input.privacyVersion : "2026-11-16",
       });
       await tx.insert(professionalProfiles).values({
         userId: user.id,
@@ -352,6 +352,13 @@ export async function registerAccount(
           emailVerified: false,
           persona,
           organizationId: organization.id,
+          termsVersion:
+            input.mode === "onboarding" ? input.termsVersion : "2026-11-16",
+          privacyVersion:
+            input.mode === "onboarding" ? input.privacyVersion : "2026-11-16",
+          termsAcceptedAt: now.toISOString(),
+          privacyAcceptedAt: now.toISOString(),
+          acceptanceEvidence: "affirmative_checkbox",
         },
       });
       return {

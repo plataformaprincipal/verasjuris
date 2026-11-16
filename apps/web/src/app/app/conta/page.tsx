@@ -3,6 +3,7 @@
 import { CSRF_HEADER } from "@verasjuris/security/constants";
 import { Breadcrumb, Button, ButtonLink, FormField, Input, PageHeader } from "@verasjuris/ui";
 import { useEffect, useState } from "react";
+import { useLocale } from "../../../components/locale-provider";
 import type { ApiFailure } from "../../../lib/types";
 
 type SessionRow = {
@@ -15,6 +16,7 @@ type SessionRow = {
 };
 
 export default function AccountPage() {
+  const { t, locale } = useLocale();
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [passwordMessage, setPasswordMessage] = useState<string | null>(null);
@@ -34,7 +36,7 @@ export default function AccountPage() {
         fetch("/api/v1/account/profile", { cache: "no-store" }),
       ]);
       if (!sessionsResponse.ok) {
-        if (!cancelled) setError("Não foi possível listar as sessões.");
+        if (!cancelled) setError(t("account.sessionsLoadError"));
       } else {
         const body = (await sessionsResponse.json()) as { sessions: SessionRow[] };
         if (!cancelled) setSessions(body.sessions);
@@ -49,12 +51,12 @@ export default function AccountPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   async function reloadSessions() {
     const response = await fetch("/api/v1/sessions", { cache: "no-store" });
     if (!response.ok) {
-      setError("Não foi possível listar as sessões.");
+      setError(t("account.sessionsLoadError"));
       return;
     }
     const body = (await response.json()) as { sessions: SessionRow[] };
@@ -79,11 +81,11 @@ export default function AccountPage() {
     };
     setPending(false);
     if (!response.ok) {
-      setError(data.error?.message ?? "Não foi possível atualizar o perfil.");
+      setError(data.error?.message ?? t("account.profileUpdateError"));
       return;
     }
     if (data.profile) setProfile(data.profile);
-    setProfileMessage("Perfil atualizado.");
+    setProfileMessage(t("account.profileUpdated"));
   }
 
   async function changePassword(formData: FormData) {
@@ -101,10 +103,10 @@ export default function AccountPage() {
     const data = (await response.json().catch(() => ({}))) as ApiFailure;
     setPending(false);
     if (!response.ok) {
-      setError(data.error?.message ?? "Não foi possível alterar a senha.");
+      setError(data.error?.message ?? t("account.passwordChangeError"));
       return;
     }
-    setPasswordMessage("Senha alterada. As outras sessões foram encerradas.");
+    setPasswordMessage(t("account.passwordChanged"));
     await reloadSessions();
   }
 
@@ -115,7 +117,7 @@ export default function AccountPage() {
       headers: { [CSRF_HEADER]: "1" },
     });
     if (!response.ok && response.status !== 204) {
-      setError("Não foi possível encerrar a sessão.");
+      setError(t("account.revokeError"));
       return;
     }
     if (sessions.find((item) => item.id === sessionId)?.current) {
@@ -132,7 +134,7 @@ export default function AccountPage() {
       headers: { [CSRF_HEADER]: "1" },
     });
     if (!response.ok) {
-      setError("Não foi possível encerrar as outras sessões.");
+      setError(t("account.revokeOthersError"));
       return;
     }
     await reloadSessions();
@@ -140,25 +142,22 @@ export default function AccountPage() {
 
   return (
     <div className="vj-stack">
-      <Breadcrumb items={[{ label: "Painel", href: "/app" }, { label: "Conta" }]} />
-      <PageHeader
-        title="Conta"
-        description="Altere a senha e gerencie as sessões ativas desta identidade."
-      />
+      <Breadcrumb items={[{ label: t("nav.app"), href: "/app" }, { label: t("account.title") }]} />
+      <PageHeader title={t("account.title")} description={t("account.description")} />
       {error ? (
         <p role="alert" className="vj-field-error">
           {error}
         </p>
       ) : null}
       <section className="vj-card vj-stack">
-        <h2 className="vj-section-title">Perfil</h2>
+        <h2 className="vj-section-title">{t("account.profile")}</h2>
         {profileMessage ? <p role="status">{profileMessage}</p> : null}
         <form
           key={`${profile.displayName}|${profile.locale}|${profile.timeZone}`}
           className="vj-stack"
           action={saveProfile}
         >
-          <FormField id="displayName" label="Nome de exibição">
+          <FormField id="displayName" label={t("account.displayName")}>
             <Input
               id="displayName"
               name="displayName"
@@ -168,32 +167,41 @@ export default function AccountPage() {
               maxLength={80}
             />
           </FormField>
-          <FormField id="locale" label="Idioma">
+          <FormField id="locale" label={t("account.locale")}>
             <Input id="locale" name="locale" defaultValue={profile.locale} required />
           </FormField>
-          <FormField id="timeZone" label="Fuso horário">
+          <FormField id="timeZone" label={t("account.timeZone")}>
             <Input id="timeZone" name="timeZone" defaultValue={profile.timeZone} required />
           </FormField>
-          <Button type="submit" loading={pending} loadingLabel="Salvando">
-            Salvar perfil
+          <Button type="submit" loading={pending} loadingLabel={t("auth.saving")}>
+            {t("account.saveProfile")}
           </Button>
         </form>
       </section>
       <section className="vj-card vj-stack">
-        <h2 className="vj-section-title">Perfis e vínculos</h2>
-        <p>
-          Configure perfis profissionais acumuláveis (advogado, parceiro, funcionário) e consulte a
-          situação da verificação profissional.
-        </p>
+        <h2 className="vj-section-title">{t("account.profilesLinks")}</h2>
+        <p>{t("account.profilesLinksDesc")}</p>
         <ButtonLink href="/app/perfis" variant="secondary">
-          Gerenciar perfis
+          {t("account.manageProfiles")}
         </ButtonLink>
       </section>
       <section className="vj-card vj-stack">
-        <h2 className="vj-section-title">Alterar senha</h2>
+        <h2 className="vj-section-title">{t("footer.legalCenter", "Documentos legais")}</h2>
+        <p>
+          {t(
+            "account.legal.lead",
+            "Consulte Termos de Uso, Termos de Serviço e Política de Privacidade vigentes.",
+          )}
+        </p>
+        <ButtonLink href="/documentos-legais" variant="secondary">
+          {t("footer.legalCenter", "Documentos legais")}
+        </ButtonLink>
+      </section>
+      <section className="vj-card vj-stack">
+        <h2 className="vj-section-title">{t("account.changePassword")}</h2>
         {passwordMessage ? <p role="status">{passwordMessage}</p> : null}
         <form className="vj-stack" action={changePassword}>
-          <FormField id="currentPassword" label="Senha atual">
+          <FormField id="currentPassword" label={t("account.currentPassword")}>
             <Input
               id="currentPassword"
               name="currentPassword"
@@ -202,42 +210,38 @@ export default function AccountPage() {
               required
             />
           </FormField>
-          <FormField
-            id="newPassword"
-            label="Nova senha"
-            hint="Mínimo de 8 caracteres, com maiúscula, minúscula, número e caractere especial."
-          >
+          <FormField id="newPassword" label={t("auth.newPassword")} hint={t("auth.passwordHint")}>
             <Input
               id="newPassword"
               name="newPassword"
               type="password"
               autoComplete="new-password"
               required
-              minLength={12}
+              minLength={8}
             />
           </FormField>
-          <Button type="submit" loading={pending} loadingLabel="Salvando">
-            Salvar nova senha
+          <Button type="submit" loading={pending} loadingLabel={t("auth.saving")}>
+            {t("account.savePassword")}
           </Button>
         </form>
       </section>
       <section className="vj-card vj-stack">
-        <h2 className="vj-section-title">Sessões ativas</h2>
+        <h2 className="vj-section-title">{t("account.sessions")}</h2>
         <Button type="button" variant="secondary" onClick={() => void revokeOthers()}>
-          Encerrar outras sessões
+          {t("account.revokeOthers")}
         </Button>
         {sessions.length === 0 ? (
-          <p>Nenhuma sessão ativa encontrada.</p>
+          <p>{t("account.noSessions")}</p>
         ) : (
           <ul className="vj-stack">
             {sessions.map((session) => (
               <li key={session.id}>
-                {session.current ? "Sessão atual" : "Outra sessão"} · criada em{" "}
-                {new Date(session.createdAt).toLocaleString("pt-BR")}
+                {session.current ? t("account.currentSession") : t("account.otherSession")} ·{" "}
+                {t("account.createdAt")} {new Date(session.createdAt).toLocaleString(locale)}
                 {session.ipHint ? ` · ${session.ipHint}` : ""}
                 <div>
                   <Button type="button" variant="secondary" onClick={() => void revoke(session.id)}>
-                    Encerrar
+                    {t("account.revoke")}
                   </Button>
                 </div>
               </li>

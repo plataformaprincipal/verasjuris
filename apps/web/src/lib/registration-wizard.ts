@@ -1,4 +1,13 @@
 import {
+  BIRTH_DATE_FUTURE_MESSAGE,
+  BIRTH_DATE_INVALID_MESSAGE,
+  BIRTH_DATE_REQUIRED_MESSAGE,
+  BIRTH_DATE_UNDERAGE_MESSAGE,
+  PASSWORD_COMMON_MESSAGE,
+  PASSWORD_MIN_LENGTH_MESSAGE,
+  PASSWORD_REQUIREMENT_MESSAGE,
+  PASSWORD_REQUIRED_MESSAGE,
+  PASSWORD_TOO_LONG_MESSAGE,
   passwordPolicyError,
   validateBirthDateValue,
 } from "@verasjuris/validation";
@@ -12,6 +21,7 @@ import {
   passwordStrength,
   toE164BrMobile,
 } from "./br-masks";
+import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from "./legal";
 import { isSafeRedirectPath, resolvePostAuthRedirect } from "./safe-redirect";
 
 /**
@@ -39,27 +49,55 @@ export type WizardStepId =
   | "password"
   | "review";
 
+/** Chaves i18n (`register.step.*`) — traduzir com `t()` no componente. */
 export const STEP_TITLES: Record<WizardStepId, string> = {
-  persona: "Perfil",
-  identification: "Identificação",
-  contact: "Contato",
-  address: "Endereço",
-  profile: "Dados profissionais",
-  password: "Senha",
-  review: "Revisão",
+  persona: "register.step.persona",
+  identification: "register.step.identification",
+  contact: "register.step.contact",
+  address: "register.step.address",
+  profile: "register.step.profile",
+  password: "register.step.password",
+  review: "register.step.review",
 };
 
 export const PARTNER_CATEGORIES = [
-  { value: "correspondent", label: "Correspondente jurídico" },
-  { value: "accountant", label: "Contabilidade" },
-  { value: "expert", label: "Perito / assistente técnico" },
-  { value: "translator", label: "Tradução juramentada" },
-  { value: "dispatcher", label: "Despachante" },
-  { value: "teacher", label: "Educação / treinamento" },
-  { value: "specialist", label: "Especialista" },
-  { value: "supplier", label: "Fornecedor" },
-  { value: "other", label: "Outro" },
+  { value: "correspondent", labelKey: "register.partner.correspondent" },
+  { value: "accountant", labelKey: "register.partner.accountant" },
+  { value: "expert", labelKey: "register.partner.expert" },
+  { value: "translator", labelKey: "register.partner.translator" },
+  { value: "dispatcher", labelKey: "register.partner.dispatcher" },
+  { value: "teacher", labelKey: "register.partner.teacher" },
+  { value: "specialist", labelKey: "register.partner.specialist" },
+  { value: "supplier", labelKey: "register.partner.supplier" },
+  { value: "other", labelKey: "register.partner.other" },
 ] as const;
+
+const BIRTH_ERROR_TO_KEY: Record<string, string> = {
+  [BIRTH_DATE_REQUIRED_MESSAGE]: "register.validation.birthDate.required",
+  [BIRTH_DATE_INVALID_MESSAGE]: "register.validation.birthDate.invalid",
+  [BIRTH_DATE_FUTURE_MESSAGE]: "register.validation.birthDate.future",
+  [BIRTH_DATE_UNDERAGE_MESSAGE]: "register.validation.birthDate.underage",
+};
+
+const PASSWORD_ERROR_TO_KEY: Record<string, string> = {
+  [PASSWORD_REQUIRED_MESSAGE]: "register.validation.password.required",
+  [PASSWORD_TOO_LONG_MESSAGE]: "register.validation.password.tooLong",
+  [PASSWORD_MIN_LENGTH_MESSAGE]: "register.validation.password.minLength",
+  [PASSWORD_REQUIREMENT_MESSAGE]: "register.validation.password.requirements",
+  [PASSWORD_COMMON_MESSAGE]: "register.validation.password.common",
+};
+
+function birthDateErrorKey(value: string, now: Date): string | undefined {
+  const message = validateBirthDateValue(value, now);
+  if (!message) return undefined;
+  return BIRTH_ERROR_TO_KEY[message] ?? "register.validation.birthDate.invalid";
+}
+
+function passwordErrorKey(password: string): string | undefined {
+  const message = passwordPolicyError(password);
+  if (!message) return undefined;
+  return PASSWORD_ERROR_TO_KEY[message] ?? "register.validation.password.requirements";
+}
 
 export const BR_STATES = [
   "AC",
@@ -122,6 +160,10 @@ export type WizardState = {
   acceptPrivacy: boolean;
   acceptMarketing: boolean;
   representationDeclaration: boolean;
+  /** Pacote Termos de Uso + Termos de Serviço (campo API `termsVersion`). */
+  termsVersion: string;
+  /** Política de Privacidade (campo API `privacyVersion`). */
+  privacyVersion: string;
 };
 
 export type WizardErrors = Partial<Record<keyof WizardState, string>>;
@@ -156,6 +198,8 @@ export const INITIAL_WIZARD_STATE: WizardState = {
   acceptPrivacy: false,
   acceptMarketing: false,
   representationDeclaration: false,
+  termsVersion: CURRENT_TERMS_VERSION,
+  privacyVersion: CURRENT_PRIVACY_VERSION,
 };
 
 // ---------------------------------------------------------------------------
@@ -233,7 +277,7 @@ export function maskPhone(value: string): string {
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function validateBirthDate(value: string, now: Date = new Date()): string | undefined {
-  return validateBirthDateValue(value, now);
+  return birthDateErrorKey(value, now);
 }
 
 export function validatePasswordFields(
@@ -241,13 +285,16 @@ export function validatePasswordFields(
   passwordConfirm: string,
 ): Pick<WizardErrors, "password" | "passwordConfirm"> {
   const errors: Pick<WizardErrors, "password" | "passwordConfirm"> = {};
-  const passwordError = passwordPolicyError(password);
+  const passwordError = passwordErrorKey(password);
   if (passwordError) errors.password = passwordError;
-  if (!passwordConfirm) errors.passwordConfirm = "Confirme a senha.";
-  else if (password !== passwordConfirm) errors.passwordConfirm = "As senhas não coincidem.";
+  if (!passwordConfirm) errors.passwordConfirm = "register.validation.passwordConfirm";
+  else if (password !== passwordConfirm) {
+    errors.passwordConfirm = "register.validation.password.mismatch";
+  }
   return errors;
 }
 
+/** Retorna chaves i18n (`register.validation.*`) por campo — traduzir com `t()` na UI. */
 export function validateStep(
   step: WizardStepId,
   state: WizardState,
@@ -258,19 +305,21 @@ export function validateStep(
 
   switch (step) {
     case "persona": {
-      if (!isPublicPersona(persona)) errors.persona = "Selecione como você usará a VerasJuris.";
+      if (!isPublicPersona(persona)) errors.persona = "register.validation.persona";
       break;
     }
     case "identification": {
       const name = state.fullName.trim();
-      if (name.length < 2) errors.fullName = "Informe o nome completo.";
-      else if (name.length > 120) errors.fullName = "O nome é longo demais.";
+      if (name.length < 2) errors.fullName = "register.validation.fullName";
+      else if (name.length > 120) errors.fullName = "register.validation.fullNameTooLong";
       else if (name.split(/\s+/).filter(Boolean).length < 2) {
-        errors.fullName = "Informe nome e sobrenome.";
+        errors.fullName = "register.validation.fullNameParts";
       }
-      if (state.socialName.trim().length > 120) errors.socialName = "O nome social é longo demais.";
-      if (!state.cpf.trim()) errors.cpf = "Informe o CPF.";
-      else if (!isValidCpf(state.cpf)) errors.cpf = "Informe um CPF válido.";
+      if (state.socialName.trim().length > 120) {
+        errors.socialName = "register.validation.socialNameTooLong";
+      }
+      if (!state.cpf.trim()) errors.cpf = "register.validation.cpfRequired";
+      else if (!isValidCpf(state.cpf)) errors.cpf = "register.validation.cpf";
       if (personaNeedsBirthDate(persona)) {
         const birthError = validateBirthDate(state.birthDate, now);
         if (birthError) errors.birthDate = birthError;
@@ -279,59 +328,63 @@ export function validateStep(
     }
     case "contact": {
       const email = state.email.trim();
-      if (!email) errors.email = "Informe o e-mail.";
+      if (!email) errors.email = "register.validation.emailRequired";
       else if (email.length > 320 || !EMAIL_PATTERN.test(email)) {
-        errors.email = "Informe um e-mail válido.";
+        errors.email = "register.validation.email";
       }
-      if (!state.phone.trim()) errors.phone = "Informe o telefone.";
-      else if (!toE164BrMobile(state.phone)) errors.phone = "Informe um celular válido com DDD.";
+      if (!state.phone.trim()) errors.phone = "register.validation.phoneRequired";
+      else if (!toE164BrMobile(state.phone)) errors.phone = "register.validation.phone";
       break;
     }
     case "address": {
-      if (!isValidCep(state.postalCode)) errors.postalCode = "Informe um CEP válido.";
-      if (state.street.trim().length < 2) errors.street = "Informe o logradouro.";
-      if (!state.number.trim()) errors.number = "Informe o número (ou S/N).";
-      if (state.district.trim().length < 2) errors.district = "Informe o bairro.";
-      if (state.city.trim().length < 2) errors.city = "Informe a cidade.";
+      if (!isValidCep(state.postalCode)) errors.postalCode = "register.validation.cep";
+      if (state.street.trim().length < 2) errors.street = "register.validation.street";
+      if (!state.number.trim()) errors.number = "register.validation.number";
+      if (state.district.trim().length < 2) errors.district = "register.validation.district";
+      if (state.city.trim().length < 2) errors.city = "register.validation.city";
       if (!(BR_STATES as readonly string[]).includes(state.state.trim().toUpperCase())) {
-        errors.state = "Informe a UF com 2 letras.";
+        errors.state = "register.validation.state";
       }
       break;
     }
     case "profile": {
       if (personaIsOrganization(persona)) {
         if (state.organizationName.trim().length < 2) {
-          errors.organizationName = "Informe a razão social ou nome da organização.";
+          errors.organizationName = "register.validation.organizationName";
         }
-        if (!state.cnpj.trim()) errors.cnpj = "Informe o CNPJ.";
-        else if (!isValidCnpj(state.cnpj)) errors.cnpj = "Informe um CNPJ válido.";
+        if (!state.cnpj.trim()) errors.cnpj = "register.validation.cnpjRequired";
+        else if (!isValidCnpj(state.cnpj)) errors.cnpj = "register.validation.cnpj";
       }
       if (personaIsPartner(persona)) {
         if (!PARTNER_CATEGORIES.some((item) => item.value === state.partnerCategory)) {
-          errors.partnerCategory = "Informe a categoria de atuação.";
+          errors.partnerCategory = "register.validation.partnerCategory";
         }
         if (state.organizationName.trim() && state.organizationName.trim().length < 2) {
-          errors.organizationName = "Informe o nome da organização com pelo menos 2 caracteres.";
+          errors.organizationName = "register.validation.organizationNameMin";
         }
-        if (state.cnpj.trim() && !isValidCnpj(state.cnpj)) errors.cnpj = "Informe um CNPJ válido.";
+        if (state.cnpj.trim() && !isValidCnpj(state.cnpj)) {
+          errors.cnpj = "register.validation.cnpj";
+        }
         if (state.partnerDescription.trim().length > 600) {
-          errors.partnerDescription = "A descrição pode ter no máximo 600 caracteres.";
+          errors.partnerDescription = "register.validation.partnerDescriptionTooLong";
         }
       }
       if (personaNeedsOab(persona)) {
         const oabNumber = digitsOnly(state.oabNumber);
-        if (!oabNumber) errors.oabNumber = "Informe o número da OAB.";
-        else if (oabNumber.length > 20) errors.oabNumber = "O número da OAB é longo demais.";
+        if (!oabNumber) errors.oabNumber = "register.validation.oab";
+        else if (oabNumber.length > 20) errors.oabNumber = "register.validation.oabTooLong";
         if (!(BR_STATES as readonly string[]).includes(state.oabUf.trim().toUpperCase())) {
-          errors.oabUf = "Informe a seccional da OAB.";
+          errors.oabUf = "register.validation.oabUf";
         }
         if (state.practiceAreas.trim().length > 400) {
-          errors.practiceAreas = "As áreas de atuação podem ter no máximo 400 caracteres.";
+          errors.practiceAreas = "register.validation.practiceAreasTooLong";
         }
       }
-      if (state.jobTitle.trim().length > 80) errors.jobTitle = "O cargo pode ter no máximo 80 caracteres.";
+      if (state.jobTitle.trim().length > 80) {
+        errors.jobTitle = "register.validation.jobTitleTooLong";
+      }
       if (state.tradeName.trim().length > 120) {
-        errors.tradeName = "O nome fantasia pode ter no máximo 120 caracteres.";
+        errors.tradeName = "register.validation.tradeNameTooLong";
       }
       break;
     }
@@ -340,12 +393,10 @@ export function validateStep(
       break;
     }
     case "review": {
-      if (!state.acceptTerms) errors.acceptTerms = "Aceite os Termos de Uso para continuar.";
-      if (!state.acceptPrivacy) {
-        errors.acceptPrivacy = "Aceite a Política de Privacidade para continuar.";
-      }
+      if (!state.acceptTerms) errors.acceptTerms = "register.validation.terms";
+      if (!state.acceptPrivacy) errors.acceptPrivacy = "register.validation.privacy";
       if (personaIsOrganization(persona) && !state.representationDeclaration) {
-        errors.representationDeclaration = "Declare que possui poderes de representação.";
+        errors.representationDeclaration = "register.validation.representation";
       }
       break;
     }
@@ -379,13 +430,22 @@ function optional(value: string): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+/** displayName do perfil (máx. 80) a partir do nome completo já validado. */
+export function displayNameFromFullName(fullName: string): string {
+  const trimmed = fullName.trim();
+  if (trimmed.length <= 80) return trimmed;
+  return trimmed.slice(0, 80).trimEnd();
+}
+
 /** Monta o corpo do POST /api/v1/auth/register. Campos vazios/irrelevantes são omitidos. */
 export function buildRegisterPayload(state: WizardState): Record<string, unknown> {
   const persona = state.persona;
+  const fullName = state.fullName.trim();
   const phone = toE164BrMobile(state.phone) ?? state.phone.trim();
   const payload: Record<string, unknown> = {
     persona,
-    fullName: state.fullName.trim(),
+    fullName,
+    displayName: displayNameFromFullName(fullName),
     socialName: optional(state.socialName),
     cpf: digitsOnly(state.cpf),
     birthDate: personaNeedsBirthDate(persona) ? state.birthDate.trim() : undefined,
@@ -406,6 +466,8 @@ export function buildRegisterPayload(state: WizardState): Record<string, unknown
     acceptTerms: state.acceptTerms,
     acceptPrivacy: state.acceptPrivacy,
     acceptMarketing: state.acceptMarketing,
+    termsVersion: state.termsVersion,
+    privacyVersion: state.privacyVersion,
   };
 
   if (personaIsOrganization(persona) || personaIsPartner(persona)) {
@@ -498,11 +560,17 @@ export const FIELD_STEP: Record<keyof WizardState, WizardStepId> = {
   acceptPrivacy: "review",
   acceptMarketing: "review",
   representationDeclaration: "review",
+  termsVersion: "review",
+  privacyVersion: "review",
 };
 
 export function mapServerErrors(
   details: Array<{ path: string; message: string }> | undefined,
-): { errors: WizardErrors; firstStep: WizardStepId | null } {
+  translateField?: (path: string, message: string) => string,
+): {
+  errors: WizardErrors;
+  firstStep: WizardStepId | null;
+} {
   const errors: WizardErrors = {};
   let firstStep: WizardStepId | null = null;
   const order: WizardStepId[] = [
@@ -517,7 +585,7 @@ export function mapServerErrors(
   for (const detail of details ?? []) {
     const field = SERVER_PATH_TO_FIELD[detail.path];
     if (!field || errors[field]) continue;
-    errors[field] = detail.message;
+    errors[field] = translateField ? translateField(detail.path, detail.message) : detail.message;
     const step = FIELD_STEP[field];
     if (!firstStep || order.indexOf(step) < order.indexOf(firstStep)) firstStep = step;
   }

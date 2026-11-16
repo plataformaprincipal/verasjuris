@@ -1,3 +1,5 @@
+"use client";
+
 import { Alert, Badge } from "@verasjuris/ui";
 import {
   MARKETPLACE_ENGAGEMENT_STATUS_LABELS,
@@ -10,24 +12,32 @@ import {
   type MarketplaceProposal,
   type MarketplaceRequest,
 } from "../lib/marketplace";
+import { useLocale } from "./locale-provider";
 
 export const MARKETPLACE_PUBLIC_TABS = [
-  { href: "/marketplace", label: "Visão geral" },
-  { href: "/marketplace/servicos", label: "Serviços" },
-  { href: "/marketplace/profissionais", label: "Profissionais" },
-  { href: "/marketplace/solicitacoes", label: "Solicitações" },
-  { href: "/marketplace/propostas", label: "Propostas" },
+  { href: "/marketplace", labelKey: "marketplace.overview" },
+  { href: "/marketplace/servicos", labelKey: "marketplace.services" },
+  { href: "/marketplace/profissionais", labelKey: "marketplace.professionals" },
+  { href: "/marketplace/solicitacoes", labelKey: "marketplace.requests" },
+  { href: "/marketplace/propostas", labelKey: "marketplace.proposals" },
 ];
 
 export const MARKETPLACE_APP_TABS = [
-  { href: "/app/marketplace", label: "Visão geral" },
-  { href: "/app/marketplace/perfil", label: "Perfil" },
-  { href: "/app/marketplace/servicos", label: "Meus serviços" },
-  { href: "/app/marketplace/oportunidades", label: "Oportunidades" },
-  { href: "/app/marketplace/propostas", label: "Propostas" },
-  { href: "/app/marketplace/contratacoes", label: "Contratações" },
-  { href: "/app/marketplace/avaliacoes", label: "Avaliações" },
+  { href: "/app/marketplace", labelKey: "marketplace.overview" },
+  { href: "/app/marketplace/perfil", labelKey: "marketplace.profile" },
+  { href: "/app/marketplace/servicos", labelKey: "marketplace.myServices" },
+  { href: "/app/marketplace/oportunidades", labelKey: "marketplace.opportunities" },
+  { href: "/app/marketplace/propostas", labelKey: "marketplace.proposals" },
+  { href: "/app/marketplace/contratacoes", labelKey: "marketplace.engagements" },
+  { href: "/app/marketplace/avaliacoes", labelKey: "marketplace.reviews" },
 ];
+
+export function translateMarketplaceTabs(
+  t: (key: string, fallback?: string) => string,
+  tabs: Array<{ href: string; labelKey: string }>,
+) {
+  return tabs.map((tab) => ({ href: tab.href, label: t(tab.labelKey) }));
+}
 
 function tone(status: string): "neutral" | "success" | "warning" | "error" {
   if (status === "completed" || status === "accepted" || status === "active") return "success";
@@ -39,11 +49,11 @@ function tone(status: string): "neutral" | "success" | "warning" | "error" {
 }
 
 export function MarketplacePaymentBanner({ status }: { status: string | null }) {
+  const { t } = useLocale();
   if (!status || status === "ok") return null;
   return (
-    <Alert tone="warning" title="Pagamento online">
-      Provedor de pagamento não configurado (NOT_CONFIGURED). Use registro manual com comprovante
-      quando aplicável.
+    <Alert tone="warning" title={t("marketplace.payment.bannerTitle")}>
+      {t("marketplace.payment.notConfigured")}
     </Alert>
   );
 }
@@ -55,19 +65,20 @@ export function MarketplaceRequestsTable({
   items: MarketplaceRequest[];
   baseHref?: string;
 }) {
+  const { t } = useLocale();
   if (items.length === 0) {
-    return <p className="vj-meta">Nenhuma solicitação encontrada.</p>;
+    return <p className="vj-meta">{t("marketplace.empty.requests")}</p>;
   }
   return (
     <div className="vj-table-wrap">
       <table className="vj-table">
-        <caption className="vj-visually-hidden">Solicitações do marketplace</caption>
+        <caption className="vj-visually-hidden">{t("marketplace.requests")}</caption>
         <thead>
           <tr>
-            <th scope="col">Título</th>
-            <th scope="col">UF</th>
-            <th scope="col">Situação</th>
-            <th scope="col">Criada</th>
+            <th scope="col">{t("marketplace.table.title")}</th>
+            <th scope="col">{t("marketplace.table.state")}</th>
+            <th scope="col">{t("marketplace.table.status")}</th>
+            <th scope="col">{t("marketplace.table.created")}</th>
           </tr>
         </thead>
         <tbody>
@@ -92,16 +103,17 @@ export function MarketplaceRequestsTable({
 }
 
 export function MarketplaceProposalsTable({ items }: { items: MarketplaceProposal[] }) {
-  if (items.length === 0) return <p className="vj-meta">Nenhuma proposta.</p>;
+  const { t } = useLocale();
+  if (items.length === 0) return <p className="vj-meta">{t("marketplace.empty.proposals")}</p>;
   return (
     <div className="vj-table-wrap">
       <table className="vj-table">
         <thead>
           <tr>
-            <th scope="col">Valor</th>
-            <th scope="col">Versão</th>
-            <th scope="col">Situação</th>
-            <th scope="col">Enviada</th>
+            <th scope="col">{t("marketplace.table.amount")}</th>
+            <th scope="col">{t("marketplace.table.version")}</th>
+            <th scope="col">{t("marketplace.table.status")}</th>
+            <th scope="col">{t("marketplace.table.sent")}</th>
           </tr>
         </thead>
         <tbody>
@@ -130,15 +142,16 @@ export function MarketplaceEngagementsTable({
   items: MarketplaceEngagement[];
   baseHref?: string;
 }) {
-  if (items.length === 0) return <p className="vj-meta">Nenhuma contratação.</p>;
+  const { t } = useLocale();
+  if (items.length === 0) return <p className="vj-meta">{t("marketplace.empty.engagements")}</p>;
   return (
     <div className="vj-table-wrap">
       <table className="vj-table">
         <thead>
           <tr>
-            <th scope="col">ID</th>
-            <th scope="col">Situação</th>
-            <th scope="col">Revisões</th>
+            <th scope="col">{t("marketplace.table.id")}</th>
+            <th scope="col">{t("marketplace.table.status")}</th>
+            <th scope="col">{t("marketplace.table.revisions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -164,14 +177,15 @@ export function MarketplaceEngagementsTable({
 }
 
 export function MarketplaceProfessionalsGrid({ items }: { items: MarketplaceProfessional[] }) {
-  if (items.length === 0) return <p className="vj-meta">Nenhum profissional encontrado.</p>;
+  const { t } = useLocale();
+  if (items.length === 0) return <p className="vj-meta">{t("marketplace.empty.professionals")}</p>;
   return (
     <ul className="vj-card-grid">
       {items.map((p) => (
         <li key={p.userId} className="vj-card">
           <h3 className="vj-card-title">
             <a href={`/marketplace/profissionais/${p.userId}`}>
-              {p.professionalName ?? "Profissional"}
+              {p.professionalName ?? t("marketplace.professional")}
             </a>
           </h3>
           <p className="vj-meta">{p.marketplaceHeadline ?? "—"}</p>

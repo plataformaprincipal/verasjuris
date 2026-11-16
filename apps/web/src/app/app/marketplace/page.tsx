@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { NoPermission, SectionTabs } from "../../../components/ai-ui";
 import {
   MARKETPLACE_APP_TABS,
+  translateMarketplaceTabs,
   MarketplaceEngagementsTable,
   MarketplacePaymentBanner,
   MarketplaceProposalsTable,
@@ -21,8 +22,10 @@ import {
   type MarketplaceRequest,
 } from "../../../lib/marketplace";
 import { useOrgContext } from "../../../lib/use-org-context";
+import { useLocale } from "../../../components/locale-provider";
 
 export default function AppMarketplacePage() {
+  const { t } = useLocale();
   const org = useOrgContext();
   const canEnter =
     hasMarketplacePermission(org.permissions, "read") ||
@@ -77,32 +80,32 @@ export default function AppMarketplacePage() {
   }, [org.ready, org.orgId, canEnter, org.permissions]);
 
   if (org.ready && !canEnter) {
-    return <NoPermission>Sem permissão para o marketplace jurídico.</NoPermission>;
+    return <NoPermission>{t("marketplace.noPermission")}</NoPermission>;
   }
 
   return (
     <div className="vj-stack">
-      <Breadcrumb items={[{ label: "Painel", href: "/app" }, { label: "Marketplace" }]} />
+      <Breadcrumb items={[{ label: t("dashboard.title"), href: "/app" }, { label: t("marketplace.title") }]} />
       <PageHeader
-        title="Marketplace jurídico"
-        description="Gestão profissional de serviços e propostas."
+        title={t("marketplace.publicTitle")}
+        description={t("marketplace.appDescription")}
       />
-      <SectionTabs label="Seções" items={MARKETPLACE_APP_TABS} current="" />
+      <SectionTabs label={t("common.sections")} items={translateMarketplaceTabs(t, MARKETPLACE_APP_TABS)} current="" />
       <MarketplacePaymentBanner status={paymentStatus} />
-      {loading ? <LoadingState label="Carregando…" /> : null}
+      {loading ? <LoadingState label={t("common.loading")} /> : null}
       {!loading ? (
         <>
           {opportunities.length > 0 ? (
             <section>
-              <h2 className="vj-subtitle">Oportunidades abertas ({opportunities.length})</h2>
+              <h2 className="vj-subtitle">{t("marketplace.openOpportunities", undefined, { count: opportunities.length })}</h2>
             </section>
           ) : null}
           <section>
-            <h2 className="vj-subtitle">Propostas recentes</h2>
+            <h2 className="vj-subtitle">{t("marketplace.recentProposals")}</h2>
             <MarketplaceProposalsTable items={proposals} />
           </section>
           <section>
-            <h2 className="vj-subtitle">Contratações</h2>
+            <h2 className="vj-subtitle">{t("marketplace.engagements")}</h2>
             <MarketplaceEngagementsTable
               items={engagements}
               baseHref="/app/marketplace/contratacoes"

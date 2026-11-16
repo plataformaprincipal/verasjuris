@@ -46,25 +46,25 @@ function writeGuestTurns(value: number) {
 }
 
 export function JurisOneChat() {
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const inputId = useId();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [objective, setObjective] = useState<JurisOneObjectiveId | null>(null);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [turns, setTurns] = useState(0);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "system",
-      content:
-        "Olá. Sou o Juris One — assistente informativo do VerasJuris. Não sou advogado e não substituo orientação profissional individualizada. Nesta etapa pública, respondo com FAQ e encaminhamentos para recursos reais da plataforma.",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
 
   useEffect(() => {
     setTurns(readGuestTurns());
-  }, []);
+    setMessages([
+      {
+        id: "welcome",
+        role: "system",
+        content: t("jurisOne.welcome"),
+      },
+    ]);
+  }, [t]);
 
   const remaining = Math.max(0, JURIS_ONE_GUEST_LIMIT - turns);
   const limitReached = remaining <= 0;
@@ -75,8 +75,7 @@ export function JurisOneChat() {
       {
         id: `welcome-${Date.now()}`,
         role: "system",
-        content:
-          "Nova conversa iniciada. A etapa gratuita de orientação nesta sessão continua sujeita ao limite já consumido.",
+        content: t("jurisOne.welcomeNew"),
       },
     ]);
     setInput("");
@@ -91,7 +90,6 @@ export function JurisOneChat() {
     setInput("");
     setMessages((prev) => [...prev, { id: `u-${Date.now()}`, role: "user", content: text }]);
 
-    // Simula latência leve de UI; resposta é local (FAQ), sem chamar provedor pago.
     await new Promise((resolve) => setTimeout(resolve, 220));
 
     const nextTurns = turns + 1;
@@ -105,16 +103,16 @@ export function JurisOneChat() {
   }
 
   const suggestions = [
-    "Como entrar na conta?",
-    "Onde estão as políticas?",
-    "Vocês são um escritório de advocacia?",
-    "Como ver o status do sistema?",
+    t("jurisOne.suggest.login"),
+    t("jurisOne.suggest.policies"),
+    t("jurisOne.suggest.firm"),
+    t("jurisOne.suggest.status"),
   ];
 
   return (
     <div className="vj-juris-shell">
       {sidebarOpen ? (
-        <aside className="vj-card vj-stack" aria-label="Painel Juris One">
+        <aside className="vj-card vj-stack" aria-label={t("jurisOne.panelAria")}>
           <div className="vj-inline-actions" style={{ justifyContent: "space-between" }}>
             <strong>
               <BrainCircuit size={18} aria-hidden="true" /> Juris One
@@ -122,35 +120,44 @@ export function JurisOneChat() {
             <button
               type="button"
               className="vj-button vj-button-ghost"
-              aria-label="Recolher painel"
+              aria-label={t("jurisOne.collapse")}
               onClick={() => setSidebarOpen(false)}
             >
               <PanelLeft size={18} aria-hidden="true" />
             </button>
           </div>
           <Button variant="secondary" onClick={startNewConversation}>
-            <Plus size={16} aria-hidden="true" /> Nova conversa
+            <Plus size={16} aria-hidden="true" /> {t("jurisOne.newChat")}
           </Button>
           <div className="vj-stack">
             <p className="vj-meta">
-              <History size={14} aria-hidden="true" /> Histórico persistente exige autenticação.
+              <History size={14} aria-hidden="true" /> {t("jurisOne.historyHint")}
             </p>
             <p className="vj-meta">
-              Etapa gratuita nesta sessão: {remaining} de {JURIS_ONE_GUEST_LIMIT} interações.
+              {t("jurisOne.freeQuota", undefined, {
+                remaining,
+                limit: JURIS_ONE_GUEST_LIMIT,
+              })}
             </p>
           </div>
           <div className="vj-stack">
-            <p className="vj-meta">Modos</p>
+            <p className="vj-meta">{t("jurisOne.modes")}</p>
             <button type="button" className="vj-button" aria-pressed="true">
-              <MessageSquare size={16} aria-hidden="true" /> Chat
+              <MessageSquare size={16} aria-hidden="true" /> {t("jurisOne.chat")}
             </button>
-            <button type="button" className="vj-button vj-button-secondary" disabled title={JURIS_WORK_STATUS.detail}>
-              <BriefcaseBusiness size={16} aria-hidden="true" /> {JURIS_WORK_STATUS.label} — indisponível
+            <button
+              type="button"
+              className="vj-button vj-button-secondary"
+              disabled
+              title={JURIS_WORK_STATUS.detail}
+            >
+              <BriefcaseBusiness size={16} aria-hidden="true" /> {JURIS_WORK_STATUS.label} —{" "}
+              {t("jurisOne.unavailable")}
             </button>
             <p className="vj-hint">{JURIS_WORK_STATUS.detail}</p>
           </div>
           <div className="vj-stack">
-            <p className="vj-meta">Encaminhamentos</p>
+            <p className="vj-meta">{t("jurisOne.redirects")}</p>
             {redirects.map((item) => (
               <a key={item.href} href={item.href}>
                 <ArrowUpRight size={14} aria-hidden="true" /> {item.label}
@@ -165,26 +172,25 @@ export function JurisOneChat() {
             className="vj-button vj-button-secondary"
             onClick={() => setSidebarOpen(true)}
           >
-            <PanelLeft size={16} aria-hidden="true" /> Painel
+            <PanelLeft size={16} aria-hidden="true" /> {t("jurisOne.panel")}
           </button>
         </div>
       )}
 
-      <section className="vj-juris-chat" aria-label="Conversa Juris One">
+      <section className="vj-juris-chat" aria-label={t("jurisOne.conversationAria")}>
         <div className="vj-stack">
           <p className="vj-meta">
-            <Sparkles size={14} aria-hidden="true" /> Seu assistente inteligente no universo jurídico
+            <Sparkles size={14} aria-hidden="true" /> {t("jurisOne.tagline")}
           </p>
           <p className="vj-hint" role="note">
-            <ShieldCheck size={14} aria-hidden="true" /> Respostas informativas. Sem chaves de API no
-            cliente. Sem execução de ações externas nesta etapa.
+            <ShieldCheck size={14} aria-hidden="true" /> {t("jurisOne.safetyNote")}
           </p>
         </div>
 
         {objective === null ? (
           <div className="vj-card vj-stack">
-            <h2 className="vj-section-title">Como podemos ajudar?</h2>
-            <p className="vj-meta">Seleção opcional — não concede permissões profissionais.</p>
+            <h2 className="vj-section-title">{t("jurisOne.howHelp")}</h2>
+            <p className="vj-meta">{t("jurisOne.optionalSelect")}</p>
             <div className="vj-service-grid">
               {JURIS_ONE_OBJECTIVES.map((item) => (
                 <button
@@ -199,7 +205,7 @@ export function JurisOneChat() {
               ))}
             </div>
             <Button variant="ghost" onClick={() => setObjective("orientacao")}>
-              Pular e iniciar no Chat
+              {t("jurisOne.skipChat")}
             </Button>
           </div>
         ) : null}
@@ -217,7 +223,8 @@ export function JurisOneChat() {
           ))}
           {pending ? (
             <p className="vj-meta" role="status">
-              <LoaderCircle size={14} className="vj-spin" aria-hidden="true" /> Processando…
+              <LoaderCircle size={14} className="vj-spin" aria-hidden="true" />{" "}
+              {t("jurisOne.processing")}
             </p>
           ) : null}
         </div>
@@ -238,24 +245,21 @@ export function JurisOneChat() {
           </div>
         ) : (
           <div className="vj-card vj-stack" role="status">
-            <strong>Etapa gratuita desta sessão concluída</strong>
-            <p>
-              Para continuar com recursos autenticados, crie conta, entre, conheça planos ou explore
-              ferramentas e o marketplace.
-            </p>
+            <strong>{t("jurisOne.limitTitle")}</strong>
+            <p>{t("jurisOne.limitBody")}</p>
             <div className="vj-form-actions">
-              <ButtonLink href="/cadastro">Criar conta</ButtonLink>
+              <ButtonLink href="/cadastro">{t("nav.signup")}</ButtonLink>
               <ButtonLink href="/entrar" variant="secondary">
-                Entrar
+                {t("nav.login")}
               </ButtonLink>
               <ButtonLink href="/planos" variant="secondary">
-                Planos
+                {t("footer.plans")}
               </ButtonLink>
               <ButtonLink href="/ferramentas" variant="ghost">
-                Ferramentas
+                {t("nav.tools")}
               </ButtonLink>
               <ButtonLink href="/marketplace-juridico" variant="ghost">
-                Marketplace
+                {t("nav.marketplace")}
               </ButtonLink>
             </div>
           </div>
@@ -270,7 +274,7 @@ export function JurisOneChat() {
         >
           <div className="vj-stack" style={{ gap: "0.35rem" }}>
             <label className="vj-visually-hidden" htmlFor={inputId}>
-              Mensagem para o Juris One
+              {t("jurisOne.messageLabel")}
             </label>
             <textarea
               id={inputId}
@@ -279,11 +283,11 @@ export function JurisOneChat() {
               value={input}
               disabled={pending || limitReached}
               onChange={(event) => setInput(event.target.value)}
-              placeholder="Escreva sua pergunta…"
+              placeholder={t("jurisOne.placeholder")}
             />
           </div>
           <Button type="submit" disabled={pending || limitReached || !input.trim()}>
-            <Send size={16} aria-hidden="true" /> Enviar
+            <Send size={16} aria-hidden="true" /> {t("jurisOne.send")}
           </Button>
         </form>
       </section>

@@ -13,9 +13,15 @@ describe("password-policy", () => {
     expect(classifyPassword("Veras@1")).toBe("nao_atende");
   });
 
-  it("aceita senha com 8 caracteres e todos os requisitos (BOA)", () => {
-    expect(isPasswordAcceptable("Veras@12")).toBe(true);
-    expect(classifyPassword("Veras@12")).toBe("boa");
+  it("aceita senhas BOA com 8, 9, 10 e 11 caracteres", () => {
+    const boaPasswords = ["Veras@12", "Veras@123", "Veras@1234", "Veras@12345"] as const;
+    for (const password of boaPasswords) {
+      expect(isPasswordAcceptable(password)).toBe(true);
+      expect(classifyPassword(password)).toBe("boa");
+      expect(passwordPolicyError(password)).toBeUndefined();
+      expect(password.length).toBeGreaterThanOrEqual(8);
+      expect(password.length).toBeLessThan(12);
+    }
     expect(passwordStrength("Veras@12").label).toBe("Boa");
   });
 
@@ -43,6 +49,8 @@ describe("password-policy", () => {
 
   it("rejeita senhas comuns mesmo longas", () => {
     expect(isPasswordAcceptable("password1234")).toBe(false);
+    expect(passwordPolicyError("password1234")).toMatch(/menos comum/i);
     expect(passwordStrength("password1234").label).toBe("Senha muito comum");
+    expect(classifyPassword("password1234")).toBe("nao_atende");
   });
 });

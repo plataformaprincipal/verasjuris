@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JurisOneChat } from "../../components/juris-one-chat";
+import { JurisOneRouteChrome } from "../../components/public-route-chrome";
 import { PublicPageShell } from "../../components/public-page-shell";
 
 export const metadata: Metadata = {
@@ -11,18 +12,9 @@ export const metadata: Metadata = {
 export default function JurisOnePage() {
   return (
     <PublicPageShell wide>
-      <div className="vj-stack">
-        <div>
-          <p className="vj-meta">Juris One</p>
-          <h1 className="vj-display">Seu assistente inteligente no universo jurídico</h1>
-          <p className="vj-lead">
-            Chat para perguntas, explicações gerais e organização de caminhos na plataforma. O modo
-            Work estruturado será anunciado somente quando a infraestrutura de tarefas estiver
-            operacional.
-          </p>
-        </div>
+      <JurisOneRouteChrome>
         <JurisOneChat />
-      </div>
+      </JurisOneRouteChrome>
     </PublicPageShell>
   );
 }

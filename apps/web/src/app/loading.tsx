@@ -1,9 +1,5 @@
-import { LoadingState } from "@verasjuris/ui";
+import { LocalizedLoadingPage } from "../components/i18n-states";
 
 export default function Loading() {
-  return (
-    <main className="vj-page" id="conteudo">
-      <LoadingState label="Carregando a página." />
-    </main>
-  );
+  return <LocalizedLoadingPage variant="page" />;
 }

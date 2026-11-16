@@ -9,8 +9,10 @@ import {
   isApiFailure,
   type MonetizationProduct,
 } from "../../lib/finance";
+import { useLocale } from "../../components/locale-provider";
 
 export default function PublicPlanosPage() {
+  const { t } = useLocale();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<MonetizationProduct[]>([]);
@@ -32,13 +34,13 @@ export default function PublicPlanosPage() {
   return (
     <main className="vj-page" id="conteudo">
       <div className="vj-stack">
-        <Breadcrumb items={[{ label: "Início", href: "/" }, { label: "Planos" }]} />
+        <Breadcrumb items={[{ label: t("plans.homeBreadcrumb"), href: "/" }, { label: t("plans.title") }]} />
         <PageHeader
-          title="Planos"
-          description="Comparação pública de planos. Features só quando realmente configuradas — sem inventar benefícios."
+          title={t("plans.title")}
+          description={t("plans.description")}
         />
-        {loading ? <LoadingState label="Carregando planos…" /> : null}
-        {error ? <ErrorState title="Erro">{error}</ErrorState> : null}
+        {loading ? <LoadingState label={t("plans.loading")} /> : null}
+        {error ? <ErrorState title={t("plans.error")}>{error}</ErrorState> : null}
         {!loading && !error ? <PublicPlansComparison items={items} /> : null}
       </div>
     </main>

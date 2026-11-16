@@ -32,36 +32,25 @@ export function HomeLanding() {
       <section className="vj-home-hero">
         <div className="vj-home-hero-copy">
           <p className="vj-meta">VerasJuris</p>
-          <h1 className="vj-display">
-            Uma plataforma completa para a gestão e a transformação digital dos serviços jurídicos.
-          </h1>
-          <p className="vj-lead">
-            Organize processos, clientes, documentos, atendimentos, prazos e operações jurídicas em
-            um único ambiente, com recursos de automação, inteligência artificial e gestão
-            integrada.
-          </p>
+          <h1 className="vj-display">{t("home.heroTitle")}</h1>
+          <p className="vj-lead">{t("home.heroLead")}</p>
           <div className="vj-form-actions">
-            <ButtonLink href="/explorar">Conhecer a plataforma</ButtonLink>
+            <ButtonLink href="/explorar">{t("home.ctaExplore")}</ButtonLink>
             <ButtonLink href="/ferramentas" variant="secondary">
-              Explorar funcionalidades
+              {t("home.ctaFeatures")}
             </ButtonLink>
             <ButtonLink href="/cadastro" variant="ghost">
               {t("nav.signup")}
             </ButtonLink>
           </div>
-          <p className="vj-meta">
-            A pré-visualização é pública. Operações reais e dados privados exigem autenticação.
-          </p>
+          <p className="vj-meta">{t("home.previewNote")}</p>
         </div>
         <div className="vj-home-hero-preview">
           <HomeProductPreview />
         </div>
       </section>
 
-      <PublicSection
-        title="Conheça as áreas da plataforma"
-        lead="O catálogo público cobre o escopo real do VerasJuris, com disponibilidade declarada com base no código e nas integrações efetivas."
-      >
+      <PublicSection title={t("home.areasTitle")} lead={t("home.areasLead")}>
         <div className="vj-feature-grid">
           {listCategories().map((category) => (
             <a
@@ -76,10 +65,7 @@ export function HomeLanding() {
         </div>
       </PublicSection>
 
-      <PublicSection
-        title="Funcionalidades em destaque"
-        lead="Exemplos do que a plataforma organiza hoje. Cada item indica se está disponível, em testes, em desenvolvimento ou planejado."
-      >
+      <PublicSection title={t("home.highlightsTitle")} lead={t("home.highlightsLead")}>
         <div className="vj-feature-grid">
           {highlights.map((feature) =>
             feature ? (
@@ -91,17 +77,14 @@ export function HomeLanding() {
                 <h3 className="vj-section-title">{feature.name}</h3>
                 <p>{feature.summary}</p>
                 <p className="vj-meta">{feature.problem}</p>
-                <a href={`/ferramentas/${feature.slug}`}>Ver detalhes</a>
+                <a href={`/ferramentas/${feature.slug}`}>{t("home.viewDetails")}</a>
               </article>
             ) : null,
           )}
         </div>
       </PublicSection>
 
-      <PublicSection
-        title="Para quem é o VerasJuris"
-        lead="Soluções orientadas a problemas concretos de profissionais, escritórios, empresas e clientes."
-      >
+      <PublicSection title={t("home.audienceTitle")} lead={t("home.audienceLead")}>
         <div className="vj-feature-grid">
           {SOLUTIONS.map((solution) => (
             <a
@@ -116,46 +99,34 @@ export function HomeLanding() {
         </div>
       </PublicSection>
 
-      <PublicSection
-        title="Segurança, acessibilidade e idiomas"
-        lead="Controles de acesso por organização, preferências de acessibilidade e infraestrutura para múltiplos idiomas."
-      >
+      <PublicSection title={t("home.trustTitle")} lead={t("home.trustLead")}>
         <div className="vj-split">
           <article className="vj-card">
-            <h3 className="vj-section-title">Segurança e privacidade</h3>
-            <p>
-              Sessões autenticadas, permissões por organização e políticas institucionais em
-              evolução. Dados de demonstração nunca misturam registros reais.
-            </p>
-            <a href="/politicas/seguranca">Conhecer segurança</a>
+            <h3 className="vj-section-title">{t("home.securityTitle")}</h3>
+            <p>{t("home.securityBody")}</p>
+            <a href="/politicas/seguranca">{t("home.securityCta")}</a>
           </article>
           <article className="vj-card">
-            <h3 className="vj-section-title">Acessibilidade e idiomas</h3>
-            <p>
-              Painel de acessibilidade com controles reais e seleção de idioma. A cobertura textual
-              completa segue em expansão; a interface comunica o que já está disponível.
-            </p>
+            <h3 className="vj-section-title">{t("home.a11yLanguagesTitle")}</h3>
+            <p>{t("home.a11yLanguagesBody")}</p>
             <div className="vj-inline-actions">
-              <a href="/acessibilidade">Acessibilidade</a>
-              <a href="/idiomas">Idiomas</a>
+              <a href="/acessibilidade">{t("nav.accessibility")}</a>
+              <a href="/idiomas">{t("footer.languages")}</a>
             </div>
           </article>
         </div>
       </PublicSection>
 
       <section className="vj-home-cta vj-card">
-        <h2 className="vj-section-title">Pronto para organizar sua operação jurídica?</h2>
-        <p className="vj-lead">
-          Explore a demonstração sem cadastro. Quando precisar executar uma operação real, entre ou
-          crie sua conta.
-        </p>
+        <h2 className="vj-section-title">{t("home.finalCtaTitle")}</h2>
+        <p className="vj-lead">{t("home.finalCtaLead")}</p>
         <div className="vj-form-actions">
-          <ButtonLink href="/explorar">Explorar o VerasJuris</ButtonLink>
+          <ButtonLink href="/explorar">{t("home.finalCtaExplore")}</ButtonLink>
           <ButtonLink href="/planos" variant="secondary">
-            Ver planos
+            {t("home.viewPlans")}
           </ButtonLink>
           <ButtonLink href="/cadastro" variant="ghost">
-            Criar conta
+            {t("nav.signup")}
           </ButtonLink>
         </div>
       </section>

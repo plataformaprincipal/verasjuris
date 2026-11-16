@@ -14,11 +14,16 @@ import {
   type ColorTheme,
   type ContrastMode,
   type ColorVisionMode,
+  type InterfaceDensity,
   type LetterSpacingMode,
   type UiZoomMode,
 } from "../lib/accessibility";
 import { isApiFailure } from "../lib/ai";
-import { subscribeVLibrasUiStatus, type VLibrasUiStatus } from "../lib/vlibras/vlibras-status";
+import {
+  getVLibrasUiStatus,
+  subscribeVLibrasUiStatus,
+  type VLibrasUiStatus,
+} from "../lib/vlibras/vlibras-status";
 import { useLocale } from "./locale-provider";
 import { useAnnouncer } from "./live-announcer";
 
@@ -35,10 +40,10 @@ function describeChange(
   partial: Partial<AccessibilityPreferences>,
 ): string {
   if (partial.activeProfile) {
-    return t(`a11y.profile.${partial.activeProfile}`, t("a11y.profiles"));
+    return t(`a11y.profile.${partial.activeProfile}`, t("a11y.profiles", "Perfis rápidos"));
   }
   const keys = Object.keys(partial);
-  if (keys.length === 0) return t("a11y.reset");
+  if (keys.length === 0) return t("a11y.reset", "Restaurar padrões");
   const first = keys[0]!;
   const labelMap: Record<string, string> = {
     fontScale: "a11y.fontScale",
@@ -55,19 +60,40 @@ function describeChange(
     underlineLinks: "a11y.underlineLinks",
     colorTheme: "a11y.theme",
     letterSpacing: "a11y.letterSpacing",
+    lineSpacing: "a11y.lineSpacing",
     highlightInteractive: "a11y.highlightInteractive",
+    highVisibilityCursor: "a11y.largeCursor",
     uiZoom: "a11y.uiZoom",
     reduceDistractions: "a11y.reduceDistractions",
-    highVisibilityCursor: "a11y.cursor",
-    signLanguagePreferred: "a11y.vlibras",
     simplifiedUi: "a11y.simplifiedUi",
+    interfaceDensity: "a11y.density",
+    screenReaderOptimized: "a11y.screenReader",
+    signLanguagePreferred: "a11y.vlibras",
   };
-  const label = t(labelMap[first] ?? "a11y.title");
+  const label = t(labelMap[first] ?? "a11y.title", "Acessibilidade");
   const value = partial[first as keyof AccessibilityPreferences];
   if (typeof value === "boolean") {
-    return `${label}: ${value ? t("a11y.on") : t("a11y.off")}`;
+    return `${label}: ${value ? t("a11y.on", "ativado") : t("a11y.off", "desativado")}`;
   }
   return `${label}: ${String(value)}`;
+}
+
+function vlibrasStatusLabel(
+  t: (key: string, fallback?: string) => string,
+  status: VLibrasUiStatus,
+): string {
+  switch (status) {
+    case "idle":
+      return t("a11y.vlibras.idle", "VLibras desligado");
+    case "loading":
+      return t("a11y.vlibras.loading", "Carregando VLibras…");
+    case "ready":
+      return t("a11y.vlibras.ready", "VLibras pronto");
+    case "error":
+      return t("a11y.vlibras.error", "Falha ao carregar VLibras");
+    case "unavailable":
+      return t("a11y.vlibras.unavailable", "VLibras indisponível neste momento");
+  }
 }
 
 function Toggle({
@@ -87,12 +113,24 @@ function Toggle({
   );
 }
 
+function pickLocalExtras(prefs: AccessibilityPreferences) {
+  return {
+    underlineLinks: prefs.underlineLinks,
+    colorTheme: prefs.colorTheme,
+    letterSpacing: prefs.letterSpacing,
+    highlightInteractive: prefs.highlightInteractive,
+    uiZoom: prefs.uiZoom,
+    reduceDistractions: prefs.reduceDistractions,
+    simplifiedUi: prefs.simplifiedUi,
+  };
+}
+
 export function AccessibilityPanel() {
   const { t } = useLocale();
   const { announce } = useAnnouncer();
   const [open, setOpen] = useState(false);
   const [prefs, setPrefs] = useState<AccessibilityPreferences>(DEFAULT_A11Y);
-  const [vlibrasStatus, setVlibrasStatus] = useState<VLibrasUiStatus>("idle");
+  const [vlibrasStatus, setVlibrasStatus] = useState<VLibrasUiStatus>(() => getVLibrasUiStatus());
   const panelId = useId();
   const titleId = useId();
   const fabRef = useRef<HTMLButtonElement>(null);
@@ -183,12 +221,16 @@ export function AccessibilityPanel() {
     setPrefs(next);
     applyAccessibilityToDocument(next);
     saveLocalAccessibility(next);
-    announce(announcement ?? t("a11y.prefsUpdated"));
+    announce(announcement ?? t("a11y.prefsUpdated", "Preferências de acessibilidade atualizadas"));
     const remote = await updateAccessibilityPreferences(next);
     if (!isApiFailure(remote)) {
-      setPrefs(remote);
-      saveLocalAccessibility(remote);
-      applyAccessibilityToDocument(remote);
+      const merged: AccessibilityPreferences = {
+        ...remote,
+        ...pickLocalExtras(next),
+      };
+      setPrefs(merged);
+      saveLocalAccessibility(merged);
+      applyAccessibilityToDocument(merged);
     }
   }
 
@@ -205,16 +247,10 @@ export function AccessibilityPanel() {
     patch({ fontScale: String(next) });
   }
 
-  const vlibrasLabel =
-    vlibrasStatus === "ready"
-      ? t("a11y.vlibras.ready")
-      : vlibrasStatus === "loading"
-        ? t("a11y.vlibras.loading")
-        : vlibrasStatus === "unavailable"
-          ? t("a11y.vlibras.unavailable")
-          : vlibrasStatus === "error"
-            ? t("a11y.vlibras.error")
-            : t("a11y.vlibras.idle");
+  function closePanel() {
+    setOpen(false);
+    requestAnimationFrame(() => fabRef.current?.focus());
+  }
 
   return (
     <>
@@ -222,7 +258,7 @@ export function AccessibilityPanel() {
         ref={fabRef}
         type="button"
         className="vj-fab vj-fab-a11y"
-        aria-label={t("a11y.open")}
+        aria-label={t("a11y.open", "Abrir painel de acessibilidade")}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
@@ -240,20 +276,20 @@ export function AccessibilityPanel() {
         >
           <div className="vj-a11y-panel-header">
             <h2 id={titleId} className="vj-section-title">
-              {t("a11y.title")}
+              {t("a11y.title", "Acessibilidade")}
             </h2>
-            <button type="button" className="vj-button vj-button-secondary" onClick={() => setOpen(false)}>
-              {t("common.close")}
+            <button type="button" className="vj-button vj-button-secondary" onClick={closePanel}>
+              {t("common.close", "Fechar")}
             </button>
           </div>
           <p className="vj-meta">
-            <a href="/acessibilidade">{t("a11y.title")}</a>
+            <a href="/acessibilidade">{t("a11y.title", "Acessibilidade")}</a>
             {" · "}
-            <a href="/acessibilidade/declaracao">{t("a11y.statement")}</a>
+            <a href="/acessibilidade/declaracao">{t("a11y.statement", "Declaração")}</a>
           </p>
 
           <fieldset className="vj-stack">
-            <legend>{t("a11y.profiles")}</legend>
+            <legend>{t("a11y.profiles", "Perfis rápidos")}</legend>
             <div className="vj-chip-grid">
               {QUICK_PROFILES.map((profile) => (
                 <button
@@ -266,14 +302,16 @@ export function AccessibilityPanel() {
                       {
                         ...DEFAULT_A11Y,
                         ...profile.patch,
-                        underlineLinks: prefs.underlineLinks,
-                        colorTheme: prefs.colorTheme,
+                        ...pickLocalExtras({
+                          ...prefs,
+                          ...profile.patch,
+                        }),
                       },
-                      t(profile.labelKey),
+                      t(profile.labelKey, profile.id),
                     )
                   }
                 >
-                  {t(profile.labelKey)}
+                  {t(profile.labelKey, profile.id)}
                 </button>
               ))}
             </div>
@@ -281,67 +319,99 @@ export function AccessibilityPanel() {
 
           <section className="vj-a11y-category" aria-labelledby={`${panelId}-vision`}>
             <h3 id={`${panelId}-vision`} className="vj-section-title">
-              {t("a11y.category.vision")}
+              {t("a11y.section.vision", "Visão")}
             </h3>
             <div className="vj-a11y-inline-actions">
-              <button type="button" className="vj-button vj-button-secondary" onClick={() => bumpFont(-10)}>
-                {t("a11y.fontDecrease")}
+              <button
+                type="button"
+                className="vj-button vj-button-secondary"
+                onClick={() => bumpFont(-10)}
+              >
+                {t("a11y.fontDecrease", "Diminuir fonte")}
               </button>
-              <button type="button" className="vj-button vj-button-secondary" onClick={() => bumpFont(10)}>
-                {t("a11y.fontIncrease")}
+              <button
+                type="button"
+                className="vj-button vj-button-secondary"
+                onClick={() => bumpFont(10)}
+              >
+                {t("a11y.fontIncrease", "Aumentar fonte")}
               </button>
               <span className="vj-meta">{prefs.fontScale}%</span>
             </div>
             <label>
-              <span>{t("a11y.contrast")}</span>
+              <span>{t("a11y.contrast", "Contraste")}</span>
               <select
                 className="vj-select"
                 value={prefs.contrastMode}
                 onChange={(event) => patch({ contrastMode: event.target.value as ContrastMode })}
               >
-                <option value="default">{t("a11y.contrast.normal")}</option>
-                <option value="high">{t("a11y.contrast.high")}</option>
-                <option value="extra_high">{t("a11y.contrast.extra_high")}</option>
-                <option value="dark_high_contrast">{t("a11y.contrast.dark_high")}</option>
-                <option value="inverted">{t("a11y.contrast.inverted")}</option>
+                <option value="default">{t("a11y.contrast.normal", "Normal")}</option>
+                <option value="high">{t("a11y.contrast.high", "Alto")}</option>
+                <option value="extra_high">{t("a11y.contrast.extra_high", "Extra alto")}</option>
+                <option value="dark_high_contrast">
+                  {t("a11y.contrast.dark_high", "Escuro alto contraste")}
+                </option>
+                <option value="inverted">
+                  {t("a11y.contrast.inverted", "Invertido (tema preto)")}
+                </option>
               </select>
             </label>
             <label>
-              <span>{t("a11y.theme")}</span>
+              <span>{t("a11y.theme", "Tema")}</span>
               <select
                 className="vj-select"
                 value={prefs.colorTheme ?? "system"}
                 onChange={(event) => patch({ colorTheme: event.target.value as ColorTheme })}
               >
-                <option value="system">{t("a11y.themeSystem")}</option>
-                <option value="light">{t("a11y.themeLight")}</option>
-                <option value="dark">{t("a11y.themeDark")}</option>
-                <option value="black">{t("a11y.themeBlack")}</option>
+                <option value="system">{t("a11y.themeSystem", "Sistema")}</option>
+                <option value="light">{t("a11y.themeLight", "Claro")}</option>
+                <option value="dark">{t("a11y.themeDark", "Escuro")}</option>
+                <option value="black">{t("a11y.themeBlack", "Preto")}</option>
+              </select>
+            </label>
+            <label>
+              <span>{t("a11y.colorVision", "Visão de cores")}</span>
+              <select
+                className="vj-select"
+                value={prefs.colorVisionMode}
+                onChange={(event) =>
+                  patch({ colorVisionMode: event.target.value as ColorVisionMode })
+                }
+              >
+                <option value="none">{t("a11y.vision.none", "Nenhum")}</option>
+                <option value="protanopia">{t("a11y.vision.protanopia", "Protanopia")}</option>
+                <option value="deuteranopia">
+                  {t("a11y.vision.deuteranopia", "Deuteranopia")}
+                </option>
+                <option value="tritanopia">{t("a11y.vision.tritanopia", "Tritanopia")}</option>
+                <option value="achromatopsia">
+                  {t("a11y.vision.achromatopsia", "Acromatopsia")}
+                </option>
               </select>
             </label>
             <Toggle
               checked={Boolean(prefs.highVisibilityCursor)}
-              label={t("a11y.cursor")}
+              label={t("a11y.largeCursor", "Cursor ampliado")}
               onChange={(value) => patch({ highVisibilityCursor: value })}
             />
             <Toggle
               checked={Boolean(prefs.underlineLinks)}
-              label={t("a11y.underlineLinks")}
+              label={t("a11y.underlineLinks", "Sublinhar links")}
               onChange={(value) => patch({ underlineLinks: value })}
             />
             <Toggle
               checked={Boolean(prefs.highlightInteractive)}
-              label={t("a11y.highlightInteractive")}
+              label={t("a11y.highlightInteractive", "Destacar elementos interativos")}
               onChange={(value) => patch({ highlightInteractive: value })}
             />
           </section>
 
           <section className="vj-a11y-category" aria-labelledby={`${panelId}-reading`}>
             <h3 id={`${panelId}-reading`} className="vj-section-title">
-              {t("a11y.category.reading")}
+              {t("a11y.section.reading", "Leitura")}
             </h3>
             <label>
-              <span>{t("a11y.letterSpacing")}</span>
+              <span>{t("a11y.letterSpacing", "Espaçamento entre letras")}</span>
               <select
                 className="vj-select"
                 value={prefs.letterSpacing ?? "normal"}
@@ -349,71 +419,76 @@ export function AccessibilityPanel() {
                   patch({ letterSpacing: event.target.value as LetterSpacingMode })
                 }
               >
-                <option value="normal">{t("a11y.contrast.normal")}</option>
-                <option value="wide">Wide</option>
-                <option value="wider">Wider</option>
+                <option value="normal">{t("a11y.spacing.normal", "Normal")}</option>
+                <option value="wide">{t("a11y.spacing.wide", "Amplo")}</option>
+                <option value="wider">{t("a11y.spacing.wider", "Mais amplo")}</option>
               </select>
             </label>
             <label>
-              <span>{t("a11y.lineSpacing")}</span>
+              <span>{t("a11y.lineSpacing", "Espaçamento entre linhas")}</span>
               <select
                 className="vj-select"
                 value={prefs.lineSpacing}
                 onChange={(event) => patch({ lineSpacing: event.target.value })}
               >
-                <option value="normal">{t("a11y.contrast.normal")}</option>
-                <option value="relaxed">Relaxed</option>
-                <option value="loose">Loose</option>
+                <option value="normal">{t("a11y.spacing.normal", "Normal")}</option>
+                <option value="relaxed">{t("a11y.spacing.relaxed", "Relaxado")}</option>
+                <option value="loose">{t("a11y.spacing.loose", "Folgado")}</option>
               </select>
             </label>
             <Toggle
               checked={prefs.dyslexiaFriendlyMode}
-              label={t("a11y.dyslexia")}
+              label={t("a11y.dyslexia", "Fonte amigável à dislexia")}
               onChange={(value) => patch({ dyslexiaFriendlyMode: value })}
             />
             <Toggle
               checked={prefs.simplifiedLanguage}
-              label={t("a11y.simplified")}
+              label={t("a11y.simplified", "Linguagem simplificada")}
               onChange={(value) => patch({ simplifiedLanguage: value })}
             />
             <Toggle
               checked={prefs.readingGuide}
-              label={t("a11y.readingGuide")}
+              label={t("a11y.readingGuide", "Guia de leitura")}
               onChange={(value) => patch({ readingGuide: value })}
             />
             <Toggle
               checked={Boolean(prefs.reduceDistractions)}
-              label={t("a11y.reduceDistractions")}
+              label={t("a11y.reduceDistractions", "Reduzir distrações")}
               onChange={(value) => patch({ reduceDistractions: value })}
             />
           </section>
 
           <section className="vj-a11y-category" aria-labelledby={`${panelId}-nav`}>
             <h3 id={`${panelId}-nav`} className="vj-section-title">
-              {t("a11y.category.navigation")}
+              {t("a11y.section.navigation", "Navegação")}
             </h3>
             <Toggle
               checked={prefs.focusEnhancement}
-              label={t("a11y.focusEnhancement")}
+              label={t("a11y.focusEnhancement", "Foco de teclado reforçado")}
               onChange={(value) => patch({ focusEnhancement: value })}
             />
             <Toggle
+              checked={prefs.reducedMotion}
+              label={t("a11y.reducedMotion", "Reduzir animações")}
+              onChange={(value) => patch({ reducedMotion: value })}
+            />
+            <Toggle
               checked={prefs.keyboardOnly}
-              label={t("a11y.keyboardOnly")}
+              label={t("a11y.keyboardOnly", "Navegação por teclado")}
               onChange={(value) => patch({ keyboardOnly: value })}
             />
             <Toggle
-              checked={Boolean(prefs.simplifiedUi)}
-              label={t("a11y.simplifiedUi")}
-              onChange={(value) => patch({ simplifiedUi: value })}
-            />
-            <Toggle
-              checked={prefs.reducedMotion}
-              label={t("a11y.reducedMotion")}
-              onChange={(value) => patch({ reducedMotion: value })}
+              checked={Boolean(prefs.largeControls)}
+              label={t("a11y.largeControls", "Controles ampliados")}
+              onChange={(value) =>
+                patch({
+                  largeControls: value,
+                  interfaceDensity: value ? "spacious" : prefs.interfaceDensity,
+                })
+              }
             />
             <label>
-              <span>{t("a11y.uiZoom")}</span>
+              <span>{t("a11y.uiZoom", "Zoom da interface")}</span>
               <select
                 className="vj-select"
                 value={prefs.uiZoom ?? "100"}
@@ -425,53 +500,66 @@ export function AccessibilityPanel() {
                 <option value="150">150%</option>
               </select>
             </label>
-            <p className="vj-hint">{t("a11y.shortcuts")}: Esc {t("common.close").toLowerCase()}</p>
+            <label>
+              <span>{t("a11y.density", "Densidade da interface")}</span>
+              <select
+                className="vj-select"
+                value={prefs.interfaceDensity}
+                onChange={(event) =>
+                  patch({ interfaceDensity: event.target.value as InterfaceDensity })
+                }
+              >
+                <option value="comfortable">
+                  {t("a11y.density.comfortable", "Confortável")}
+                </option>
+                <option value="compact">{t("a11y.density.compact", "Compacta")}</option>
+                <option value="spacious">{t("a11y.density.spacious", "Espaçosa")}</option>
+              </select>
+            </label>
+            <Toggle
+              checked={Boolean(prefs.simplifiedUi)}
+              label={t("a11y.simplifiedUi", "Interface simplificada")}
+              onChange={(value) => patch({ simplifiedUi: value, cognitiveSupportMode: value })}
+            />
+            <Toggle
+              checked={prefs.cognitiveSupportMode}
+              label={t("a11y.cognitive", "Suporte cognitivo")}
+              onChange={(value) => patch({ cognitiveSupportMode: value })}
+            />
           </section>
 
           <section className="vj-a11y-category" aria-labelledby={`${panelId}-assist`}>
             <h3 id={`${panelId}-assist`} className="vj-section-title">
-              {t("a11y.category.assistive")}
+              {t("a11y.section.assistive", "Tecnologias assistivas")}
             </h3>
             <Toggle
               checked={prefs.screenReaderOptimized}
-              label={t("a11y.profile.screen_reader", "Leitor de tela")}
+              label={t("a11y.screenReader", "Otimizar para leitor de tela")}
               onChange={(value) => patch({ screenReaderOptimized: value })}
             />
+            <p className="vj-meta">{t("a11y.screenReader.hint")}</p>
             <Toggle
               checked={prefs.signLanguagePreferred}
-              label={t("a11y.vlibras")}
+              label={t("a11y.vlibras", "VLibras (Libras)")}
               onChange={(value) => patch({ signLanguagePreferred: value })}
             />
             <p className="vj-meta" role="status" aria-live="polite" data-vlibras-status={vlibrasStatus}>
-              {vlibrasLabel}
-              {prefs.signLanguagePreferred && vlibrasStatus !== "ready"
-                ? ` · ${t("a11y.vlibras")} ${t("a11y.off").toLowerCase()}`
-                : ""}
+              {vlibrasStatusLabel(t, vlibrasStatus)}
             </p>
-            <label>
-              <span>{t("a11y.colorVision")}</span>
-              <select
-                className="vj-select"
-                value={prefs.colorVisionMode}
-                onChange={(event) =>
-                  patch({ colorVisionMode: event.target.value as ColorVisionMode })
-                }
-              >
-                <option value="none">{t("a11y.vision.none")}</option>
-                <option value="protanopia">{t("a11y.vision.protanopia")}</option>
-                <option value="deuteranopia">{t("a11y.vision.deuteranopia")}</option>
-                <option value="tritanopia">{t("a11y.vision.tritanopia")}</option>
-                <option value="achromatopsia">{t("a11y.vision.achromatopsia")}</option>
-              </select>
-            </label>
+            <p className="vj-meta">
+              {t(
+                "a11y.vlibras.note",
+                "Plugin oficial do governo (vlibras.gov.br). O widget permanece montado; o script carrega sob demanda.",
+              )}
+            </p>
           </section>
 
           <button
             type="button"
             className="vj-button"
-            onClick={() => void commit({ ...DEFAULT_A11Y }, t("a11y.reset"))}
+            onClick={() => void commit({ ...DEFAULT_A11Y }, t("a11y.reset", "Restaurar padrões"))}
           >
-            {t("a11y.reset")}
+            {t("a11y.reset", "Restaurar padrões")}
           </button>
         </div>
       ) : null}

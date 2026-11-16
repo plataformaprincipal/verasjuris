@@ -32,6 +32,14 @@ const ROUTE_CHROME_KEYS = [
   "common.empty",
   "common.error",
   "errors.network",
+  "home.heroTitle",
+  "jurisOne.welcome",
+  "crm.title",
+  "finance.title",
+  "matters.title",
+  "documents.title",
+  "marketplace.publicTitle",
+  "footer.disclaimer",
 ] as const;
 
 describe("rotas e estados principais nos 3 idiomas", () => {

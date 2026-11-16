@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { AppShell } from "../../components/app-shell";
 import { BrandMark } from "../../components/brand-mark";
+import { LocalizedSessionUnavailable } from "../../components/i18n-states";
 import { activeOrganizationId, getSession } from "../../lib/session";
 
 export const dynamic = "force-dynamic";
@@ -10,12 +11,7 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
   const session = await getSession();
   if (session.state === "anonymous") redirect("/entrar");
   if (session.state === "unavailable") {
-    return (
-      <main className="vj-page" id="conteudo">
-        <h1 className="vj-title">Não foi possível carregar sua sessão.</h1>
-        <p>{session.message}</p>
-      </main>
-    );
+    return <LocalizedSessionUnavailable message={session.message} />;
   }
   const activeId = await activeOrganizationId(session.account);
   const organization =

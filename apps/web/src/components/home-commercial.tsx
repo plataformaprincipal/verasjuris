@@ -25,21 +25,26 @@ import { SOLUTIONS } from "../lib/solutions";
 import { HomeProductPreview } from "./home-product-preview";
 import { PublicPageShell, PublicSection, AvailabilityBadge } from "./public-page-shell";
 import { RequireAuthCta } from "./require-auth-cta";
+import { useLocale } from "./locale-provider";
 
 const SERVICES = [
-  { label: "Consultoria jurídica", href: "/marketplace-juridico", icon: Scale },
-  { label: "Atendimento online", href: "/atendimento-juridico", icon: Users },
-  { label: "Direito previdenciário", href: "/gestao-previdenciaria", icon: Shield },
-  { label: "Direito trabalhista", href: "/ferramentas?categoria=gestao_juridica", icon: Briefcase },
-  { label: "Direito empresarial", href: "/solucoes/empresas", icon: Building2 },
-  { label: "Direito tributário", href: "/ferramentas", icon: Landmark },
-  { label: "Direito civil", href: "/ferramentas", icon: FileText },
-  { label: "Direito de família", href: "/ferramentas", icon: HeartPulse },
-  { label: "Direito do consumidor", href: "/ferramentas", icon: Store },
-  { label: "Direito administrativo", href: "/processos-administrativos", icon: FolderOpen },
-  { label: "Direito imobiliário", href: "/ferramentas", icon: Home },
-  { label: "Direito digital", href: "/ferramentas", icon: Workflow },
-  { label: "Direito médico e da saúde", href: "/ferramentas", icon: HeartPulse },
+  { labelKey: "home.service.consulting", href: "/marketplace-juridico", icon: Scale },
+  { labelKey: "home.service.online", href: "/atendimento-juridico", icon: Users },
+  { labelKey: "home.service.socialSecurity", href: "/gestao-previdenciaria", icon: Shield },
+  {
+    labelKey: "home.service.labor",
+    href: "/ferramentas?categoria=gestao_juridica",
+    icon: Briefcase,
+  },
+  { labelKey: "home.service.corporate", href: "/solucoes/empresas", icon: Building2 },
+  { labelKey: "home.service.tax", href: "/ferramentas", icon: Landmark },
+  { labelKey: "home.service.civil", href: "/ferramentas", icon: FileText },
+  { labelKey: "home.service.family", href: "/ferramentas", icon: HeartPulse },
+  { labelKey: "home.service.consumer", href: "/ferramentas", icon: Store },
+  { labelKey: "home.service.administrative", href: "/processos-administrativos", icon: FolderOpen },
+  { labelKey: "home.service.realEstate", href: "/ferramentas", icon: Home },
+  { labelKey: "home.service.digital", href: "/ferramentas", icon: Workflow },
+  { labelKey: "home.service.health", href: "/ferramentas", icon: HeartPulse },
 ] as const;
 
 const DEMO_TOOLS = [
@@ -54,21 +59,13 @@ const DEMO_TOOLS = [
 ] as const;
 
 const FAQ = [
-  {
-    q: "Posso conhecer a plataforma sem criar conta?",
-    a: "Sim. As abas Início, Ferramentas, Explorar e Juris One são públicas. Operações reais exigem autenticação.",
-  },
-  {
-    q: "O Juris One substitui um advogado?",
-    a: "Não. É um assistente informativo da plataforma. Orientação jurídica individualizada cabe a profissionais habilitados.",
-  },
-  {
-    q: "Como contrato um serviço do marketplace?",
-    a: "Você pode explorar anúncios públicos. Solicitar propostas, mensagens privadas e pagamentos exigem conta e permissões.",
-  },
-];
+  { qKey: "home.faq.public.q", aKey: "home.faq.public.a" },
+  { qKey: "home.faq.jurisOne.q", aKey: "home.faq.jurisOne.a" },
+  { qKey: "home.faq.marketplace.q", aKey: "home.faq.marketplace.a" },
+] as const;
 
 export function HomeCommercial() {
+  const { t } = useLocale();
   const highlights = DEMO_TOOLS.map((item) => ({
     ...item,
     feature: PUBLIC_CATALOG.find((feature) => feature.slug === item.slug),
@@ -79,52 +76,43 @@ export function HomeCommercial() {
       <section className="vj-commercial-hero">
         <div className="vj-stack">
           <p className="vj-meta">VerasJuris</p>
-          <h1 className="vj-display">O universo jurídico em uma única plataforma.</h1>
-          <p className="vj-lead">
-            Gestão, inteligência artificial, serviços jurídicos e ferramentas digitais para
-            profissionais, empresas e clientes.
-          </p>
+          <h1 className="vj-display">{t("home.hero.title")}</h1>
+          <p className="vj-lead">{t("home.hero.lead")}</p>
           <div className="vj-form-actions">
-            <ButtonLink href="/ferramentas">Explorar ferramentas</ButtonLink>
+            <ButtonLink href="/ferramentas">{t("home.hero.ctaTools")}</ButtonLink>
             <ButtonLink href="/explorar" variant="secondary">
-              Conhecer o VerasJuris
+              {t("home.hero.ctaExplore")}
             </ButtonLink>
             <ButtonLink href="/juris-one" variant="ghost">
-              Abrir Juris One
+              {t("home.hero.ctaJurisOne")}
             </ButtonLink>
           </div>
         </div>
         <HomeProductPreview />
       </section>
 
-      <PublicSection
-        title="Áreas de atuação"
-        lead="Navegue por categorias de serviços e soluções jurídicas. Cada item leva a uma área pública real da plataforma."
-      >
+      <PublicSection title={t("home.areas.title")} lead={t("home.areas.lead")}>
         <div className="vj-service-grid">
           {SERVICES.map((service) => {
             const Icon = service.icon;
             return (
-              <a key={service.label} className="vj-service-card" href={service.href}>
+              <a key={service.labelKey} className="vj-service-card" href={service.href}>
                 <Icon size={20} aria-hidden="true" />
-                <strong>{service.label}</strong>
+                <strong>{t(service.labelKey)}</strong>
               </a>
             );
           })}
         </div>
       </PublicSection>
 
-      <PublicSection
-        title="Marketplace jurídico"
-        lead="Pesquise serviços e perfis demonstrativos. Contratações e mensagens privadas exigem autenticação."
-      >
+      <PublicSection title={t("home.marketplace.title")} lead={t("home.marketplace.lead")}>
         <p className="vj-demo-banner" role="status">
           {DEMO_BANNER}
         </p>
         <div className="vj-feature-grid">
           {DEMO_MARKETPLACE_SERVICES.map((service) => (
             <article key={service.id} className="vj-card">
-              <p className="vj-meta">Exemplo público</p>
+              <p className="vj-meta">{t("home.marketplace.example")}</p>
               <h3 className="vj-section-title">{service.title}</h3>
               <p>{service.description}</p>
               <p className="vj-meta">
@@ -132,9 +120,12 @@ export function HomeCommercial() {
               </p>
               <p className="vj-meta">{service.priceNote}</p>
               <RequireAuthCta
-                actionLabel="Solicitar proposta"
-                title="Entre para solicitar uma proposta"
-                message="Para solicitar propostas ou contratar serviços, entre ou crie sua conta no VerasJuris."
+                actionLabel={t("home.marketplace.requestProposal", "Solicitar proposta")}
+                title={t("home.marketplace.ctaAuth")}
+                message={t(
+                  "home.marketplace.authMessage",
+                  "Para solicitar propostas ou contratar serviços, entre ou crie sua conta no VerasJuris.",
+                )}
                 redirectTo="/marketplace/solicitacoes/nova"
                 variant="secondary"
               />
@@ -142,14 +133,11 @@ export function HomeCommercial() {
           ))}
         </div>
         <div className="vj-form-actions">
-          <ButtonLink href="/marketplace-juridico">Explorar marketplace</ButtonLink>
+          <ButtonLink href="/marketplace-juridico">{t("home.marketplace.ctaExplore")}</ButtonLink>
         </div>
       </PublicSection>
 
-      <PublicSection
-        title="Ferramentas em destaque"
-        lead="Prévia do catálogo operacional. A disponibilidade reflete o estágio real de implementação."
-      >
+      <PublicSection title={t("home.tools.title")} lead={t("home.tools.lead")}>
         <div className="vj-feature-grid">
           {highlights.map(({ feature, icon: Icon }) =>
             feature ? (
@@ -168,14 +156,11 @@ export function HomeCommercial() {
           )}
         </div>
         <ButtonLink href="/ferramentas" variant="secondary">
-          Ver todas as ferramentas
+          {t("home.tools.viewAll", "Ver todas as ferramentas")}
         </ButtonLink>
       </PublicSection>
 
-      <PublicSection
-        title="Soluções por público"
-        lead="Escolha o perfil que melhor descreve sua necessidade."
-      >
+      <PublicSection title={t("home.solutions.title")} lead={t("home.solutions.lead")}>
         <div className="vj-audience-grid">
           {SOLUTIONS.map((solution) => (
             <a key={solution.slug} className="vj-service-card" href={`/solucoes/${solution.slug}`}>
@@ -186,36 +171,34 @@ export function HomeCommercial() {
         </div>
       </PublicSection>
 
-      <PublicSection
-        title="Juris One"
-        lead="Assistente inteligente do VerasJuris para orientação inicial, organização de informações e encaminhamento."
-      >
+      <PublicSection title={t("home.jurisOne.title")} lead={t("home.jurisOne.lead")}>
         <div className="vj-card vj-stack">
           <div className="vj-inline-actions">
             <BrainCircuit size={22} aria-hidden="true" />
             <AvailabilityBadge availability="in_development" />
           </div>
-          <h3 className="vj-section-title">Seu assistente no universo jurídico</h3>
+          <h3 className="vj-section-title">{t("home.jurisOne.tagline")}</h3>
           <p>
-            Visitantes podem iniciar uma conversa informativa. Respostas com modelos pagos dependem
-            de provedor configurado, autenticação e limites. O Juris One não substitui advogado
-            habilitado.
+            {t(
+              "home.jurisOne.body",
+              "Visitantes podem iniciar uma conversa informativa. Respostas com modelos pagos dependem de provedor configurado, autenticação e limites. O Juris One não substitui advogado habilitado.",
+            )}
           </p>
           <div className="vj-form-actions">
-            <ButtonLink href="/juris-one">Iniciar Juris One</ButtonLink>
+            <ButtonLink href="/juris-one">{t("home.jurisOne.cta")}</ButtonLink>
             <ButtonLink href="/planos" variant="secondary">
-              Ver planos
+              {t("home.jurisOne.plans", "Ver planos")}
             </ButtonLink>
           </div>
         </div>
       </PublicSection>
 
-      <PublicSection title="Perguntas frequentes">
+      <PublicSection title={t("home.faq.title")}>
         <div className="vj-stack">
           {FAQ.map((item) => (
-            <details key={item.q} className="vj-card">
-              <summary className="vj-section-title">{item.q}</summary>
-              <p>{item.a}</p>
+            <details key={t(item.qKey)} className="vj-card">
+              <summary className="vj-section-title">{t(item.qKey)}</summary>
+              <p>{t(item.aKey)}</p>
             </details>
           ))}
         </div>

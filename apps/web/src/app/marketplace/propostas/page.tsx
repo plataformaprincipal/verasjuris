@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { NoPermission, SectionTabs } from "../../../components/ai-ui";
 import {
   MARKETPLACE_PUBLIC_TABS,
+  translateMarketplaceTabs,
   MarketplaceProposalsTable,
 } from "../../../components/marketplace-ui";
 import {
@@ -15,8 +16,10 @@ import {
   type MarketplaceProposal,
 } from "../../../lib/marketplace";
 import { useOrgContext } from "../../../lib/use-org-context";
+import { useLocale } from "../../../components/locale-provider";
 
 export default function MarketplaceProposalsPage() {
+  const { t } = useLocale();
   const org = useOrgContext();
   const can = hasMarketplacePermission(org.permissions, "proposal.manage");
   const [loading, setLoading] = useState(true);
@@ -50,7 +53,7 @@ export default function MarketplaceProposalsPage() {
         items={[{ label: "Marketplace", href: "/marketplace" }, { label: "Propostas" }]}
       />
       <PageHeader title="Minhas propostas" />
-      <SectionTabs label="Seções" items={MARKETPLACE_PUBLIC_TABS} current="" />
+      <SectionTabs label={t("common.sections")} items={translateMarketplaceTabs(t, MARKETPLACE_PUBLIC_TABS)} current="" />
       {loading ? <LoadingState label="Carregando…" /> : null}
       {error ? <ErrorState title="Erro">{error}</ErrorState> : null}
       {!loading && !error && items.length === 0 ? (

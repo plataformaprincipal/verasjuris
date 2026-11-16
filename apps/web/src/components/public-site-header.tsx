@@ -38,24 +38,24 @@ export function PublicSiteHeader() {
         </div>
 
         <div className="vj-header-actions vj-public-header-actions">
-          <Menu label="Mais">
+          <Menu label={t("nav.more")}>
             <a href="/planos" role="menuitem">
-              Planos
+              {t("footer.plans")}
             </a>
             <a href="/marketplace-juridico" role="menuitem">
-              Marketplace
+              {t("footer.marketplace")}
             </a>
             <a href="/solucoes" role="menuitem">
-              Soluções
+              {t("nav.solutions")}
             </a>
             <a href="/acessibilidade" role="menuitem">
-              Acessibilidade
+              {t("nav.accessibility")}
             </a>
             <a href="/institucional/ajuda" role="menuitem">
-              Ajuda
+              {t("nav.help")}
             </a>
             <a href="/institucional/contato" role="menuitem">
-              Contato
+              {t("nav.contact")}
             </a>
           </Menu>
           <LanguageSwitcher compact />
@@ -83,10 +83,10 @@ export function PublicSiteHeader() {
           >
             <PublicMainNav variant="mobile-drawer" onNavigate={() => setMobileOpen(false)} />
             <div className="vj-stack" style={{ marginTop: "1rem" }}>
-              <a href="/planos">Planos</a>
-              <a href="/marketplace-juridico">Marketplace</a>
-              <a href="/acessibilidade">Acessibilidade</a>
-              <a href="/institucional/ajuda">Ajuda</a>
+              <a href="/planos">{t("footer.plans")}</a>
+              <a href="/marketplace-juridico">{t("footer.marketplace")}</a>
+              <a href="/acessibilidade">{t("nav.accessibility")}</a>
+              <a href="/institucional/ajuda">{t("nav.help")}</a>
             </div>
           </div>
         ) : null}

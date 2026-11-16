@@ -1,12 +1,6 @@
-import { DraftPolicyPage } from "../../../components/draft-policy-page";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return (
-    <DraftPolicyPage title="Termos de Uso">
-      <p>
-        Escopo preliminar da política “Termos de Uso”. Texto DRAFT para navegação institucional;
-        substituir por versão APPROVED/PUBLISHED quando houver aprovação.
-      </p>
-    </DraftPolicyPage>
-  );
+/** Mantém compatibilidade com links existentes. */
+export default function LegacyTermsPage() {
+  redirect("/termos-de-uso");
 }

@@ -24,8 +24,10 @@ import {
   type PaymentIntent,
 } from "../../../lib/finance";
 import { useOrgContext } from "../../../lib/use-org-context";
+import { useLocale } from "../../../components/locale-provider";
 
 export default function AppFinanceiroPage() {
+  const { t } = useLocale();
   const org = useOrgContext();
   const can = hasFinancePermission(org.permissions, "read");
   const [loading, setLoading] = useState(true);
@@ -66,36 +68,36 @@ export default function AppFinanceiroPage() {
   }, [org.ready, org.orgId, can, org.permissions]);
 
   if (org.ready && !can) {
-    return <NoPermission>Sem permissão para o financeiro (finance.read).</NoPermission>;
+    return <NoPermission>{t("finance.noPermission")}</NoPermission>;
   }
 
   return (
     <div className="vj-stack">
-      <Breadcrumb items={[{ label: "Painel", href: "/app" }, { label: "Financeiro" }]} />
+      <Breadcrumb items={[{ label: t("dashboard.title"), href: "/app" }, { label: t("finance.title") }]} />
       <PageHeader
-        title="Financeiro"
-        description="Volume contratado ≠ caixa recebido. Ledger é a fonte de verdade do saldo."
+        title={t("finance.title")}
+        description={t("finance.description")}
       />
       <SectionTabs
-        label="Seções"
+        label={t("common.sections")}
         items={financeTabsForPermissions(org.permissions)}
         current="/app/financeiro"
       />
-      {loading ? <LoadingState label="Carregando financeiro…" /> : null}
-      {error ? <ErrorState title="Erro">{error}</ErrorState> : null}
+      {loading ? <LoadingState label={t("finance.loading")} /> : null}
+      {error ? <ErrorState title={t("common.errorTitle")}>{error}</ErrorState> : null}
       {!loading && !error && dashboard ? <FinanceDashboardCards data={dashboard} /> : null}
       {!loading && !error ? (
         <>
           <section className="vj-stack">
-            <h2 className="vj-subtitle">Faturas recentes</h2>
+            <h2 className="vj-subtitle">{t("finance.recentInvoices")}</h2>
             <InvoicesTable items={invoices} />
           </section>
           <section className="vj-stack">
-            <h2 className="vj-subtitle">Cobranças recentes</h2>
+            <h2 className="vj-subtitle">{t("finance.recentCharges")}</h2>
             <PaymentIntentsTable items={charges} />
           </section>
           <section className="vj-stack">
-            <h2 className="vj-subtitle">Honorários</h2>
+            <h2 className="vj-subtitle">{t("finance.fees")}</h2>
             <HonorariosTable items={fees} />
           </section>
         </>

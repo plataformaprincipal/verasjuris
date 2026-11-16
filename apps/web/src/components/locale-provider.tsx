@@ -17,6 +17,7 @@ import {
   LOCALE_STORAGE_KEY,
   SUPPORTED_LOCALES,
   browserPreferredLocale,
+  interpolate,
   resolveLocale,
   translate,
   type Locale,
@@ -26,7 +27,7 @@ import { isApiFailure, updateAccountLocale } from "../lib/platform";
 type LocaleContextValue = {
   locale: Locale;
   setLocale: (locale: Locale, options?: { persist?: boolean }) => Promise<void>;
-  t: (key: string, fallback?: string) => string;
+  t: (key: string, fallback?: string, params?: Record<string, string | number>) => string;
   labels: typeof LOCALE_LABELS;
   supported: readonly Locale[];
 };
@@ -123,7 +124,7 @@ export function LocaleProvider({
     () => ({
       locale,
       setLocale,
-      t: (key, fallback) => translate(locale, key, fallback),
+      t: (key, fallback, params) => interpolate(translate(locale, key, fallback), params),
       labels: LOCALE_LABELS,
       supported: SUPPORTED_LOCALES,
     }),
@@ -139,7 +140,7 @@ export function useLocale(): LocaleContextValue {
     return {
       locale: DEFAULT_LOCALE,
       setLocale: async () => undefined,
-      t: (key, fallback) => translate(DEFAULT_LOCALE, key, fallback),
+      t: (key, fallback, params) => interpolate(translate(DEFAULT_LOCALE, key, fallback), params),
       labels: LOCALE_LABELS,
       supported: SUPPORTED_LOCALES,
     };

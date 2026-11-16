@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { BrandMark } from "../../components/brand-mark";
-import { LanguageSwitcher } from "../../components/locale-provider";
+import { AuthPageChrome } from "../../components/auth-page-chrome";
+import { AuthPageFooterLink } from "../../components/auth-page-footer";
 import { RegistrationWizard } from "../../components/registration-wizard";
 import { isSafeRedirectPath, resolvePostAuthRedirect, withRedirect } from "../../lib/safe-redirect";
 import { getSession } from "../../lib/session";
@@ -27,26 +27,17 @@ export default async function RegisterPage({
   }
 
   return (
-    <div className="vj-auth-shell">
-      <header className="vj-public-header">
-        <a href="/" aria-label="VerasJuris — página inicial">
-          <BrandMark />
-        </a>
-        <LanguageSwitcher />
-      </header>
-      <main className="vj-page" id="conteudo">
-        <div className="vj-card vj-panel vj-wizard-panel">
-          <h1 className="vj-title">Criar conta</h1>
-          <p>
-            Cadastro seguro em etapas. Solicitamos apenas os dados necessários para identificar sua
-            conta; credenciais profissionais, como a OAB, são verificadas depois.
-          </p>
-          <RegistrationWizard redirectTo={redirectParam} />
-          <p>
-            Já tem uma conta? <a href={withRedirect("/entrar", redirectParam)}>Entrar</a>
-          </p>
-        </div>
-      </main>
-    </div>
+    <AuthPageChrome
+      titleKey="register.title"
+      leadKey="auth.signupLead"
+      panelClassName="vj-wizard-panel"
+    >
+      <RegistrationWizard redirectTo={redirectParam} />
+      <AuthPageFooterLink
+        prefixKey="auth.alreadyHaveAccount"
+        href={withRedirect("/entrar", redirectParam)}
+        linkKey="auth.login"
+      />
+    </AuthPageChrome>
   );
 }

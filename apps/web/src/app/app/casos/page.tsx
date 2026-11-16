@@ -29,10 +29,12 @@ import {
   type MatterStatus,
   type MatterSummary,
 } from "../../../lib/matters";
+import { useLocale } from "../../../components/locale-provider";
 
 const PAGE_SIZE = 20;
 
 export default function CasosListPage() {
+  const { t } = useLocale();
   const [orgId, setOrgId] = useState<string | null>(null);
   const [canRead, setCanRead] = useState(true);
   const [canCreate, setCanCreate] = useState(false);
@@ -57,7 +59,7 @@ export default function CasosListPage() {
         offset: nextOffset,
       });
       if (isApiFailure(data)) {
-        setError(apiErrorMessage(data, "Não foi possível listar os casos."));
+        setError(apiErrorMessage(data, t("matters.errorList")));
         setLoading(false);
         return;
       }
@@ -75,7 +77,7 @@ export default function CasosListPage() {
       const [activeId, membership] = await Promise.all([getActiveOrgId(), getActiveMembership()]);
       if (cancelled) return;
       if (!activeId) {
-        setError("Nenhuma organização ativa.");
+        setError(t("matters.noOrg"));
         setLoading(false);
         return;
       }
@@ -105,9 +107,9 @@ export default function CasosListPage() {
   if (!canRead) {
     return (
       <div className="vj-stack">
-        <Breadcrumb items={[{ label: "Painel", href: "/app" }, { label: "Casos" }]} />
-        <ErrorState title="Sem permissão">
-          Você não tem permissão para consultar casos nesta organização.
+        <Breadcrumb items={[{ label: t("dashboard.title"), href: "/app" }, { label: t("matters.title") }]} />
+        <ErrorState title={t("nav.noPermission")}>
+          {t("matters.noPermissionBody")}
         </ErrorState>
       </div>
     );
@@ -115,32 +117,32 @@ export default function CasosListPage() {
 
   return (
     <div className="vj-stack">
-      <Breadcrumb items={[{ label: "Painel", href: "/app" }, { label: "Casos" }]} />
+      <Breadcrumb items={[{ label: t("dashboard.title"), href: "/app" }, { label: t("matters.title") }]} />
       <PageHeader
-        title="Casos"
-        description="Unidade jurídica de trabalho: contexto da demanda, situação operacional, responsável e próxima ação registrada."
+        title={t("matters.title")}
+        description={t("matters.pageDescription")}
         actions={
           canCreate ? (
             <ButtonLink href="/app/casos/novo" variant="primary">
-              Novo caso
+              {t("matters.new")}
             </ButtonLink>
           ) : null
         }
       />
-      <form className="vj-card vj-stack vj-filters" onSubmit={applyFilters} aria-label="Filtros">
+      <form className="vj-card vj-stack vj-filters" onSubmit={applyFilters} aria-label={t("common.filters")}>
         <div className="vj-split">
-          <FormField id="q" label="Busca">
+          <FormField id="q" label={t("common.searchLabel")}>
             <Input
               id="q"
               name="q"
               value={q}
               onChange={(event) => setQ(event.target.value)}
-              placeholder="Referência, título ou cliente"
+              placeholder={t("matters.searchPlaceholder")}
             />
           </FormField>
-          <FormField id="status" label="Status">
+          <FormField id="status" label={t("common.status")}>
             <Select id="status" value={status} onChange={(event) => setStatus(event.target.value)}>
-              <option value="">Todos</option>
+              <option value="">{t("common.all")}</option>
               {(Object.keys(MATTER_STATUS_LABELS) as MatterStatus[]).map((key) => (
                 <option key={key} value={key}>
                   {MATTER_STATUS_LABELS[key]}
@@ -150,13 +152,13 @@ export default function CasosListPage() {
           </FormField>
         </div>
         <div className="vj-split">
-          <FormField id="priority" label="Prioridade">
+          <FormField id="priority" label={t("matters.priority")}>
             <Select
               id="priority"
               value={priority}
               onChange={(event) => setPriority(event.target.value)}
             >
-              <option value="">Todas</option>
+              <option value="">{t("catalog.all")}</option>
               {(Object.keys(MATTER_PRIORITY_LABELS) as MatterPriority[]).map((key) => (
                 <option key={key} value={key}>
                   {MATTER_PRIORITY_LABELS[key]}
@@ -167,24 +169,24 @@ export default function CasosListPage() {
         </div>
         <div className="vj-form-actions">
           <button type="submit" className="vj-button vj-button-primary">
-            Aplicar filtros
+            {t("common.applyFilters")}
           </button>
         </div>
       </form>
-      {loading ? <LoadingState label="Carregando casos" /> : null}
-      {error ? <ErrorState title="Erro ao carregar casos">{error}</ErrorState> : null}
+      {loading ? <LoadingState label={t("matters.loading")} /> : null}
+      {error ? <ErrorState title={t("matters.error")}>{error}</ErrorState> : null}
       {!loading && !error && items.length === 0 ? (
         <EmptyState
-          title="Nenhum caso encontrado"
+          title={t("matters.empty")}
           action={
             canCreate ? (
               <ButtonLink href="/app/casos/novo" variant="primary">
-                Abrir caso
+                {t("matters.open")}
               </ButtonLink>
             ) : null
           }
         >
-          Não há casos com os filtros atuais. Ajuste a busca ou registre um novo caso.
+          {t("matters.emptyBody")}
         </EmptyState>
       ) : null}
       {!loading && !error && items.length > 0 ? (
@@ -193,11 +195,11 @@ export default function CasosListPage() {
             <table className="vj-table">
               <thead>
                 <tr>
-                  <th scope="col">Referência</th>
-                  <th scope="col">Contexto</th>
-                  <th scope="col">Situação</th>
-                  <th scope="col">Responsável</th>
-                  <th scope="col">Atualizado</th>
+                  <th scope="col">{t("matters.col.reference")}</th>
+                  <th scope="col">{t("matters.col.context")}</th>
+                  <th scope="col">{t("matters.col.status")}</th>
+                  <th scope="col">{t("matters.col.owner")}</th>
+                  <th scope="col">{t("matters.col.updated")}</th>
                 </tr>
               </thead>
               <tbody>

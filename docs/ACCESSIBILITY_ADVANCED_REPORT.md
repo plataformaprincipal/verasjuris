@@ -80,9 +80,9 @@ Arquivos: `apps/web/src/lib/vlibras/*`, `apps/web/src/components/vlibras-widget.
 ## Pendências
 
 1. Auditoria WCAG 2.2 AA com evidências (axe + teclado + SR).
-2. Expandir schema da API para persistir letterSpacing/uiZoom/tema black no servidor.
-3. Smoke real do VLibras em staging (rede + CSP).
+2. Expandir schema da API para persistir letterSpacing/uiZoom/tema black e demais campos locais no servidor.
+3. Smoke real do VLibras em staging (rede + CSP + Unity).
 4. Verificar sobreposição do avatar VLibras com FAB/checkout em viewports móveis.
-5. Homologar painel nos três idiomas ativos.
+5. Homologar painel nos três idiomas ativos (chaves `a11y.*` já presentes no catálogo de 528 entradas).
 
 **Classificação:** painel categorizado + VLibras funcional com status honesto **IMPLEMENTADOS E TESTADOS (unidade)**; conformidade WCAG AA **NÃO HOMOLOGADA**.

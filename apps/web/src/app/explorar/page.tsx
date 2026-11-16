@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ExploreDemo } from "../../components/explore-demo";
 import { ExploreSocial } from "../../components/explore-social";
+import { ExploreRouteChrome } from "../../components/public-route-chrome";
 import { PublicPageShell } from "../../components/public-page-shell";
 
 export const metadata: Metadata = {
@@ -19,17 +20,9 @@ export default async function ExplorePage({
 
   return (
     <PublicPageShell wide>
-      <div className="vj-stack">
-        <div>
-          <p className="vj-meta">Explorar</p>
-          <h1 className="vj-display">Rede jurídica profissional</h1>
-          <p className="vj-lead">
-            Acompanhe atualizações públicas do ecossistema VerasJuris. Publicar, comentar e seguir
-            exigem conta. Não há exposição de processos, clientes ou dados protegidos.
-          </p>
-        </div>
+      <ExploreRouteChrome>
         {labView ? <ExploreDemo initialView={labView} /> : <ExploreSocial />}
-      </div>
+      </ExploreRouteChrome>
     </PublicPageShell>
   );
 }

@@ -35,8 +35,10 @@ import {
   type AiStatus,
 } from "../../../lib/ai";
 import { useOrgContext } from "../../../lib/use-org-context";
+import { useLocale } from "../../../components/locale-provider";
 
 export default function IaOverviewPage() {
+  const { t } = useLocale();
   const org = useOrgContext();
   const [status, setStatus] = useState<AiStatus | null>(null);
   const [jobs, setJobs] = useState<AiJob[]>([]);
@@ -101,13 +103,13 @@ export default function IaOverviewPage() {
     };
   }, [org.ready, org.orgId, canRead, canJobs]);
 
-  const breadcrumb = [{ label: "Painel", href: "/app" }, { label: "IA" }];
+  const breadcrumb = [{ label: t("dashboard.title"), href: "/app" }, { label: t("ai.title") }];
 
   if (org.ready && !canRead) {
     return (
       <div className="vj-stack">
         <Breadcrumb items={breadcrumb} />
-        <NoPermission>Você não tem permissão para consultar os recursos de IA.</NoPermission>
+        <NoPermission>{t("ai.noPermission")}</NoPermission>
       </div>
     );
   }
@@ -116,20 +118,20 @@ export default function IaOverviewPage() {
     <div className="vj-stack">
       <Breadcrumb items={breadcrumb} />
       <PageHeader
-        title="IA assistiva"
-        description="Recursos de apoio à leitura de documentos e à análise de casos. Todo resultado é uma análise assistida e exige revisão humana."
+        title={t("ai.title")}
+        description={t("ai.pageDescription")}
         actions={
           canConfig ? (
             <ButtonLink href="/app/configuracoes/ia" variant="secondary">
-              Configurações de IA
+              {t("ai.config")}
             </ButtonLink>
           ) : undefined
         }
       />
-      <SectionTabs label="Seções de IA" items={IA_TABS} current="/app/ia" />
+      <SectionTabs label={t("ai.sections")} items={IA_TABS} current="/app/ia" />
 
-      {loading || !org.ready ? <LoadingState label="Carregando status de IA" /> : null}
-      {statusError ? <ErrorState title="Erro ao carregar status">{statusError}</ErrorState> : null}
+      {loading || !org.ready ? <LoadingState label={t("ai.loading")} /> : null}
+      {statusError ? <ErrorState title={t("ai.errorStatus")}>{statusError}</ErrorState> : null}
 
       {status ? (
         <>
@@ -204,7 +206,7 @@ export default function IaOverviewPage() {
             </ButtonLink>
           </div>
           {jobsError ? (
-            <Alert tone="warning" title="Jobs indisponíveis">
+            <Alert tone="warning" title={t("ai.jobsUnavailable")}>
               {jobsError}
             </Alert>
           ) : null}

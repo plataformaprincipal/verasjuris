@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { ConfirmResetForm } from "../../components/auth-forms";
-import { BrandMark } from "../../components/brand-mark";
-import { LanguageSwitcher } from "../../components/locale-provider";
+import { AuthPageChrome } from "../../components/auth-page-chrome";
 
 export const metadata: Metadata = { title: "Redefinir senha" };
 
@@ -12,23 +11,8 @@ export default async function ResetPasswordPage({
 }) {
   const params = await searchParams;
   return (
-    <div className="vj-auth-shell">
-      <header className="vj-public-header">
-        <a href="/">
-          <BrandMark />
-        </a>
-        <LanguageSwitcher />
-      </header>
-      <main className="vj-page" id="conteudo">
-        <div className="vj-card vj-panel vj-auth-panel">
-          <h1 className="vj-title">Redefinir senha</h1>
-          <p>
-            Defina uma nova senha com pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial. As sessões anteriores serão
-            encerradas.
-          </p>
-          <ConfirmResetForm token={params.token ?? ""} />
-        </div>
-      </main>
-    </div>
+    <AuthPageChrome titleKey="auth.page.resetTitle" leadKey="auth.page.resetLead">
+      <ConfirmResetForm token={params.token ?? ""} />
+    </AuthPageChrome>
   );
 }

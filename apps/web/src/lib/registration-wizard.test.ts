@@ -72,8 +72,8 @@ describe("validateStep", () => {
   it("valida identificação e exige data de nascimento apenas quando necessário", () => {
     const pf = state({ persona: "client_pf", fullName: "Maria", cpf: "111.111.111-11" });
     const errors = validateStep("identification", pf, NOW);
-    expect(errors.fullName).toBe("Informe nome e sobrenome.");
-    expect(errors.cpf).toBe("Informe um CPF válido.");
+    expect(errors.fullName).toBe("register.validation.fullNameParts");
+    expect(errors.cpf).toBe("register.validation.cpf");
     expect(errors.birthDate).toBeDefined();
 
     const pj = state({ persona: "client_pj", fullName: "João Silva", cpf: VALID_CPF });
@@ -82,18 +82,21 @@ describe("validateStep", () => {
 
   it("distingue data futura, idade insuficiente e data válida", () => {
     const base = { persona: "lawyer" as const, fullName: "Ana Lima", cpf: VALID_CPF };
-    expect(validateStep("identification", state({ ...base, birthDate: "2027-01-01" }), NOW).birthDate)
-      .toBe("A data de nascimento não pode ser posterior à data atual.");
-    expect(validateStep("identification", state({ ...base, birthDate: "2020-01-01" }), NOW).birthDate)
-      .toBe("Para criar uma conta no VerasJuris, você deve ter pelo menos 18 anos de idade.");
-    expect(validateStep("identification", state({ ...base, birthDate: "2008-02-30" }), NOW).birthDate)
-      .toBe("Informe uma data de nascimento válida.");
-    expect(validateStep("identification", state({ ...base, birthDate: "2008-11-13" }), NOW)).toEqual(
-      {},
-    );
-    expect(validateStep("identification", state({ ...base, birthDate: "1985-03-02" }), NOW)).toEqual(
-      {},
-    );
+    expect(
+      validateStep("identification", state({ ...base, birthDate: "2027-01-01" }), NOW).birthDate,
+    ).toBe("register.validation.birthDate.future");
+    expect(
+      validateStep("identification", state({ ...base, birthDate: "2020-01-01" }), NOW).birthDate,
+    ).toBe("register.validation.birthDate.underage");
+    expect(
+      validateStep("identification", state({ ...base, birthDate: "2008-02-30" }), NOW).birthDate,
+    ).toBe("register.validation.birthDate.invalid");
+    expect(
+      validateStep("identification", state({ ...base, birthDate: "2008-11-13" }), NOW),
+    ).toEqual({});
+    expect(
+      validateStep("identification", state({ ...base, birthDate: "1985-03-02" }), NOW),
+    ).toEqual({});
   });
 
   it("valida contato", () => {
@@ -130,30 +133,61 @@ describe("validateStep", () => {
       state({ persona: "partner_service", partnerCategory: "other", cnpj: "11.111.111/1111-11" }),
       NOW,
     );
-    expect(badCnpj.cnpj).toBe("Informe um CNPJ válido.");
+    expect(badCnpj.cnpj).toBe("register.validation.cnpj");
 
     expect(
       validateStep(
         "profile",
-        state({ persona: "law_firm", organizationName: "Souza Advogados", cnpj: VALID_CNPJ, oabNumber: "12345", oabUf: "SP" }),
+        state({
+          persona: "law_firm",
+          organizationName: "Souza Advogados",
+          cnpj: VALID_CNPJ,
+          oabNumber: "12345",
+          oabUf: "SP",
+        }),
         NOW,
       ),
     ).toEqual({});
   });
 
   it("valida senha: mínimo 8 com composição, comum e confirmação", () => {
-    expect(validateStep("password", state({ password: "Veras@1" }), NOW).password).toContain("8");
+    expect(validateStep("password", state({ password: "Veras@1" }), NOW).password).toBe(
+      "register.validation.password.minLength",
+    );
     expect(
       validateStep("password", state({ password: "Veras@12", passwordConfirm: "Veras@12" }), NOW),
     ).toEqual({});
     expect(
-      validateStep("password", state({ password: "password1234", passwordConfirm: "password1234" }), NOW)
-        .password,
-    ).toBeDefined();
+      validateStep("password", state({ password: "Veras@123", passwordConfirm: "Veras@123" }), NOW),
+    ).toEqual({});
     expect(
-      validateStep("password", state({ password: "Uma-senha-bem-longa-9!", passwordConfirm: "outra" }), NOW)
-        .passwordConfirm,
-    ).toBe("As senhas não coincidem.");
+      validateStep(
+        "password",
+        state({ password: "Veras@1234", passwordConfirm: "Veras@1234" }),
+        NOW,
+      ),
+    ).toEqual({});
+    expect(
+      validateStep(
+        "password",
+        state({ password: "Veras@12345", passwordConfirm: "Veras@12345" }),
+        NOW,
+      ),
+    ).toEqual({});
+    expect(
+      validateStep(
+        "password",
+        state({ password: "password1234", passwordConfirm: "password1234" }),
+        NOW,
+      ).password,
+    ).toBe("register.validation.password.common");
+    expect(
+      validateStep(
+        "password",
+        state({ password: "Uma-senha-bem-longa-9!", passwordConfirm: "outra" }),
+        NOW,
+      ).passwordConfirm,
+    ).toBe("register.validation.password.mismatch");
     expect(
       validateStep(
         "password",
@@ -187,14 +221,28 @@ describe("validateAll e payload", () => {
   it("gera payload aceito pelo onboardingRegisterSchema (cliente PF)", () => {
     const s = state({ persona: "client_pf", ...baseFilled });
     expect(validateAll(s, NOW)).toBeNull();
-    const parsed = onboardingRegisterSchema.safeParse(buildRegisterPayload(s));
+    const payload = buildRegisterPayload(s);
+    expect(payload.displayName).toBe("Maria Souza");
+    expect(payload.fullName).toBe("Maria Souza");
+    const parsed = onboardingRegisterSchema.safeParse(payload);
     expect(parsed.success).toBe(true);
     if (parsed.success) {
+      expect(parsed.data.displayName).toBe("Maria Souza");
       expect(parsed.data.phone).toBe("+5511912345678");
       expect(parsed.data.email).toBe("maria@example.com");
       expect(parsed.data.cpf).toBe("52998224725");
       expect(parsed.data.acceptMarketing).toBe(false);
     }
+  });
+
+  it("inclui displayName derivado do nome completo e respeita o limite de 80", () => {
+    const longName = `${"A".repeat(40)} ${"B".repeat(50)}`;
+    const s = state({ persona: "client_pf", ...baseFilled, fullName: longName });
+    const payload = buildRegisterPayload(s);
+    expect(typeof payload.displayName).toBe("string");
+    expect(String(payload.displayName).length).toBeLessThanOrEqual(80);
+    expect(payload.fullName).toBe(longName.trim());
+    expect(onboardingRegisterSchema.safeParse(payload).success).toBe(true);
   });
 
   it("gera payload aceito para escritório (PJ + OAB + declaração)", () => {
@@ -263,6 +311,18 @@ describe("mapServerErrors", () => {
     expect(errors.email).toBe("E-mail inválido");
     expect(firstStep).toBe("contact");
     expect(mapServerErrors(undefined)).toEqual({ errors: {}, firstStep: null });
+  });
+
+  it("aplica tradutor de campo quando fornecido", () => {
+    const { errors } = mapServerErrors(
+      [
+        { path: "password", message: "A senha precisa ter pelo menos 8 caracteres." },
+        { path: "email", message: "Informe um e-mail válido." },
+      ],
+      (path, message) => `${path}:${message}`,
+    );
+    expect(errors.password).toBe("password:A senha precisa ter pelo menos 8 caracteres.");
+    expect(errors.email).toBe("email:Informe um e-mail válido.");
   });
 });
 

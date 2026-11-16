@@ -13,6 +13,10 @@ export const PASSWORD_MAX_LENGTH = 128;
 
 export const PASSWORD_REQUIREMENT_MESSAGE =
   "A senha deve ter pelo menos 8 caracteres, com letra maiúscula, minúscula, número e caractere especial.";
+export const PASSWORD_REQUIRED_MESSAGE = "Informe a senha.";
+export const PASSWORD_MIN_LENGTH_MESSAGE = "A senha precisa ter pelo menos 8 caracteres.";
+export const PASSWORD_TOO_LONG_MESSAGE = "A senha é longa demais.";
+export const PASSWORD_COMMON_MESSAGE = "Escolha uma senha menos comum.";
 
 export type PasswordRequirements = {
   minLength: boolean;
@@ -87,27 +91,28 @@ export function passwordStrength(password: string): {
 }
 
 export function passwordPolicyError(password: string): string | undefined {
-  if (!password) return "Informe a senha.";
-  if (password.length > PASSWORD_MAX_LENGTH) return "A senha é longa demais.";
+  if (!password) return PASSWORD_REQUIRED_MESSAGE;
+  if (password.length > PASSWORD_MAX_LENGTH) return PASSWORD_TOO_LONG_MESSAGE;
   const requirements = evaluatePasswordRequirements(password);
   if (!requirements.minLength) {
-    return "A senha precisa ter pelo menos 8 caracteres.";
+    return PASSWORD_MIN_LENGTH_MESSAGE;
   }
+  // Prefer the common-password signal (aligned with passwordStrength) before composition gaps.
+  if (!requirements.notCommon) return PASSWORD_COMMON_MESSAGE;
   if (!passwordMeetsComposition(requirements)) {
     return PASSWORD_REQUIREMENT_MESSAGE;
   }
-  if (!requirements.notCommon) return "Escolha uma senha menos comum.";
   return undefined;
 }
 
 /** Schema Zod compartilhado (cadastro, reset e troca de senha). */
 export const passwordSchema = z
   .string()
-  .min(1, "Informe a senha.")
-  .max(PASSWORD_MAX_LENGTH, "A senha é longa demais.")
+  .min(1, PASSWORD_REQUIRED_MESSAGE)
+  .max(PASSWORD_MAX_LENGTH, PASSWORD_TOO_LONG_MESSAGE)
   .superRefine((value, ctx) => {
     const error = passwordPolicyError(value);
-    if (error && error !== "Informe a senha.") {
+    if (error && error !== PASSWORD_REQUIRED_MESSAGE) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: error });
     }
   });

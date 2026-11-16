@@ -4,6 +4,7 @@ import { CSRF_HEADER } from "@verasjuris/security/constants";
 import { Button, FormField, Input } from "@verasjuris/ui";
 import { useRouter } from "next/navigation";
 import { useId, useState, type ReactNode } from "react";
+import { translateApiFailure, translateFieldError } from "../lib/i18n/api-errors";
 import { resolvePostAuthRedirect } from "../lib/safe-redirect";
 import type { ApiFailure } from "../lib/types";
 import { useLocale } from "./locale-provider";
@@ -27,8 +28,14 @@ async function submit(path: string, body: Record<string, string>) {
   return { response, data };
 }
 
-function fieldError(data: ApiFailure, path: string): string | undefined {
-  return data.error?.details?.find((detail) => detail.path === path)?.message;
+function fieldError(
+  data: ApiFailure,
+  path: string,
+  t?: (key: string, fallback?: string) => string,
+): string | undefined {
+  const detail = data.error?.details?.find((item) => item.path === path);
+  if (!detail?.message) return undefined;
+  return t ? translateFieldError(path, detail.message, t) : detail.message;
 }
 
 function PasswordField({
@@ -108,8 +115,11 @@ export function LoginForm({ redirectTo }: { redirectTo?: string | null } = {}) {
     if (!result.response.ok) {
       setFields(result.data);
       setError(
-        result.data.error?.message ??
+        translateApiFailure(
+          result.data,
+          t,
           t("auth.loginFailed", "Não foi possível entrar. Nenhuma sessão foi aberta."),
+        ),
       );
       return;
     }
@@ -117,25 +127,28 @@ export function LoginForm({ redirectTo }: { redirectTo?: string | null } = {}) {
     router.refresh();
   }
 
+  const emailErr = fieldError(fields, "email", t);
+  const passwordErr = fieldError(fields, "password", t);
+
   return (
     <form className="vj-stack" action={onSubmit} noValidate>
       {error ? <AuthAlert>{error}</AuthAlert> : null}
-      <FormField id="email" label={t("auth.email")} error={fieldError(fields, "email")}>
+      <FormField id="email" label={t("auth.email")} error={emailErr}>
         <Input
           id="email"
           name="email"
           type="email"
           autoComplete="email"
           required
-          aria-invalid={Boolean(fieldError(fields, "email"))}
-          aria-describedby={fieldError(fields, "email") ? "email-error" : undefined}
+          aria-invalid={Boolean(emailErr)}
+          aria-describedby={emailErr ? "email-error" : undefined}
         />
       </FormField>
       <PasswordField
         id="password"
         name="password"
         label={t("auth.password")}
-        error={fieldError(fields, "password")}
+        error={passwordErr}
         autoComplete="current-password"
       />
       <p>
@@ -174,8 +187,11 @@ export function RegisterForm() {
     if (!result.response.ok) {
       setFields(result.data);
       setError(
-        result.data.error?.message ??
+        translateApiFailure(
+          result.data,
+          t,
           t("auth.signupFailed", "Não foi possível criar a conta. Nenhum cadastro foi confirmado."),
+        ),
       );
       return;
     }
@@ -199,26 +215,26 @@ export function RegisterForm() {
       <FormField
         id="displayName"
         label={t("auth.displayName")}
-        error={fieldError(fields, "displayName")}
+        error={fieldError(fields, "displayName", t)}
       >
         <Input
           id="displayName"
           name="displayName"
           autoComplete="name"
           required
-          aria-invalid={Boolean(fieldError(fields, "displayName"))}
-          aria-describedby={fieldError(fields, "displayName") ? "displayName-error" : undefined}
+          aria-invalid={Boolean(fieldError(fields, "displayName", t))}
+          aria-describedby={fieldError(fields, "displayName", t) ? "displayName-error" : undefined}
         />
       </FormField>
-      <FormField id="email" label={t("auth.email")} error={fieldError(fields, "email")}>
+      <FormField id="email" label={t("auth.email")} error={fieldError(fields, "email", t)}>
         <Input
           id="email"
           name="email"
           type="email"
           autoComplete="email"
           required
-          aria-invalid={Boolean(fieldError(fields, "email"))}
-          aria-describedby={fieldError(fields, "email") ? "email-error" : undefined}
+          aria-invalid={Boolean(fieldError(fields, "email", t))}
+          aria-describedby={fieldError(fields, "email", t) ? "email-error" : undefined}
         />
       </FormField>
       <PasswordField
@@ -226,9 +242,9 @@ export function RegisterForm() {
         name="password"
         label={t("auth.password")}
         hint={t("auth.passwordHint")}
-        error={fieldError(fields, "password")}
+        error={fieldError(fields, "password", t)}
         autoComplete="new-password"
-        minLength={12}
+        minLength={8}
       />
       <label className="vj-check-row" htmlFor={termsId}>
         <input
@@ -239,9 +255,11 @@ export function RegisterForm() {
           required
         />
         <span>
-          {t("auth.termsAccept")} <a href="/politicas/termos">{t("footer.terms")}</a>
+          {t("auth.termsAccept")} <a href="/termos-de-uso">{t("footer.terms")}</a>
           {" · "}
-          <a href="/politicas/privacidade">{t("footer.privacyPolicy")}</a>
+          <a href="/termos-de-servico">{t("footer.termsOfService", "Termos de Serviço")}</a>
+          {" · "}
+          <a href="/politica-de-privacidade">{t("footer.privacyPolicy")}</a>
         </span>
       </label>
       <Button type="submit" loading={pending} loadingLabel={t("auth.creating")}>
@@ -272,7 +290,7 @@ export function RequestResetForm() {
     setPending(false);
     if (!result.response.ok) {
       setFields(result.data);
-      setError(result.data.error?.message ?? t("common.error"));
+      setError(translateApiFailure(result.data, t, t("common.error")));
       return;
     }
     setMessage(
@@ -285,7 +303,7 @@ export function RequestResetForm() {
     <form className="vj-stack" action={onSubmit} noValidate>
       {error ? <AuthAlert>{error}</AuthAlert> : null}
       {message ? <p role="status">{message}</p> : null}
-      <FormField id="email" label={t("auth.email")} error={fieldError(fields, "email")}>
+      <FormField id="email" label={t("auth.email")} error={fieldError(fields, "email", t)}>
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </FormField>
       <Button type="submit" loading={pending} loadingLabel={t("auth.sending")}>
@@ -313,7 +331,11 @@ export function ConfirmResetForm({ token }: { token: string }) {
     if (!result.response.ok) {
       setFields(result.data);
       setError(
-        result.data.error?.message ?? t("auth.resetFailed", "Não foi possível redefinir a senha."),
+        translateApiFailure(
+          result.data,
+          t,
+          t("auth.resetFailed", "Não foi possível redefinir a senha."),
+        ),
       );
       return;
     }
@@ -337,9 +359,9 @@ export function ConfirmResetForm({ token }: { token: string }) {
         name="password"
         label={t("auth.newPassword", "Nova senha")}
         hint={t("auth.passwordHint")}
-        error={fieldError(fields, "password")}
+        error={fieldError(fields, "password", t)}
         autoComplete="new-password"
-        minLength={12}
+        minLength={8}
       />
       <Button type="submit" loading={pending} loadingLabel={t("auth.saving")}>
         {t("auth.confirmReset", "Redefinir senha")}
@@ -362,8 +384,11 @@ export function VerifyEmailForm({ initialToken = "" }: { initialToken?: string }
     setPending(false);
     if (!result.response.ok) {
       setError(
-        result.data.error?.message ??
+        translateApiFailure(
+          result.data,
+          t,
           t("auth.verifyFailed", "Não foi possível verificar o e-mail."),
+        ),
       );
       return;
     }
@@ -379,7 +404,7 @@ export function VerifyEmailForm({ initialToken = "" }: { initialToken?: string }
     });
     setPending(false);
     if (!result.response.ok) {
-      setError(result.data.error?.message ?? t("common.error"));
+      setError(translateApiFailure(result.data, t, t("common.error")));
       return;
     }
     setMessage(

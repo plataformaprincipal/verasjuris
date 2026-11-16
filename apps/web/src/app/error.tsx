@@ -1,6 +1,6 @@
 "use client";
 
-import { ErrorState } from "@verasjuris/ui";
+import { LocalizedGlobalError } from "../components/i18n-states";
 
 export default function GlobalError({
   error,
@@ -9,19 +9,5 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  return (
-    <main className="vj-page" id="conteudo">
-      <ErrorState
-        title="Não foi possível abrir esta página."
-        action={
-          <button className="vj-button vj-button-primary" type="button" onClick={reset}>
-            Tentar novamente
-          </button>
-        }
-      >
-        Nenhuma alteração foi confirmada.{" "}
-        {error.digest ? `Código: ${error.digest}.` : "Tente novamente."}
-      </ErrorState>
-    </main>
-  );
+  return <LocalizedGlobalError error={error} reset={reset} />;
 }

@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useLocale } from "./locale-provider";
 import { PublicSiteHeader } from "./public-site-header";
 
 export function PublicPageShell({
@@ -48,11 +51,12 @@ export function AvailabilityBadge({
 }: {
   availability: "available" | "in_test" | "in_development" | "planned";
 }) {
+  const { t } = useLocale();
   const labels = {
-    available: "Disponível",
-    in_test: "Em testes",
-    in_development: "Em desenvolvimento",
-    planned: "Planejada",
+    available: t("common.availability.available"),
+    in_test: t("common.availability.in_test"),
+    in_development: t("common.availability.in_development"),
+    planned: t("common.availability.planned"),
   } as const;
   const className =
     availability === "available"

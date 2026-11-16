@@ -16,8 +16,10 @@ import {
   isApiFailure,
   type CrmOverview,
 } from "../../../lib/crm";
+import { useLocale } from "../../../components/locale-provider";
 
 export default function CrmOverviewPage() {
+  const { t } = useLocale();
   const [overview, setOverview] = useState<CrmOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,14 +30,14 @@ export default function CrmOverviewPage() {
       const activeId = await getActiveOrgId();
       if (cancelled) return;
       if (!activeId) {
-        setError("Nenhuma organização ativa. Selecione ou crie uma organização para usar o CRM.");
+        setError(t("crm.noOrg"));
         setLoading(false);
         return;
       }
       const data = await fetchCrmOverview(activeId);
       if (cancelled) return;
       if (isApiFailure(data)) {
-        setError(apiErrorMessage(data, "Não foi possível carregar a visão geral do CRM."));
+        setError(apiErrorMessage(data, t("crm.errorLoad")));
         setLoading(false);
         return;
       }
@@ -54,66 +56,65 @@ export default function CrmOverviewPage() {
     <div className="vj-stack">
       <Breadcrumb
         items={[
-          { label: "Painel", href: "/app" },
-          { label: "CRM", href: "/app/crm" },
-          { label: "Visão geral" },
+          { label: t("dashboard.title"), href: "/app" },
+          { label: t("crm.title"), href: "/app/crm" },
+          { label: t("crm.overview") },
         ]}
       />
       <PageHeader
-        title="CRM"
-        description="Indicadores reais da organização ativa. Nenhum número é estimado ou simulado."
-        eyebrow="Visão geral"
+        title={t("crm.title")}
+        description={t("crm.description")}
+        eyebrow={t("crm.overview")}
       />
-      {loading ? <LoadingState label="Carregando indicadores do CRM" /> : null}
-      {error ? <ErrorState title="Não foi possível carregar o CRM.">{error}</ErrorState> : null}
+      {loading ? <LoadingState label={t("crm.loading")} /> : null}
+      {error ? <ErrorState title={t("crm.error")}>{error}</ErrorState> : null}
       {!loading && !error && overview ? (
         empty ? (
           <EmptyState
-            title="Nenhum registro no CRM ainda"
+            title={t("crm.emptyTitle")}
             action={
               <ButtonLink href="/app/crm/leads/novo" variant="primary">
-                Registrar primeiro lead
+                {t("crm.firstLead")}
               </ButtonLink>
             }
           >
-            Ainda não há leads nem clientes nesta organização. Comece registrando um lead ou aguarde
-            a equipe incluir registros.
+            {t("crm.emptyBody")}
           </EmptyState>
         ) : (
           <>
             <div className="vj-split vj-metrics">
               <section className="vj-card" aria-labelledby="metric-leads">
                 <h2 id="metric-leads" className="vj-section-title">
-                  Leads
+                  {t("crm.leads")}
                 </h2>
                 <p className="vj-display" style={{ fontSize: "2rem", margin: 0 }}>
                   {overview.leads}
                 </p>
-                <p className="vj-meta">Total registrado</p>
+                <p className="vj-meta">{t("common.totalRegistered")}</p>
               </section>
               <section className="vj-card" aria-labelledby="metric-open">
                 <h2 id="metric-open" className="vj-section-title">
-                  Leads em aberto
+                  {t("crm.openLeads")}
                 </h2>
                 <p className="vj-display" style={{ fontSize: "2rem", margin: 0 }}>
                   {overview.openLeads}
                 </p>
-                <p className="vj-meta">Exclui convertidos, arquivados e não qualificados</p>
+                <p className="vj-meta">{t("crm.openLeadsHint")}</p>
               </section>
               <section className="vj-card" aria-labelledby="metric-clients">
                 <h2 id="metric-clients" className="vj-section-title">
-                  Clientes
+                  {t("dashboard.clients")}
                 </h2>
                 <p className="vj-display" style={{ fontSize: "2rem", margin: 0 }}>
                   {overview.clients}
                 </p>
-                <p className="vj-meta">Total registrado</p>
+                <p className="vj-meta">{t("common.totalRegistered")}</p>
               </section>
             </div>
             <div className="vj-inline-actions">
-              <ButtonLink href="/app/crm/leads">Ver leads</ButtonLink>
+              <ButtonLink href="/app/crm/leads">{t("crm.viewLeads")}</ButtonLink>
               <ButtonLink href="/app/crm/clientes" variant="secondary">
-                Ver clientes
+                {t("crm.viewClients")}
               </ButtonLink>
             </div>
           </>

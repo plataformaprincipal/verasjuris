@@ -1,5 +1,5 @@
-import { LoadingState } from "@verasjuris/ui";
+import { LocalizedLoadingPage } from "../../components/i18n-states";
 
 export default function Loading() {
-  return <LoadingState label="Carregando o painel." />;
+  return <LocalizedLoadingPage variant="app" />;
 }

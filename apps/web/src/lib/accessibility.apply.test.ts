@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_A11Y,
   applyAccessibilityToDocument,
@@ -7,13 +7,41 @@ import {
   type AccessibilityPreferences,
 } from "./accessibility";
 
+function installMockDocument() {
+  const dataset: Record<string, string> = {};
+  const styleProps = new Map<string, string>();
+  const root = {
+    style: {
+      setProperty(name: string, value: string) {
+        styleProps.set(name, value);
+      },
+      getPropertyValue(name: string) {
+        return styleProps.get(name) ?? "";
+      },
+      removeProperty(name: string) {
+        styleProps.delete(name);
+      },
+    },
+    dataset,
+    removeAttribute(name: string) {
+      if (name === "style") styleProps.clear();
+    },
+  };
+
+  vi.stubGlobal("document", {
+    documentElement: root,
+  });
+
+  return { root, styleProps, dataset };
+}
+
 describe("applyAccessibilityToDocument", () => {
+  beforeEach(() => {
+    installMockDocument();
+  });
+
   afterEach(() => {
-    const root = document.documentElement;
-    root.removeAttribute("style");
-    for (const key of Object.keys({ ...root.dataset })) {
-      delete root.dataset[key as keyof DOMStringMap];
-    }
+    vi.unstubAllGlobals();
   });
 
   it("applies font scale, theme black, letter spacing and interactive highlight", () => {

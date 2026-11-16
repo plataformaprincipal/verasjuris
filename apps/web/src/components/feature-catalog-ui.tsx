@@ -14,6 +14,7 @@ import {
 } from "../lib/public-catalog";
 import { AvailabilityBadge } from "./public-page-shell";
 import { RequireAuthCta } from "./require-auth-cta";
+import { useLocale } from "./locale-provider";
 
 export function FeatureCatalogBrowser({
   initialCategory,
@@ -22,6 +23,7 @@ export function FeatureCatalogBrowser({
   initialCategory?: CatalogCategory | null;
   initialQuery?: string;
 }) {
+  const { t } = useLocale();
   const [query, setQuery] = useState(initialQuery);
   const [category, setCategory] = useState<CatalogCategory | "all">(initialCategory ?? "all");
   const [availability, setAvailability] = useState<Availability | "all">("all");
@@ -41,26 +43,26 @@ export function FeatureCatalogBrowser({
         className="vj-card vj-catalog-filters"
         onSubmit={(event) => event.preventDefault()}
         role="search"
-        aria-label="Pesquisar funcionalidades"
+        aria-label={t("catalog.searchAria")}
       >
         <label className="vj-field">
-          <span className="vj-label">Pesquisar</span>
+          <span className="vj-label">{t("catalog.search")}</span>
           <input
             className="vj-input"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Ex.: prazos, petições, marketplace"
+            placeholder={t("catalog.searchPlaceholder")}
             type="search"
           />
         </label>
         <label className="vj-field">
-          <span className="vj-label">Categoria</span>
+          <span className="vj-label">{t("catalog.category")}</span>
           <select
             className="vj-select"
             value={category}
             onChange={(event) => setCategory(event.target.value as CatalogCategory | "all")}
           >
-            <option value="all">Todas</option>
+            <option value="all">{t("catalog.all")}</option>
             {listCategories().map((item) => (
               <option key={item} value={item}>
                 {CATEGORY_META[item].label}
@@ -69,16 +71,16 @@ export function FeatureCatalogBrowser({
           </select>
         </label>
         <label className="vj-field">
-          <span className="vj-label">Disponibilidade</span>
+          <span className="vj-label">{t("catalog.availability")}</span>
           <select
             className="vj-select"
             value={availability}
             onChange={(event) => setAvailability(event.target.value as Availability | "all")}
           >
-            <option value="all">Todas</option>
+            <option value="all">{t("catalog.all")}</option>
             {(Object.keys(AVAILABILITY_META) as Availability[]).map((item) => (
               <option key={item} value={item}>
-                {AVAILABILITY_META[item].label}
+                {t(`common.availability.${item}`, AVAILABILITY_META[item].label)}
               </option>
             ))}
           </select>
@@ -86,8 +88,9 @@ export function FeatureCatalogBrowser({
       </form>
 
       <p className="vj-meta" role="status">
-        {results.length} funcionalidade{results.length === 1 ? "" : "s"} encontrada
-        {results.length === 1 ? "" : "s"}
+        {results.length === 1
+          ? t("catalog.results", undefined, { count: results.length })
+          : t("catalog.resultsPlural", undefined, { count: results.length })}
       </p>
 
       <div className="vj-feature-grid">
@@ -100,6 +103,7 @@ export function FeatureCatalogBrowser({
 }
 
 function FeatureCard({ feature }: { feature: CatalogFeature }) {
+  const { t } = useLocale();
   return (
     <article className="vj-card">
       <div className="vj-inline-actions">
@@ -110,14 +114,14 @@ function FeatureCard({ feature }: { feature: CatalogFeature }) {
         <a href={`/ferramentas/${feature.slug}`}>{feature.name}</a>
       </h2>
       <p>{feature.summary}</p>
-      <p className="vj-meta">Problema que resolve: {feature.problem}</p>
+      <p className="vj-meta">{t("catalog.problem", undefined, { problem: feature.problem })}</p>
       <div className="vj-inline-actions">
         <ButtonLink href={`/ferramentas/${feature.slug}`} variant="secondary">
-          Detalhes
+          {t("catalog.details")}
         </ButtonLink>
         {feature.demoView ? (
           <ButtonLink href={`/explorar?view=${feature.demoView}`} variant="ghost">
-            Ver demonstração
+            {t("catalog.demo")}
           </ButtonLink>
         ) : null}
       </div>
@@ -126,6 +130,7 @@ function FeatureCard({ feature }: { feature: CatalogFeature }) {
 }
 
 export function FeatureDetail({ feature }: { feature: CatalogFeature }) {
+  const { t } = useLocale();
   return (
     <div className="vj-stack">
       <div className="vj-inline-actions">
@@ -137,7 +142,7 @@ export function FeatureDetail({ feature }: { feature: CatalogFeature }) {
       <p>{feature.problem}</p>
 
       <section className="vj-card">
-        <h2 className="vj-section-title">Principais recursos</h2>
+        <h2 className="vj-section-title">{t("catalog.capabilities")}</h2>
         <ul>
           {feature.capabilities.map((item) => (
             <li key={item}>{item}</li>
@@ -147,7 +152,7 @@ export function FeatureDetail({ feature }: { feature: CatalogFeature }) {
 
       <div className="vj-split">
         <section className="vj-card">
-          <h2 className="vj-section-title">Para quem</h2>
+          <h2 className="vj-section-title">{t("catalog.audience")}</h2>
           <ul>
             {feature.audience.map((item) => (
               <li key={item}>{item}</li>
@@ -155,7 +160,7 @@ export function FeatureDetail({ feature }: { feature: CatalogFeature }) {
           </ul>
         </section>
         <section className="vj-card">
-          <h2 className="vj-section-title">Benefícios operacionais</h2>
+          <h2 className="vj-section-title">{t("catalog.benefits")}</h2>
           <ul>
             {feature.benefits.map((item) => (
               <li key={item}>{item}</li>
@@ -165,7 +170,7 @@ export function FeatureDetail({ feature }: { feature: CatalogFeature }) {
       </div>
 
       <section className="vj-card vj-card-calm">
-        <h2 className="vj-section-title">Limitações e disponibilidade</h2>
+        <h2 className="vj-section-title">{t("catalog.limitations")}</h2>
         <p>{AVAILABILITY_META[feature.availability].description}</p>
         <ul>
           {feature.limitations.map((item) => (
@@ -175,28 +180,27 @@ export function FeatureDetail({ feature }: { feature: CatalogFeature }) {
       </section>
 
       <section className="vj-card">
-        <h2 className="vj-section-title">Experimentar</h2>
-        <p>
-          A pré-visualização pública permite conhecer o módulo. Operações reais exigem autenticação.
-        </p>
+        <h2 className="vj-section-title">{t("catalog.try")}</h2>
+        <p>{t("catalog.tryBody")}</p>
         <div className="vj-form-actions">
           {feature.demoView ? (
-            <ButtonLink href={`/explorar?view=${feature.demoView}`}>Abrir demonstração</ButtonLink>
+            <ButtonLink href={`/explorar?view=${feature.demoView}`}>
+              {t("public.tools.demoCta")}
+            </ButtonLink>
           ) : (
-            <ButtonLink href="/explorar">Explorar o VerasJuris</ButtonLink>
+            <ButtonLink href="/explorar">{t("home.finalCtaExplore")}</ButtonLink>
           )}
           {feature.requiresAuthFor.slice(0, 2).map((action) => (
             <RequireAuthCta
               key={action}
               actionLabel={action}
-              title="Entre para continuar"
-              message={`Para ${action.toLowerCase()}, entre na sua conta ou cadastre-se no VerasJuris.`}
+              message={t("catalog.authMessage", undefined, { action: action.toLowerCase() })}
               redirectTo={`/app`}
               variant="secondary"
             />
           ))}
           <ButtonLink href="/cadastro" variant="ghost">
-            Criar conta
+            {t("nav.signup")}
           </ButtonLink>
         </div>
       </section>

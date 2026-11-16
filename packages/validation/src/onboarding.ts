@@ -1,12 +1,6 @@
 import { z } from "zod";
 import { validateBirthDateValue } from "./birth-date.js";
-import {
-  digitsOnly,
-  isValidCep,
-  isValidCnpj,
-  isValidCpf,
-  toE164BrMobile,
-} from "./br-documents.js";
+import { digitsOnly, isValidCep, isValidCnpj, isValidCpf, toE164BrMobile } from "./br-documents.js";
 import { passwordSchema } from "./password-policy.js";
 
 const emailSchema = z
@@ -22,6 +16,18 @@ const displayNameSchema = z
   .trim()
   .min(2, "Informe o nome com pelo menos 2 caracteres.")
   .max(80, "O nome pode ter no máximo 80 caracteres.");
+
+/** Garante displayName a partir de fullName antes da validação (contrato do registro). */
+function ensureDisplayNameFromFullName(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
+  const data = { ...(raw as Record<string, unknown>) };
+  const fullName = typeof data.fullName === "string" ? data.fullName.trim() : "";
+  const current = typeof data.displayName === "string" ? data.displayName.trim() : "";
+  if (!current && fullName) {
+    data.displayName = fullName.length <= 80 ? fullName : fullName.slice(0, 80).trimEnd();
+  }
+  return data;
+}
 
 const organizationNameSchema = z
   .string()
@@ -180,8 +186,8 @@ const termsSchema = z.object({
   }),
   acceptMarketing: z.boolean().optional().default(false),
   representationDeclaration: z.boolean().optional(),
-  termsVersion: z.string().trim().min(1).max(32).default("2026-11"),
-  privacyVersion: z.string().trim().min(1).max(32).default("2026-11"),
+  termsVersion: z.string().trim().min(1).max(32).default("2026-11-16"),
+  privacyVersion: z.string().trim().min(1).max(32).default("2026-11-16"),
 });
 
 const basePerson = z.object({
@@ -194,10 +200,11 @@ const basePerson = z.object({
   address: addressSchema,
 });
 
-export const onboardingRegisterSchema = z
+const onboardingRegisterObjectSchema = z
   .object({
     persona: onboardingPersonaSchema,
-    displayName: displayNameSchema.optional(),
+    /** Obrigatório no contrato; se ausente no JSON, o preprocess preenche a partir de fullName. */
+    displayName: displayNameSchema,
     fullName: fullNameSchema,
     socialName: z.string().trim().max(120).optional().or(z.literal("")),
     cpf: cpfSchema.optional(),
@@ -242,8 +249,8 @@ export const onboardingRegisterSchema = z
     }),
     acceptMarketing: z.boolean().optional().default(false),
     representationDeclaration: z.boolean().optional(),
-    termsVersion: z.string().trim().min(1).max(32).default("2026-11"),
-    privacyVersion: z.string().trim().min(1).max(32).default("2026-11"),
+    termsVersion: z.string().trim().min(1).max(32).default("2026-11-16"),
+    privacyVersion: z.string().trim().min(1).max(32).default("2026-11-16"),
   })
   .superRefine((value, ctx) => {
     if (value.password !== value.passwordConfirm) {
@@ -323,7 +330,7 @@ export const onboardingRegisterSchema = z
   })
   .transform((value) => ({
     ...value,
-    displayName: value.displayName?.trim() || value.fullName.trim(),
+    displayName: value.displayName.trim(),
     socialName: value.socialName?.trim() || undefined,
     tradeName: value.tradeName?.trim() || undefined,
     jobTitle: value.jobTitle?.trim() || undefined,
@@ -336,6 +343,11 @@ export const onboardingRegisterSchema = z
       complement: value.address.complement?.trim() || undefined,
     },
   }));
+
+export const onboardingRegisterSchema = z.preprocess(
+  ensureDisplayNameFromFullName,
+  onboardingRegisterObjectSchema,
+);
 
 export type OnboardingRegisterInput = z.infer<typeof onboardingRegisterSchema>;
 

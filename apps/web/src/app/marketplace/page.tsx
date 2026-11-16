@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { SectionTabs } from "../../components/ai-ui";
 import {
   MARKETPLACE_PUBLIC_TABS,
+  translateMarketplaceTabs,
   MarketplacePaymentBanner,
   MarketplaceProfessionalsGrid,
   MarketplaceRequestsTable,
@@ -22,8 +23,10 @@ import {
   type MarketplaceRequest,
 } from "../../lib/marketplace";
 import { useOrgContext } from "../../lib/use-org-context";
+import { useLocale } from "../../components/locale-provider";
 
 export default function MarketplaceHomePage() {
+  const { t } = useLocale();
   const org = useOrgContext();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,23 +67,23 @@ export default function MarketplaceHomePage() {
 
   return (
     <div className="vj-stack">
-      <Breadcrumb items={[{ label: "Marketplace jurídico" }]} />
+      <Breadcrumb items={[{ label: t("marketplace.publicTitle") }]} />
       <PageHeader
-        title="Marketplace jurídico"
-        description="Contrate serviços jurídicos especializados com propostas, entregas e avaliações."
+        title={t("marketplace.publicTitle")}
+        description={t("marketplace.publicDescription")}
       />
-      <SectionTabs label="Seções" items={MARKETPLACE_PUBLIC_TABS} current="" />
+      <SectionTabs label={t("common.sections")} items={translateMarketplaceTabs(t, MARKETPLACE_PUBLIC_TABS)} current="" />
       <MarketplacePaymentBanner status={paymentStatus} />
-      {loading ? <LoadingState label="Carregando marketplace…" /> : null}
+      {loading ? <LoadingState label={t("marketplace.loading")} /> : null}
       {error ? <p role="alert">{error}</p> : null}
       {!loading && !error ? (
         <>
           <section className="vj-stack">
-            <h2 className="vj-subtitle">Profissionais em destaque</h2>
+            <h2 className="vj-subtitle">{t("marketplace.featuredProfessionals")}</h2>
             <MarketplaceProfessionalsGrid items={professionals} />
           </section>
           <section className="vj-stack">
-            <h2 className="vj-subtitle">Solicitações recentes</h2>
+            <h2 className="vj-subtitle">{t("marketplace.recentRequests")}</h2>
             <MarketplaceRequestsTable items={requests} />
           </section>
         </>

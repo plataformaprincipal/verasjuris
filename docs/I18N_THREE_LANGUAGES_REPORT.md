@@ -19,13 +19,15 @@ Restringir a interface do VerasJuris aos três idiomas oficiais e ampliar a cobe
 
 | Locale | Chaves |
 | --- | ---: |
-| pt-BR | 271 |
-| en-US | 271 |
-| es-ES | 271 |
+| pt-BR | 528 |
+| en-US | 528 |
+| es-ES | 528 |
 
-Cobertura de chaves entre os três: **100%** (mesmo conjunto de chaves).
+Cobertura de chaves entre os três: **100%** (mesmo conjunto de chaves; expandido a partir de ~174).
 
-Domínios cobertos no catálogo: navegação pública (4 abas), auth/cadastro (etapas, senha, nascimento), chrome do painel, marketplace/planos, acessibilidade (categorias + VLibras), idiomas, erros e estados comuns.
+Domínios cobertos no catálogo: navegação pública (4 abas), auth/cadastro (etapas, personas, senha boa/excelente, nascimento), chrome do painel (CRM, pipeline, finance, education, settings, notifications…), marketplace/planos/pagamentos, acessibilidade (categorias + VLibras + perfis), idiomas, tabelas/filtros/modais, erros e estados comuns.
+
+JSON dos 27 idiomas não oficiais removidos de `messages/` após `catalogs.ts` referenciar apenas os três oficiais.
 
 ### Seletor
 

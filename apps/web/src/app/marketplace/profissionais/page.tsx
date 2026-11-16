@@ -5,8 +5,10 @@ import { useEffect, useState } from "react";
 import { SectionTabs } from "../../../components/ai-ui";
 import {
   MARKETPLACE_PUBLIC_TABS,
+  translateMarketplaceTabs,
   MarketplaceProfessionalsGrid,
 } from "../../../components/marketplace-ui";
+import { useLocale } from "../../../components/locale-provider";
 import {
   fetchMarketplaceProfessionals,
   isApiFailure,
@@ -15,6 +17,7 @@ import {
 } from "../../../lib/marketplace";
 
 export default function MarketplaceProfessionalsPage() {
+  const { t } = useLocale();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<MarketplaceProfessional[]>([]);
@@ -41,7 +44,7 @@ export default function MarketplaceProfessionalsPage() {
         title="Profissionais"
         description="Busca ranqueada de advogados no marketplace."
       />
-      <SectionTabs label="Seções" items={MARKETPLACE_PUBLIC_TABS} current="" />
+      <SectionTabs label={t("common.sections")} items={translateMarketplaceTabs(t, MARKETPLACE_PUBLIC_TABS)} current="" />
       {loading ? <LoadingState label="Carregando profissionais…" /> : null}
       {error ? <ErrorState title="Erro">{error}</ErrorState> : null}
       {!loading && !error && items.length === 0 ? (

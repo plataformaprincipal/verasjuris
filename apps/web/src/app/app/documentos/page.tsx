@@ -33,6 +33,7 @@ import {
   type DocumentStatus,
   type DocumentSummary,
 } from "../../../lib/documents";
+import { useLocale } from "../../../components/locale-provider";
 
 function readQueryParam(name: string): string {
   if (typeof window === "undefined") return "";
@@ -40,6 +41,7 @@ function readQueryParam(name: string): string {
 }
 
 export default function DocumentosPage() {
+  const { t } = useLocale();
   const progressId = useId();
   const [canRead, setCanRead] = useState(true);
   const [canCreate, setCanCreate] = useState(false);
@@ -90,7 +92,7 @@ export default function DocumentosPage() {
         limit: 50,
       });
       if (isApiFailure(data)) {
-        setError(apiErrorMessage(data, "Não foi possível listar os documentos."));
+        setError(apiErrorMessage(data, t("documents.errorList")));
         setLoading(false);
         return;
       }
@@ -202,14 +204,14 @@ export default function DocumentosPage() {
     await load(orgId);
   }
 
-  const breadcrumb = [{ label: "Painel", href: "/app" }, { label: "Documentos" }];
+  const breadcrumb = [{ label: t("dashboard.title"), href: "/app" }, { label: t("documents.title") }];
 
   if (!canRead) {
     return (
       <div className="vj-stack">
         <Breadcrumb items={breadcrumb} />
-        <ErrorState title="Sem permissão">
-          Você não tem permissão para consultar documentos nesta organização.
+        <ErrorState title={t("nav.noPermission")}>
+          {t("documents.noPermissionBody")}
         </ErrorState>
       </div>
     );
@@ -219,11 +221,11 @@ export default function DocumentosPage() {
     <div className="vj-stack">
       <Breadcrumb items={breadcrumb} />
       <PageHeader
-        title="Documentos"
-        description="Repositório documental da organização. Arquivos são enviados com metadados; a verificação antimalware depende da configuração do ambiente."
+        title={t("documents.title")}
+        description={t("documents.pageDescription")}
       />
 
-      <form className="vj-card vj-stack" onSubmit={applyFilters} aria-label="Filtros de documentos">
+      <form className="vj-card vj-stack" onSubmit={applyFilters} aria-label={t("documents.filtersAria")}>
         <div className="vj-split">
           <FormField id="doc-q" label="Busca">
             <Input
@@ -365,7 +367,7 @@ export default function DocumentosPage() {
             </p>
           ) : null}
           {uploadMessage ? (
-            <Alert tone="info" title="Envio concluído">
+            <Alert tone="info" title={t("documents.uploadDone")}>
               {uploadMessage}
             </Alert>
           ) : null}
@@ -377,11 +379,11 @@ export default function DocumentosPage() {
         </form>
       ) : null}
 
-      {loading ? <LoadingState label="Carregando documentos" /> : null}
-      {error ? <ErrorState title="Erro ao carregar documentos">{error}</ErrorState> : null}
+      {loading ? <LoadingState label={t("documents.loading")} /> : null}
+      {error ? <ErrorState title={t("documents.error")}>{error}</ErrorState> : null}
 
       {!loading && !error && items.length === 0 ? (
-        <EmptyState title="Nenhum documento foi adicionado.">
+        <EmptyState title={t("documents.empty")}>
           Envie um arquivo ou ajuste os filtros para localizar documentos existentes.
         </EmptyState>
       ) : null}
