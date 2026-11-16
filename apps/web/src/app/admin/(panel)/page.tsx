@@ -7,7 +7,7 @@ import {
   isApiFailure,
   platformAdminErrorMessage,
   type PlatformDashboard,
-} from "../../lib/platform-admin";
+} from "../../../lib/platform-admin";
 
 function MetricCard({ label, value }: { label: string; value: number | null | undefined }) {
   return (

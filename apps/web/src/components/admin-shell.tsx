@@ -52,7 +52,7 @@ export function AdminShell({
         </div>
         <nav className="vj-admin-nav">
           {NAV.map((item) => {
-            const active = item.exact
+            const active = ("exact" in item && item.exact)
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;

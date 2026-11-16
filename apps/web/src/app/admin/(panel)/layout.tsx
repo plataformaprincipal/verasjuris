@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { AdminGate } from "../../components/admin-gate";
+import { AdminGate } from "../../../components/admin-gate";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return <AdminGate>{children}</AdminGate>;
