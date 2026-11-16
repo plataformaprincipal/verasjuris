@@ -30,3 +30,14 @@ export {
   type PermissionKey,
   type SystemRoleKey,
 } from "./permissions.js";
+export {
+  PLATFORM_PERMISSIONS,
+  PLATFORM_PERMISSION_DESCRIPTIONS,
+  PLATFORM_ROLE_KEYS,
+  PLATFORM_ROLE_NAMES,
+  PLATFORM_ROLE_PERMISSIONS,
+  collectPlatformPermissions,
+  platformRoleHasPermission,
+  type PlatformPermissionKey,
+  type PlatformRoleKey,
+} from "./platform-admin.js";

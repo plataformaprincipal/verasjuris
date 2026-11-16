@@ -162,6 +162,34 @@
       "when": 1793700000000,
       "tag": "0022_marketplace_cart_juris_work",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793800000000,
+      "tag": "0023_marketplace_inicio_hub",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793900000000,
+      "tag": "0024_social_network",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794000000000,
+      "tag": "0025_juris_work_credits",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794100000000,
+      "tag": "0026_platform_admin",
+      "breakpoints": true
     }
   ]
 }

@@ -1,13 +1,28 @@
 import {
   membershipRoles,
   organizationMembers,
+  platformStaff,
   sessions,
   type AppDatabase,
 } from "@verasjuris/database";
 import { hashSessionToken } from "@verasjuris/security";
+import {
+  collectPlatformPermissions,
+  type PlatformPermissionKey,
+  type PlatformRoleKey,
+  PLATFORM_ROLE_KEYS,
+} from "@verasjuris/types";
 import { and, eq, gt, inArray, isNull, ne } from "drizzle-orm";
 
 export type UserStatus = "active" | "pending_verification" | "suspended" | "disabled";
+
+export type PlatformAccess = {
+  roles: PlatformRoleKey[];
+  permissions: PlatformPermissionKey[];
+  mfaRequired: boolean;
+  forcePasswordChange: boolean;
+  mfaEnabled: boolean;
+};
 
 export type SessionAccount = {
   sessionId: string;
@@ -33,7 +48,13 @@ export type SessionAccount = {
     roles: string[];
     permissions: string[];
   }>;
+  /** Acesso à equipe interna da plataforma; null se não for staff ativo. */
+  platform: PlatformAccess | null;
 };
+
+function isPlatformRoleKey(value: string): value is PlatformRoleKey {
+  return (PLATFORM_ROLE_KEYS as readonly string[]).includes(value);
+}
 
 export async function findSession(
   db: AppDatabase,
@@ -96,6 +117,21 @@ export async function findSession(
     rolesByMembership.set(link.membershipId, current);
   }
 
+  const staffRows = await db.query.platformStaff.findMany({
+    where: and(eq(platformStaff.userId, row.user.id), eq(platformStaff.status, "active")),
+  });
+  const platformRoles = staffRows.map((s) => s.roleKey).filter(isPlatformRoleKey);
+  const platform: PlatformAccess | null =
+    platformRoles.length === 0
+      ? null
+      : {
+          roles: platformRoles,
+          permissions: collectPlatformPermissions(platformRoles),
+          mfaRequired: staffRows.some((s) => s.mfaRequired),
+          forcePasswordChange: staffRows.some((s) => s.forcePasswordChange),
+          mfaEnabled: Boolean(row.user.mfaEnabled),
+        };
+
   return {
     sessionId: row.id,
     user: {
@@ -122,6 +158,7 @@ export async function findSession(
         permissions: [...new Set(linked?.permissions ?? [])],
       };
     }),
+    platform,
   };
 }
 
@@ -150,6 +187,18 @@ export function toPublicSession(account: SessionAccount) {
         roles: membership.roles,
         permissions: membership.permissions,
       })),
+    platform: account.platform
+      ? {
+          roles: account.platform.roles,
+          permissions: account.platform.permissions,
+          mfaRequired: account.platform.mfaRequired,
+          forcePasswordChange: account.platform.forcePasswordChange,
+          mfaEnabled: account.platform.mfaEnabled,
+          adminReady:
+            !account.platform.forcePasswordChange &&
+            (!account.platform.mfaRequired || account.platform.mfaEnabled),
+        }
+      : null,
   };
 }
 

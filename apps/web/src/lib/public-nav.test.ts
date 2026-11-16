@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import { isPublicTabActive, PUBLIC_MAIN_TABS } from "./public-nav";
 
 describe("public main tabs", () => {
-  it("exposes exactly four primary tabs", () => {
-    expect(PUBLIC_MAIN_TABS).toHaveLength(4);
+  it("exposes Início, Explorar, Ferramentas, Marketplace e Juris One", () => {
+    expect(PUBLIC_MAIN_TABS).toHaveLength(5);
     expect(PUBLIC_MAIN_TABS.map((tab) => tab.href)).toEqual([
       "/",
-      "/ferramentas",
       "/explorar",
+      "/ferramentas",
+      "/marketplace-juridico",
       "/juris-one",
     ]);
   });

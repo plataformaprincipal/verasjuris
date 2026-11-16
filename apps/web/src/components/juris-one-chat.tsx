@@ -15,7 +15,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { useLocale } from "./locale-provider";
+import { fetchSessionAccount } from "../lib/crm";
 import {
   JURIS_ONE_GUEST_LIMIT,
   JURIS_ONE_OBJECTIVES,
@@ -25,6 +25,7 @@ import {
   redirectsForObjective,
   type JurisOneObjectiveId,
 } from "../lib/juris-one";
+import { useLocale } from "./locale-provider";
 
 type ChatMessage = {
   id: string;
@@ -48,6 +49,7 @@ function writeGuestTurns(value: number) {
 export function JurisOneChat() {
   const { locale, t } = useLocale();
   const inputId = useId();
+  const [signedIn, setSignedIn] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [objective, setObjective] = useState<JurisOneObjectiveId | null>(null);
   const [input, setInput] = useState("");
@@ -65,6 +67,17 @@ export function JurisOneChat() {
       },
     ]);
   }, [t]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const account = await fetchSessionAccount();
+      if (!cancelled) setSignedIn(Boolean(account));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const remaining = Math.max(0, JURIS_ONE_GUEST_LIMIT - turns);
   const limitReached = remaining <= 0;
@@ -155,6 +168,13 @@ export function JurisOneChat() {
               {t("jurisOne.unavailable")}
             </button>
             <p className="vj-hint">{JURIS_WORK_STATUS.detail}</p>
+            <p className="vj-hint">
+              Com conta, o hub autenticado em /app/juris-one oferece Chat e scaffold Work com
+              créditos.
+            </p>
+            <ButtonLink href="/entrar?redirect=%2Fapp%2Fjuris-one" variant="secondary">
+              Entrar no app
+            </ButtonLink>
           </div>
           <div className="vj-stack">
             <p className="vj-meta">{t("jurisOne.redirects")}</p>
@@ -185,6 +205,16 @@ export function JurisOneChat() {
           <p className="vj-hint" role="note">
             <ShieldCheck size={14} aria-hidden="true" /> {t("jurisOne.safetyNote")}
           </p>
+          {signedIn ? (
+            <div className="vj-form-actions">
+              <ButtonLink href="/app/juris-one">
+                {t("jurisOne.openAuthenticated", "Abrir Juris One com sua conta")}
+              </ButtonLink>
+              <ButtonLink href="/app" variant="ghost">
+                {t("nav.backToPlatform", "Voltar à plataforma")}
+              </ButtonLink>
+            </div>
+          ) : null}
         </div>
 
         {objective === null ? (

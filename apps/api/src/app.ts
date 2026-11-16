@@ -175,6 +175,7 @@ import { registerClientPortalRoutes } from "./modules/client-portal/routes.js";
 import { registerOnlineLawyerRoutes } from "./modules/online-lawyer/routes.js";
 import { registerJurisWorkRoutes } from "./modules/juris-work/routes.js";
 import { registerMarketplaceRoutes } from "./modules/marketplace/routes.js";
+import { registerSocialRoutes } from "./modules/social/routes.js";
 import { registerProfessionalVerificationRoutes } from "./modules/professional-verification/routes.js";
 import { registerDiligenceRoutes } from "./modules/diligence/routes.js";
 import { registerExtrajudicialRoutes } from "./modules/extrajudicial/routes.js";
@@ -196,6 +197,7 @@ import { registerEnterpriseRoutes } from "./modules/enterprise/routes.js";
 import { registerAccessibilityRoutes } from "./modules/accessibility/routes.js";
 import { registerI18nRoutes } from "./modules/i18n/routes.js";
 import { registerAssistantRoutes } from "./modules/assistant/routes.js";
+import { registerPlatformAdminRoutes } from "./modules/platform-admin/routes.js";
 import { registerPublicApiRoutes } from "./modules/public-api/routes.js";
 import { registerInstitutionalRoutes } from "./modules/institutional/routes.js";
 import { registerHttpGuards } from "./plugins/http.js";
@@ -527,6 +529,7 @@ export async function buildApp(options: BuildAppOptions) {
       await registerClientPortalRoutes(v1, deps);
       await registerOnlineLawyerRoutes(v1, deps);
       await registerMarketplaceRoutes(v1, deps);
+      await registerSocialRoutes(v1, deps);
       await registerJurisWorkRoutes(v1, deps);
       await registerProfessionalVerificationRoutes(v1, deps);
       await registerDiligenceRoutes(v1, deps);
@@ -545,6 +548,7 @@ export async function buildApp(options: BuildAppOptions) {
       await registerAccessibilityRoutes(v1, deps);
       await registerI18nRoutes(v1, deps);
       await registerAssistantRoutes(v1, deps);
+      await registerPlatformAdminRoutes(v1, deps);
       await registerInstitutionalRoutes(v1, deps);
     },
     { prefix: "/v1" },

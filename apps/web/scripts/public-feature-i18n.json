@@ -1,0 +1,597 @@
+{
+  "processos-judiciais": {
+    "pt-BR": {
+      "name": "Processos judiciais",
+      "summary": "Cadastre e acompanhe seus processos judiciais com partes, andamentos registrados e prazos.",
+      "problem": "Informações de processos espalhadas em planilhas, e-mails e anotações dificultam o controle da carteira."
+    },
+    "en-US": {
+      "name": "Court cases",
+      "summary": "Register and track court cases with parties, recorded updates, and deadlines.",
+      "problem": "Case information scattered across spreadsheets, email, and notes makes portfolio control harder."
+    },
+    "es-ES": {
+      "name": "Procesos judiciales",
+      "summary": "Registre y siga sus procesos judiciales con partes, actuaciones registradas y plazos.",
+      "problem": "La información de procesos dispersa en hojas, correos y notas dificulta el control de la cartera."
+    }
+  },
+  "processos-administrativos": {
+    "pt-BR": {
+      "name": "Processos administrativos",
+      "summary": "Organize procedimentos administrativos, protocolos e prazos perante órgãos e autarquias.",
+      "problem": "Procedimentos administrativos sem rastreio único atrasam respostas e renovações."
+    },
+    "en-US": {
+      "name": "Administrative proceedings",
+      "summary": "Organize administrative proceedings, filings, and deadlines with agencies and authorities.",
+      "problem": "Administrative proceedings without a single tracker delay responses and renewals."
+    },
+    "es-ES": {
+      "name": "Procesos administrativos",
+      "summary": "Organice procedimientos administrativos, protocolos y plazos ante organismos y entidades.",
+      "problem": "Los procedimientos administrativos sin un seguimiento único retrasan respuestas y renovaciones."
+    }
+  },
+  "casos": {
+    "pt-BR": {
+      "name": "Casos",
+      "summary": "Centralize demandas jurídicas com responsáveis, status e histórico.",
+      "problem": "Demandas internas e externas sem fila clara geram perda de prioridade."
+    },
+    "en-US": {
+      "name": "Matters",
+      "summary": "Centralize legal matters with owners, status, and history.",
+      "problem": "Internal and external demands without a clear queue lose priority."
+    },
+    "es-ES": {
+      "name": "Casos",
+      "summary": "Centralice demandas jurídicas con responsables, estado e historial.",
+      "problem": "Las demandas internas y externas sin una cola clara pierden prioridad."
+    }
+  },
+  "prazos": {
+    "pt-BR": {
+      "name": "Prazos",
+      "summary": "Controle prazos processuais e internos com alertas e responsáveis.",
+      "problem": "Prazos críticos espalhados aumentam o risco de perda."
+    },
+    "en-US": {
+      "name": "Deadlines",
+      "summary": "Track procedural and internal deadlines with alerts and owners.",
+      "problem": "Scattered critical deadlines increase the risk of missing them."
+    },
+    "es-ES": {
+      "name": "Plazos",
+      "summary": "Controle plazos procesales e internos con alertas y responsables.",
+      "problem": "Los plazos críticos dispersos aumentan el riesgo de pérdida."
+    }
+  },
+  "agenda": {
+    "pt-BR": {
+      "name": "Agenda",
+      "summary": "Compromissos, audiências e reuniões organizados em um calendário compartilhado.",
+      "problem": "Audiências e reuniões sem calendário comum geram conflitos de horário."
+    },
+    "en-US": {
+      "name": "Calendar",
+      "summary": "Appointments, hearings, and meetings organized in a shared calendar.",
+      "problem": "Hearings and meetings without a shared calendar create scheduling conflicts."
+    },
+    "es-ES": {
+      "name": "Agenda",
+      "summary": "Citas, audiencias y reuniones organizadas en un calendario compartido.",
+      "problem": "Las audiencias y reuniones sin un calendario común generan conflictos de horario."
+    }
+  },
+  "tarefas": {
+    "pt-BR": {
+      "name": "Tarefas",
+      "summary": "Distribua e acompanhe tarefas da equipe vinculadas a casos e prazos.",
+      "problem": "Trabalho da equipe sem dono claro atrasa entregas."
+    },
+    "en-US": {
+      "name": "Tasks",
+      "summary": "Assign and track team tasks linked to matters and deadlines.",
+      "problem": "Team work without a clear owner delays delivery."
+    },
+    "es-ES": {
+      "name": "Tareas",
+      "summary": "Asigne y siga tareas del equipo vinculadas a casos y plazos.",
+      "problem": "El trabajo del equipo sin un dueño claro retrasa las entregas."
+    }
+  },
+  "relatorios": {
+    "pt-BR": {
+      "name": "Relatórios",
+      "summary": "Visões e exportações para acompanhar volume, prazos e produtividade.",
+      "problem": "Falta de indicadores dificulta a gestão da carteira."
+    },
+    "en-US": {
+      "name": "Reports",
+      "summary": "Views and exports to track volume, deadlines, and productivity.",
+      "problem": "Missing indicators make portfolio management harder."
+    },
+    "es-ES": {
+      "name": "Informes",
+      "summary": "Vistas y exportaciones para seguir volumen, plazos y productividad.",
+      "problem": "La falta de indicadores dificulta la gestión de la cartera."
+    }
+  },
+  "clientes": {
+    "pt-BR": {
+      "name": "Clientes",
+      "summary": "Cadastro de clientes com dados de contato, casos vinculados e histórico de atendimento.",
+      "problem": "Dados de clientes espalhados reduzem a qualidade do atendimento."
+    },
+    "en-US": {
+      "name": "Clients",
+      "summary": "Client records with contact data, linked matters, and service history.",
+      "problem": "Scattered client data reduces service quality."
+    },
+    "es-ES": {
+      "name": "Clientes",
+      "summary": "Registro de clientes con datos de contacto, casos vinculados e historial de atención.",
+      "problem": "Los datos de clientes dispersos reducen la calidad de la atención."
+    }
+  },
+  "contatos": {
+    "pt-BR": {
+      "name": "Contatos",
+      "summary": "Organize pessoas e empresas relacionadas aos seus casos.",
+      "problem": "Contatos relevantes ficam perdidos em e-mails e anotações."
+    },
+    "en-US": {
+      "name": "Contacts",
+      "summary": "Organize people and companies related to your matters.",
+      "problem": "Relevant contacts get lost in email and notes."
+    },
+    "es-ES": {
+      "name": "Contactos",
+      "summary": "Organice personas y empresas relacionadas con sus casos.",
+      "problem": "Los contactos relevantes se pierden en correos y notas."
+    }
+  },
+  "atendimentos": {
+    "pt-BR": {
+      "name": "Atendimentos",
+      "summary": "Registre conversas e orientações prestadas aos clientes.",
+      "problem": "Histórico de atendimento incompleto gera retrabalho."
+    },
+    "en-US": {
+      "name": "Service records",
+      "summary": "Record conversations and guidance provided to clients.",
+      "problem": "Incomplete service history creates rework."
+    },
+    "es-ES": {
+      "name": "Atenciones",
+      "summary": "Registre conversaciones y orientaciones brindadas a los clientes.",
+      "problem": "Un historial de atención incompleto genera retrabajo."
+    }
+  },
+  "potenciais-clientes": {
+    "pt-BR": {
+      "name": "Potenciais clientes",
+      "summary": "Acompanhe oportunidades e leads antes da contratação.",
+      "problem": "Oportunidades sem funil se perdem com facilidade."
+    },
+    "en-US": {
+      "name": "Leads",
+      "summary": "Track opportunities and leads before engagement.",
+      "problem": "Opportunities without a funnel are easily lost."
+    },
+    "es-ES": {
+      "name": "Clientes potenciales",
+      "summary": "Siga oportunidades y leads antes de la contratación.",
+      "problem": "Las oportunidades sin embudo se pierden con facilidad."
+    }
+  },
+  "atendimento-online": {
+    "pt-BR": {
+      "name": "Atendimento online",
+      "summary": "Canal digital para solicitações e triagem inicial de demandas.",
+      "problem": "Pedidos de atendimento chegam por canais dispersos."
+    },
+    "en-US": {
+      "name": "Online intake",
+      "summary": "Digital channel for requests and initial demand triage.",
+      "problem": "Service requests arrive through scattered channels."
+    },
+    "es-ES": {
+      "name": "Atención en línea",
+      "summary": "Canal digital para solicitudes y triage inicial de demandas.",
+      "problem": "Las solicitudes de atención llegan por canales dispersos."
+    }
+  },
+  "portal-cliente": {
+    "pt-BR": {
+      "name": "Portal do cliente",
+      "summary": "Espaço autenticado para o cliente acompanhar informações compartilhadas.",
+      "problem": "Clientes pedem atualizações repetidas por falta de visibilidade."
+    },
+    "en-US": {
+      "name": "Client portal",
+      "summary": "Authenticated space for clients to follow shared information.",
+      "problem": "Clients request repeated updates due to lack of visibility."
+    },
+    "es-ES": {
+      "name": "Portal del cliente",
+      "summary": "Espacio autenticado para que el cliente siga la información compartida.",
+      "problem": "Los clientes piden actualizaciones repetidas por falta de visibilidad."
+    }
+  },
+  "documentos": {
+    "pt-BR": {
+      "name": "Documentos",
+      "summary": "Envie e organize arquivos por caso, com pastas, tipos e histórico.",
+      "problem": "Arquivos jurídicos espalhados dificultam a localização rápida."
+    },
+    "en-US": {
+      "name": "Documents",
+      "summary": "Upload and organize files by matter, with folders, types, and history.",
+      "problem": "Scattered legal files make quick retrieval harder."
+    },
+    "es-ES": {
+      "name": "Documentos",
+      "summary": "Envíe y organice archivos por caso, con carpetas, tipos e historial.",
+      "problem": "Los archivos jurídicos dispersos dificultan la localización rápida."
+    }
+  },
+  "dossies": {
+    "pt-BR": {
+      "name": "Dossiês",
+      "summary": "Agrupe documentos e evidências em dossiês por tema ou caso.",
+      "problem": "Evidências sem agrupamento atrasam a preparação de peças."
+    },
+    "en-US": {
+      "name": "Dossiers",
+      "summary": "Group documents and evidence into dossiers by topic or matter.",
+      "problem": "Ungrouped evidence delays drafting preparation."
+    },
+    "es-ES": {
+      "name": "Dosieres",
+      "summary": "Agrupe documentos y evidencias en dosieres por tema o caso.",
+      "problem": "Las evidencias sin agrupación retrasan la preparación de escritos."
+    }
+  },
+  "contratos": {
+    "pt-BR": {
+      "name": "Contratos",
+      "summary": "Organize contratos, vigências e obrigações, com modelos para apoiar a elaboração.",
+      "problem": "Vigências e obrigações contratuais escapam do controle diário."
+    },
+    "en-US": {
+      "name": "Contracts",
+      "summary": "Organize contracts, terms, and obligations, with templates to support drafting.",
+      "problem": "Contract terms and obligations slip out of day-to-day control."
+    },
+    "es-ES": {
+      "name": "Contratos",
+      "summary": "Organice contratos, vigencias y obligaciones, con modelos para apoyar la elaboración.",
+      "problem": "Las vigencias y obligaciones contractuales escapan del control diario."
+    }
+  },
+  "calculo-previdenciario": {
+    "pt-BR": {
+      "name": "Cálculo previdenciário",
+      "summary": "Apoio ao cálculo de tempo de contribuição e valores em casos previdenciários.",
+      "problem": "Cálculos manuais repetidos aumentam o risco de erro."
+    },
+    "en-US": {
+      "name": "Social-security calculation",
+      "summary": "Support for contribution-time and benefit calculations in social-security cases.",
+      "problem": "Repeated manual calculations increase error risk."
+    },
+    "es-ES": {
+      "name": "Cálculo previsional",
+      "summary": "Apoyo al cálculo de tiempo de cotización y valores en casos previsionales.",
+      "problem": "Los cálculos manuales repetidos aumentan el riesgo de error."
+    }
+  },
+  "protocolo-inss": {
+    "pt-BR": {
+      "name": "Protocolo INSS",
+      "summary": "Organize pedidos e protocolos previdenciários com status e documentos.",
+      "problem": "Protocolos sem status claro geram retrabalho com o cliente."
+    },
+    "en-US": {
+      "name": "INSS filing",
+      "summary": "Organize social-security filings with status and documents.",
+      "problem": "Filings without clear status create client rework."
+    },
+    "es-ES": {
+      "name": "Protocolo INSS",
+      "summary": "Organice solicitudes y protocolos previsionales con estado y documentos.",
+      "problem": "Los protocolos sin estado claro generan retrabajo con el cliente."
+    }
+  },
+  "marketplace-juridico": {
+    "pt-BR": {
+      "name": "Marketplace jurídico",
+      "summary": "Publique e encontre serviços jurídicos com propostas e contratação mediada pela plataforma.",
+      "problem": "Contratar serviços jurídicos pontuais sem transparência é difícil."
+    },
+    "en-US": {
+      "name": "Legal marketplace",
+      "summary": "Publish and find legal services with proposals and platform-mediated hiring.",
+      "problem": "Hiring one-off legal services without transparency is difficult."
+    },
+    "es-ES": {
+      "name": "Marketplace jurídico",
+      "summary": "Publique y encuentre servicios jurídicos con propuestas y contratación mediada por la plataforma.",
+      "problem": "Contratar servicios jurídicos puntuales sin transparencia es difícil."
+    }
+  },
+  "perfil-profissional": {
+    "pt-BR": {
+      "name": "Perfil profissional",
+      "summary": "Apresente sua atuação, áreas e disponibilidade no marketplace.",
+      "problem": "Perfis incompletos reduzem a confiança na contratação."
+    },
+    "en-US": {
+      "name": "Professional profile",
+      "summary": "Present your practice areas and availability in the marketplace.",
+      "problem": "Incomplete profiles reduce hiring confidence."
+    },
+    "es-ES": {
+      "name": "Perfil profesional",
+      "summary": "Presente su actuación, áreas y disponibilidad en el marketplace.",
+      "problem": "Los perfiles incompletos reducen la confianza en la contratación."
+    }
+  },
+  "honorarios": {
+    "pt-BR": {
+      "name": "Honorários",
+      "summary": "Registre acordos de honorários e acompanhe valores vinculados a casos.",
+      "problem": "Honorários sem registro geram conflitos e atraso de cobrança."
+    },
+    "en-US": {
+      "name": "Fees",
+      "summary": "Record fee agreements and track amounts linked to matters.",
+      "problem": "Unrecorded fees create disputes and collection delays."
+    },
+    "es-ES": {
+      "name": "Honorarios",
+      "summary": "Registre acuerdos de honorarios y siga valores vinculados a casos.",
+      "problem": "Los honorarios sin registro generan conflictos y retrasos de cobro."
+    }
+  },
+  "cobrancas-asaas": {
+    "pt-BR": {
+      "name": "Cobranças",
+      "summary": "Emita e acompanhe cobranças com provedor de pagamento configurado.",
+      "problem": "Cobranças manuais atrasam o recebimento."
+    },
+    "en-US": {
+      "name": "Collections",
+      "summary": "Issue and track charges with a configured payment provider.",
+      "problem": "Manual collections delay receiving payment."
+    },
+    "es-ES": {
+      "name": "Cobros",
+      "summary": "Emita y siga cobros con un proveedor de pago configurado.",
+      "problem": "Los cobros manuales retrasan el ingreso."
+    }
+  },
+  "organizacoes": {
+    "pt-BR": {
+      "name": "Organizações",
+      "summary": "Gerencie escritórios e empresas com membros e papéis.",
+      "problem": "Sem organização clara, permissões e dados ficam confusos."
+    },
+    "en-US": {
+      "name": "Organizations",
+      "summary": "Manage firms and companies with members and roles.",
+      "problem": "Without clear organization, permissions and data get confusing."
+    },
+    "es-ES": {
+      "name": "Organizaciones",
+      "summary": "Gestione despachos y empresas con miembros y roles.",
+      "problem": "Sin una organización clara, permisos y datos se confunden."
+    }
+  },
+  "equipes": {
+    "pt-BR": {
+      "name": "Equipes",
+      "summary": "Organize pessoas em equipes por área, carteira ou projeto.",
+      "problem": "Distribuição de trabalho sem equipes definidas gera sobrecarga."
+    },
+    "en-US": {
+      "name": "Teams",
+      "summary": "Organize people into teams by area, portfolio, or project.",
+      "problem": "Work distribution without defined teams creates overload."
+    },
+    "es-ES": {
+      "name": "Equipos",
+      "summary": "Organice personas en equipos por área, cartera o proyecto.",
+      "problem": "La distribución de trabajo sin equipos definidos genera sobrecarga."
+    }
+  },
+  "permissoes": {
+    "pt-BR": {
+      "name": "Permissões",
+      "summary": "Controle o que cada membro pode ver e fazer na organização.",
+      "problem": "Acesso excessivo a dados sensíveis aumenta o risco."
+    },
+    "en-US": {
+      "name": "Permissions",
+      "summary": "Control what each member can see and do in the organization.",
+      "problem": "Excessive access to sensitive data increases risk."
+    },
+    "es-ES": {
+      "name": "Permisos",
+      "summary": "Controle lo que cada miembro puede ver y hacer en la organización.",
+      "problem": "El acceso excesivo a datos sensibles aumenta el riesgo."
+    }
+  },
+  "fluxos-trabalho": {
+    "pt-BR": {
+      "name": "Fluxos de trabalho",
+      "summary": "Modelos de etapas para padronizar rotinas repetidas da equipe.",
+      "problem": "Rotinas sem padrão geram inconsistência entre membros."
+    },
+    "en-US": {
+      "name": "Workflows",
+      "summary": "Step templates to standardize repeated team routines.",
+      "problem": "Routines without a standard create inconsistency across members."
+    },
+    "es-ES": {
+      "name": "Flujos de trabajo",
+      "summary": "Modelos de etapas para estandarizar rutinas repetidas del equipo.",
+      "problem": "Las rutinas sin estándar generan inconsistencia entre miembros."
+    }
+  },
+  "lembretes": {
+    "pt-BR": {
+      "name": "Lembretes",
+      "summary": "Alertas para prazos, tarefas e compromissos importantes.",
+      "problem": "Sem lembretes, tarefas importantes ficam para depois."
+    },
+    "en-US": {
+      "name": "Reminders",
+      "summary": "Alerts for important deadlines, tasks, and appointments.",
+      "problem": "Without reminders, important tasks get postponed."
+    },
+    "es-ES": {
+      "name": "Recordatorios",
+      "summary": "Alertas para plazos, tareas y citas importantes.",
+      "problem": "Sin recordatorios, las tareas importantes quedan para después."
+    }
+  },
+  "assistente-ia": {
+    "pt-BR": {
+      "name": "Assistente de IA",
+      "summary": "Apoio por inteligência artificial para dúvidas de uso e organização do trabalho.",
+      "problem": "Dúvidas operacionais atrasam a adoção da plataforma."
+    },
+    "en-US": {
+      "name": "AI assistant",
+      "summary": "AI support for usage questions and work organization.",
+      "problem": "Operational questions slow platform adoption."
+    },
+    "es-ES": {
+      "name": "Asistente de IA",
+      "summary": "Apoyo por inteligencia artificial para dudas de uso y organización del trabajo.",
+      "problem": "Las dudas operativas retrasan la adopción de la plataforma."
+    }
+  },
+  "analise-documentos": {
+    "pt-BR": {
+      "name": "Análise de documentos",
+      "summary": "Apoio assistido para resumir e organizar informações de documentos.",
+      "problem": "Leitura manual de longos documentos consome tempo da equipe."
+    },
+    "en-US": {
+      "name": "Document analysis",
+      "summary": "Assisted support to summarize and organize document information.",
+      "problem": "Manual reading of long documents consumes team time."
+    },
+    "es-ES": {
+      "name": "Análisis de documentos",
+      "summary": "Apoyo asistido para resumir y organizar información de documentos.",
+      "problem": "La lectura manual de documentos largos consume tiempo del equipo."
+    }
+  },
+  "peticoes-assistidas": {
+    "pt-BR": {
+      "name": "Petições assistidas",
+      "summary": "Apoio à elaboração de minutas com revisão humana obrigatória.",
+      "problem": "Redação inicial demorada reduz a produtividade em peças repetidas."
+    },
+    "en-US": {
+      "name": "Assisted pleadings",
+      "summary": "Support for drafting with mandatory human review.",
+      "problem": "Slow initial drafting reduces productivity on repeated filings."
+    },
+    "es-ES": {
+      "name": "Escritos asistidos",
+      "summary": "Apoyo a la elaboración de minutas con revisión humana obligatoria.",
+      "problem": "La redacción inicial lenta reduce la productividad en escritos repetidos."
+    }
+  },
+  "integracao-tribunais": {
+    "pt-BR": {
+      "name": "Integração com tribunais",
+      "summary": "Conexões com fontes judiciais quando houver conector homologado.",
+      "problem": "Consulta manual em vários tribunais consome tempo."
+    },
+    "en-US": {
+      "name": "Court integrations",
+      "summary": "Connections to court sources when a homologated connector exists.",
+      "problem": "Manual checks across multiple courts consume time."
+    },
+    "es-ES": {
+      "name": "Integración con tribunales",
+      "summary": "Conexiones con fuentes judiciales cuando haya un conector homologado.",
+      "problem": "La consulta manual en varios tribunales consume tiempo."
+    }
+  },
+  "integracao-pagamentos": {
+    "pt-BR": {
+      "name": "Integração de pagamentos",
+      "summary": "Cobranças digitais via provedor configurado (ex.: Asaas).",
+      "problem": "Sem provedor, cobranças ficam manuais e lentas."
+    },
+    "en-US": {
+      "name": "Payment integration",
+      "summary": "Digital collections via a configured provider (e.g., Asaas).",
+      "problem": "Without a provider, collections stay manual and slow."
+    },
+    "es-ES": {
+      "name": "Integración de pagos",
+      "summary": "Cobros digitales mediante un proveedor configurado (p. ej., Asaas).",
+      "problem": "Sin proveedor, los cobros siguen siendo manuales y lentos."
+    }
+  },
+  "integracao-email": {
+    "pt-BR": {
+      "name": "Integração de e-mail",
+      "summary": "Envio de mensagens transacionais com provedor configurado.",
+      "problem": "Avisos importantes dependem de envio manual."
+    },
+    "en-US": {
+      "name": "Email integration",
+      "summary": "Transactional messages with a configured provider.",
+      "problem": "Important notices depend on manual sending."
+    },
+    "es-ES": {
+      "name": "Integración de correo",
+      "summary": "Envío de mensajes transaccionales con un proveedor configurado.",
+      "problem": "Los avisos importantes dependen del envío manual."
+    }
+  },
+  "integracao-agenda": {
+    "pt-BR": {
+      "name": "Integração de agenda",
+      "summary": "Sincronização de compromissos quando o conector estiver disponível.",
+      "problem": "Agenda duplicada gera falhas de comparecimento."
+    },
+    "en-US": {
+      "name": "Calendar integration",
+      "summary": "Appointment sync when the connector is available.",
+      "problem": "Duplicate calendars cause attendance failures."
+    },
+    "es-ES": {
+      "name": "Integración de agenda",
+      "summary": "Sincronización de citas cuando el conector esté disponible.",
+      "problem": "La agenda duplicada genera fallos de comparecencia."
+    }
+  },
+  "integracao-ia": {
+    "pt-BR": {
+      "name": "Integração de IA",
+      "summary": "Conexão com provedores de modelos para recursos assistidos.",
+      "problem": "Sem provedor, recursos de IA ficam indisponíveis."
+    },
+    "en-US": {
+      "name": "AI integration",
+      "summary": "Connection to model providers for assisted features.",
+      "problem": "Without a provider, AI features stay unavailable."
+    },
+    "es-ES": {
+      "name": "Integración de IA",
+      "summary": "Conexión con proveedores de modelos para funciones asistidas.",
+      "problem": "Sin proveedor, las funciones de IA permanecen no disponibles."
+    }
+  }
+}

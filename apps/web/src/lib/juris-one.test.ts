@@ -9,6 +9,7 @@ import {
 describe("juris one public stage", () => {
   it("keeps Work mode non-operational", () => {
     expect(JURIS_WORK_STATUS.available).toBe(false);
+    expect(JURIS_WORK_STATUS.authenticatedAvailable).toBe(true);
   });
 
   it("limits guest stage and answers via FAQ honesty", () => {

@@ -9,6 +9,15 @@ import { AppError } from "@verasjuris/types";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { authorize, iso } from "../ai/shared.js";
 import type { RequestMeta } from "../auth/service.js";
+import {
+  consumeReservedCredit,
+  ensureInitialWorkCredits,
+  getWorkCreditBalance,
+  listWorkCreditLedger,
+  releaseReservedCredit,
+  reserveWorkCredit,
+  reserveWorkCreditIdempotencyKey,
+} from "./credits.js";
 
 /** Ferramentas internas permitidas sem ação externa irreversível. */
 const SAFE_INTERNAL_TOOLS = [
@@ -29,6 +38,9 @@ const EXTERNAL_ACTION_TOOLS = [
   "execute_payment",
   "delete_records",
 ] as const;
+
+/** Status em que ainda não houve trabalho significativo — cancelamento reembolsa crédito. */
+const PRE_RUN_STATUSES = new Set(["draft", "planned", "awaiting_approval"]);
 
 export type JurisWorkToolName =
   | (typeof SAFE_INTERNAL_TOOLS)[number]
@@ -134,6 +146,15 @@ function buildPlan(objective: string): Array<{
   return steps.slice(0, 12);
 }
 
+async function creditsPayload(
+  db: AppDatabase,
+  organizationId: string,
+  userId: string,
+): Promise<{ balance: number; lifetimeGranted: number }> {
+  const credits = await getWorkCreditBalance(db, organizationId, userId);
+  return { balance: credits.balance, lifetimeGranted: credits.lifetimeGranted };
+}
+
 export async function createJurisWorkTask(
   db: AppDatabase,
   account: SessionAccount,
@@ -150,52 +171,103 @@ export async function createJurisWorkTask(
   const plan = buildPlan(input.objective);
   const now = new Date();
 
-  const [task] = await db
-    .insert(jurisWorkTasks)
-    .values({
-      organizationId,
-      createdByUserId: account.user.id,
-      createdByMembershipId: membership.membershipId,
-      title: input.title.trim().slice(0, 180),
-      objective: input.objective.trim().slice(0, 4000),
-      status: "awaiting_approval",
-      planJson: {
-        version: 1,
-        tools: plan.map((s) => s.toolName),
-        note: "Plano gerado localmente. Execução de ferramentas externas exige aprovação humana.",
-      },
-      budgetMicros: input.budgetMicros ?? 500_000,
-      maxSteps: input.maxSteps ?? plan.length,
-      requiresHumanApproval: true,
-    })
-    .returning();
+  await ensureInitialWorkCredits(db, {
+    organizationId,
+    userId: account.user.id,
+    actorUserId: account.user.id,
+  });
 
-  await db.insert(jurisWorkSteps).values(
-    plan.map((step, index) => ({
-      taskId: task!.id,
+  let task: typeof jurisWorkTasks.$inferSelect | null = null;
+  try {
+    task = await db.transaction(async (tx) => {
+      const [inserted] = await tx
+        .insert(jurisWorkTasks)
+        .values({
+          organizationId,
+          createdByUserId: account.user.id,
+          createdByMembershipId: membership.membershipId,
+          title: input.title.trim().slice(0, 180),
+          objective: input.objective.trim().slice(0, 4000),
+          status: "awaiting_approval",
+          planJson: {
+            version: 1,
+            tools: plan.map((s) => s.toolName),
+            note: "Plano gerado localmente. Execução de ferramentas externas exige aprovação humana.",
+          },
+          budgetMicros: input.budgetMicros ?? 500_000,
+          maxSteps: input.maxSteps ?? plan.length,
+          requiresHumanApproval: true,
+        })
+        .returning();
+
+      await tx.insert(jurisWorkSteps).values(
+        plan.map((step, index) => ({
+          taskId: inserted!.id,
+          organizationId,
+          stepIndex: index,
+          toolName: step.toolName,
+          title: step.title,
+          status: step.requiresApproval ? ("awaiting_approval" as const) : ("pending" as const),
+          requiresApproval: step.requiresApproval,
+          inputJson: { objective: input.objective.trim().slice(0, 1000) },
+        })),
+      );
+
+      return inserted!;
+    });
+
+    await reserveWorkCredit(db, {
       organizationId,
-      stepIndex: index,
-      toolName: step.toolName,
-      title: step.title,
-      status: step.requiresApproval ? ("awaiting_approval" as const) : ("pending" as const),
-      requiresApproval: step.requiresApproval,
-      inputJson: { objective: input.objective.trim().slice(0, 1000) },
-    })),
-  );
+      userId: account.user.id,
+      taskId: task.id,
+      idempotencyKey: reserveWorkCreditIdempotencyKey(task.id),
+      actorUserId: account.user.id,
+    });
+  } catch (error) {
+    if (task) {
+      // Reserva falhou após insert — não deixar órfã; marcar cancelled + tentar liberar.
+      await db
+        .update(jurisWorkTasks)
+        .set({
+          status: "cancelled",
+          cancelledAt: new Date(),
+          lastError: "Falha ao reservar crédito Work",
+          updatedAt: new Date(),
+        })
+        .where(eq(jurisWorkTasks.id, task.id));
+      try {
+        await releaseReservedCredit(db, {
+          organizationId,
+          userId: account.user.id,
+          taskId: task.id,
+          actorUserId: account.user.id,
+          reason: "Rollback após falha de reserva",
+        });
+      } catch {
+        // best-effort
+      }
+    }
+    throw error;
+  }
+
+  if (!task) {
+    throw new AppError("INTERNAL_ERROR", "Falha ao criar tarefa do JurisOne Work.");
+  }
 
   await recordAudit(db, {
     actorUserId: account.user.id,
     organizationId,
     action: "juris_work.task_created",
     resourceType: "juris_work_task",
-    resourceId: task!.id,
+    resourceId: task.id,
     source: "api",
     requestId: meta.requestId,
     ip: meta.ip,
-    after: { status: task!.status, steps: plan.length },
+    after: { status: task.status, steps: plan.length },
   });
 
-  return { task: serializeTask(task!), createdAt: iso(now) };
+  const credits = await creditsPayload(db, organizationId, account.user.id);
+  return { task: serializeTask(task), credits, createdAt: iso(now) };
 }
 
 export async function listJurisWorkTasks(
@@ -204,12 +276,18 @@ export async function listJurisWorkTasks(
   organizationId: string,
 ) {
   requireJurisWorkAccess(account, organizationId);
+  await ensureInitialWorkCredits(db, {
+    organizationId,
+    userId: account.user.id,
+    actorUserId: account.user.id,
+  });
   const rows = await db.query.jurisWorkTasks.findMany({
     where: eq(jurisWorkTasks.organizationId, organizationId),
     orderBy: [desc(jurisWorkTasks.createdAt)],
     limit: 50,
   });
-  return { items: rows.map(serializeTask) };
+  const credits = await creditsPayload(db, organizationId, account.user.id);
+  return { items: rows.map(serializeTask), credits };
 }
 
 export async function getJurisWorkTask(
@@ -227,7 +305,50 @@ export async function getJurisWorkTask(
     where: eq(jurisWorkSteps.taskId, taskId),
     orderBy: [asc(jurisWorkSteps.stepIndex)],
   });
-  return { task: serializeTask(task), steps: steps.map(serializeStep) };
+  const credits = await creditsPayload(db, organizationId, account.user.id);
+  return { task: serializeTask(task), steps: steps.map(serializeStep), credits };
+}
+
+export async function getJurisWorkCredits(
+  db: AppDatabase,
+  account: SessionAccount,
+  organizationId: string,
+) {
+  requireJurisWorkAccess(account, organizationId);
+  await ensureInitialWorkCredits(db, {
+    organizationId,
+    userId: account.user.id,
+    actorUserId: account.user.id,
+  });
+  const credits = await getWorkCreditBalance(db, organizationId, account.user.id);
+  const ledger = await listWorkCreditLedger(db, organizationId, account.user.id, 50);
+  return {
+    credits: {
+      balance: credits.balance,
+      lifetimeGranted: credits.lifetimeGranted,
+    },
+    ledger: ledger.items,
+  };
+}
+
+export async function ensureJurisWorkInitialCredits(
+  db: AppDatabase,
+  account: SessionAccount,
+  organizationId: string,
+) {
+  requireJurisWorkAccess(account, organizationId);
+  const result = await ensureInitialWorkCredits(db, {
+    organizationId,
+    userId: account.user.id,
+    actorUserId: account.user.id,
+  });
+  return {
+    granted: result.granted,
+    credits: {
+      balance: result.credits.balance,
+      lifetimeGranted: result.credits.lifetimeGranted,
+    },
+  };
 }
 
 export async function approveJurisWorkTask(
@@ -269,12 +390,16 @@ export async function approveJurisWorkTask(
     ip: meta.ip,
   });
 
-  return { task: serializeTask(updated!) };
+  const credits = await creditsPayload(db, organizationId, account.user.id);
+  return { task: serializeTask(updated!), credits };
 }
 
 /**
  * Executa apenas passos internos seguros. Ferramentas externas permanecem bloqueadas
  * mesmo após aprovação da tarefa, exigindo aprovação explícita por passo.
+ *
+ * Créditos: após início significativo (approve → running / steps), falha ou conclusão
+ * consome a reserva — não reembolsa (custo de compute já incorrido).
  */
 export async function runNextJurisWorkStep(
   db: AppDatabase,
@@ -296,6 +421,13 @@ export async function runNextJurisWorkStep(
       .update(jurisWorkTasks)
       .set({ status: "budget_exceeded", updatedAt: new Date() })
       .where(eq(jurisWorkTasks.id, taskId));
+    // Trabalho já iniciado — consome crédito reservado (sem reembolso).
+    await consumeReservedCredit(db, {
+      organizationId,
+      userId: task.createdByUserId,
+      taskId,
+      actorUserId: account.user.id,
+    });
     throw new AppError("AI_BUDGET_EXCEEDED", "Orçamento da tarefa esgotado.");
   }
 
@@ -318,7 +450,17 @@ export async function runNextJurisWorkStep(
       })
       .where(eq(jurisWorkTasks.id, taskId))
       .returning();
-    return { task: serializeTask(completed!), step: null, done: true as const };
+
+    // Conclusão após execução — consome reserva (não reembolsa).
+    await consumeReservedCredit(db, {
+      organizationId,
+      userId: task.createdByUserId,
+      taskId,
+      actorUserId: account.user.id,
+    });
+
+    const credits = await creditsPayload(db, organizationId, account.user.id);
+    return { task: serializeTask(completed!), step: null, done: true as const, credits };
   }
 
   if (
@@ -371,7 +513,13 @@ export async function runNextJurisWorkStep(
     after: { toolName: next.toolName, costMicros: stepCost },
   });
 
-  return { task: serializeTask({ ...task, spentMicros: task.spentMicros + stepCost }), step: serializeStep(updatedStep!), done: false as const };
+  const credits = await creditsPayload(db, organizationId, account.user.id);
+  return {
+    task: serializeTask({ ...task, spentMicros: task.spentMicros + stepCost }),
+    step: serializeStep(updatedStep!),
+    done: false as const,
+    credits,
+  };
 }
 
 export async function approveJurisWorkStep(
@@ -436,6 +584,11 @@ export async function cancelJurisWorkTask(
   meta: RequestMeta,
 ) {
   requireJurisWorkAccess(account, organizationId);
+  const existing = await db.query.jurisWorkTasks.findFirst({
+    where: and(eq(jurisWorkTasks.id, taskId), eq(jurisWorkTasks.organizationId, organizationId)),
+  });
+  if (!existing) throw new AppError("NOT_FOUND", "Tarefa do JurisOne Work não encontrada.");
+
   const now = new Date();
   const [updated] = await db
     .update(jurisWorkTasks)
@@ -443,6 +596,24 @@ export async function cancelJurisWorkTask(
     .where(and(eq(jurisWorkTasks.id, taskId), eq(jurisWorkTasks.organizationId, organizationId)))
     .returning();
   if (!updated) throw new AppError("NOT_FOUND", "Tarefa do JurisOne Work não encontrada.");
+
+  // Cancelamento antes de running → libera crédito; após início → consome (sem reembolso).
+  if (PRE_RUN_STATUSES.has(existing.status)) {
+    await releaseReservedCredit(db, {
+      organizationId,
+      userId: existing.createdByUserId,
+      taskId,
+      actorUserId: account.user.id,
+      reason: "Cancelamento antes da execução",
+    });
+  } else if (existing.status === "running" || existing.status === "budget_exceeded") {
+    await consumeReservedCredit(db, {
+      organizationId,
+      userId: existing.createdByUserId,
+      taskId,
+      actorUserId: account.user.id,
+    });
+  }
 
   await recordAudit(db, {
     actorUserId: account.user.id,
@@ -455,5 +626,6 @@ export async function cancelJurisWorkTask(
     ip: meta.ip,
   });
 
-  return { task: serializeTask(updated) };
+  const credits = await creditsPayload(db, organizationId, account.user.id);
+  return { task: serializeTask(updated), credits };
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  Alert,
+  Badge,
   Breadcrumb,
   Button,
   EmptyState,
@@ -9,81 +11,98 @@ import {
   PageHeader,
 } from "@verasjuris/ui";
 import { useEffect, useState } from "react";
-import { CSRF_HEADER } from "@verasjuris/security/constants";
-import { useOrgContext } from "../../../../lib/use-org-context";
+import { isApiFailure } from "../../../../lib/ai";
+import {
+  createWorkTask,
+  ensureInitialWorkCredits,
+  getWorkCredits,
+  jurisOneApiErrorMessage,
+  listWorkTasks,
+  type JurisWorkCredits,
+  type JurisWorkTask,
+} from "../../../../lib/juris-one-api";
 import { JURIS_WORK_STATUS } from "../../../../lib/juris-one";
+import { useOrgContext } from "../../../../lib/use-org-context";
+import { CSRF_HEADER } from "@verasjuris/security/constants";
 
-type WorkTask = {
-  id: string;
-  title: string;
-  objective: string;
-  status: string;
-  spentMicros: number;
-  budgetMicros: number | null;
-};
-
-async function api<T>(path: string, init?: RequestInit): Promise<T | { error: string }> {
-  try {
-    const res = await fetch(path, {
-      ...init,
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.method && init.method !== "GET" ? { [CSRF_HEADER]: "1" } : {}),
-        ...(init?.headers ?? {}),
-      },
-    });
-    const body = (await res.json().catch(() => ({}))) as T & { message?: string; error?: string };
-    if (!res.ok) {
-      return { error: body.message ?? body.error ?? `HTTP ${res.status}` };
-    }
-    return body;
-  } catch {
-    return { error: "Falha de rede." };
-  }
+async function approveRun(orgId: string, taskId: string) {
+  const headers = {
+    "Content-Type": "application/json",
+    [CSRF_HEADER]: "1",
+  };
+  await fetch(`/api/v1/organizations/${orgId}/juris-work/${taskId}/approve`, {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: "{}",
+  });
+  await fetch(`/api/v1/organizations/${orgId}/juris-work/${taskId}/run-next`, {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: "{}",
+  });
 }
 
 export default function JurisOneWorkPage() {
   const org = useOrgContext();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tasks, setTasks] = useState<WorkTask[]>([]);
+  const [tasks, setTasks] = useState<JurisWorkTask[]>([]);
+  const [credits, setCredits] = useState<JurisWorkCredits | null>(null);
   const [title, setTitle] = useState("Organizar dossiê");
   const [objective, setObjective] = useState(
     "Organizar documentos, extrair dados e gerar relatório interno para revisão humana.",
   );
   const [busy, setBusy] = useState(false);
+  const [createNote, setCreateNote] = useState<string | null>(null);
 
   async function refresh(orgId: string) {
-    const data = await api<{ items: WorkTask[] }>(
-      `/api/v1/organizations/${orgId}/juris-work`,
-    );
-    if ("error" in data) {
-      setError(data.error);
+    const [tasksRes, creditsRes] = await Promise.all([
+      listWorkTasks(orgId),
+      getWorkCredits(orgId),
+    ]);
+    if (isApiFailure(tasksRes)) {
+      setError(jurisOneApiErrorMessage(tasksRes, "Não foi possível carregar tarefas Work."));
       setTasks([]);
     } else {
       setError(null);
-      setTasks(data.items);
+      setTasks(tasksRes.items);
+      if (tasksRes.credits) setCredits(tasksRes.credits);
     }
+    if (!isApiFailure(creditsRes)) setCredits(creditsRes.credits);
     setLoading(false);
   }
 
   useEffect(() => {
     if (!org.ready || !org.orgId) return;
-    void refresh(org.orgId);
+    let cancelled = false;
+    void (async () => {
+      const ensured = await ensureInitialWorkCredits(org.orgId!);
+      if (cancelled) return;
+      if (!isApiFailure(ensured)) setCredits(ensured.credits);
+      await refresh(org.orgId!);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [org.ready, org.orgId]);
 
   async function createTask() {
     if (!org.orgId) return;
     setBusy(true);
-    const result = await api<{ task: WorkTask }>(`/api/v1/organizations/${org.orgId}/juris-work`, {
-      method: "POST",
-      body: JSON.stringify({ title, objective }),
-    });
+    setCreateNote(null);
+    const result = await createWorkTask(org.orgId, { title, objective });
     setBusy(false);
-    if ("error" in result) {
-      setError(result.error);
+    if (isApiFailure(result)) {
+      setError(jurisOneApiErrorMessage(result, "Não foi possível criar a tarefa."));
       return;
+    }
+    if (result.credits) {
+      setCredits(result.credits);
+      setCreateNote(`Tarefa criada. Créditos restantes: ${result.credits.balance}.`);
+    } else {
+      setCreateNote("Tarefa criada.");
     }
     await refresh(org.orgId);
   }
@@ -91,14 +110,7 @@ export default function JurisOneWorkPage() {
   async function approveAndRun(taskId: string) {
     if (!org.orgId) return;
     setBusy(true);
-    await api(`/api/v1/organizations/${org.orgId}/juris-work/${taskId}/approve`, {
-      method: "POST",
-      body: "{}",
-    });
-    await api(`/api/v1/organizations/${org.orgId}/juris-work/${taskId}/run-next`, {
-      method: "POST",
-      body: "{}",
-    });
+    await approveRun(org.orgId, taskId);
     setBusy(false);
     await refresh(org.orgId);
   }
@@ -107,20 +119,32 @@ export default function JurisOneWorkPage() {
     <div className="vj-stack">
       <Breadcrumb
         items={[
-          { label: "JurisOne", href: "/juris-one" },
+          { label: "Juris One", href: "/app/juris-one" },
           { label: "Work" },
         ]}
       />
-      <PageHeader
-        title="JurisOne Work"
-        description={JURIS_WORK_STATUS.detail}
-      />
+      <PageHeader title="Juris One Work" description={JURIS_WORK_STATUS.detail} />
       <p className="vj-hint">
-        Scaffold autenticado: planejamento, aprovação humana, execução de passos internos e
+        Scaffold autenticado com créditos: planejamento, aprovação humana, passos internos e
         bloqueio de ações externas. Não homologado para produção comercial.
       </p>
+      <div className="vj-inline-actions">
+        <Badge tone="neutral">
+          Créditos: {credits?.balance != null ? credits.balance : "—"}
+        </Badge>
+        <Badge tone={JURIS_WORK_STATUS.authenticatedAvailable ? "success" : "warning"}>
+          {JURIS_WORK_STATUS.authenticatedAvailable
+            ? "Scaffold com créditos disponível"
+            : "Indisponível"}
+        </Badge>
+      </div>
       {loading ? <LoadingState label="Carregando tarefas…" /> : null}
       {error ? <ErrorState title="Erro">{error}</ErrorState> : null}
+      {createNote ? (
+        <Alert tone="success" title="Tarefa Work">
+          {createNote}
+        </Alert>
+      ) : null}
       <section className="vj-card vj-stack" aria-labelledby="new-work-task">
         <h2 id="new-work-task" className="vj-subtitle">
           Nova tarefa
@@ -151,11 +175,7 @@ export default function JurisOneWorkPage() {
             </p>
             <p>{task.objective}</p>
             {task.status === "awaiting_approval" || task.status === "running" ? (
-              <Button
-                type="button"
-                disabled={busy}
-                onClick={() => void approveAndRun(task.id)}
-              >
+              <Button type="button" disabled={busy} onClick={() => void approveAndRun(task.id)}>
                 Aprovar / executar próximo passo interno
               </Button>
             ) : null}

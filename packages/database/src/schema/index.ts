@@ -30,7 +30,10 @@ export * from "./client-portal.js";
 export * from "./communication.js";
 export * from "./online-lawyer.js";
 export * from "./marketplace.js";
+export * from "./social.js";
 export * from "./juris-work.js";
+export * from "./juris-credits.js";
+export * from "./platform-admin.js";
 export * from "./professional-verification.js";
 export * from "./diligence.js";
 export * from "./extrajudicial.js";
@@ -706,6 +709,7 @@ import {
   marketplaceProposals,
   marketplaceProposalHistory,
   marketplaceEngagements,
+  marketplaceEngagementEvents,
   marketplaceDeliveries,
   marketplaceDisputes,
   serviceReviews,
@@ -717,6 +721,7 @@ import {
   marketplaceProposalsRelations,
   marketplaceProposalHistoryRelations,
   marketplaceEngagementsRelations,
+  marketplaceEngagementEventsRelations,
   marketplaceDeliveriesRelations,
   marketplaceDisputesRelations,
   serviceReviewsRelations,
@@ -724,11 +729,41 @@ import {
   marketplaceCartItemsRelations,
 } from "./marketplace.js";
 import {
+  socialProfiles,
+  socialPosts,
+  socialPostLikes,
+  socialComments,
+  socialReposts,
+  socialBookmarks,
+  socialFollows,
+  socialConnections,
+  socialHides,
+  socialBlocks,
+  socialReports,
+  socialNotifications,
+  socialProfilesRelations,
+  socialPostsRelations,
+  socialPostLikesRelations,
+  socialCommentsRelations,
+} from "./social.js";
+import {
   jurisWorkTasks,
   jurisWorkSteps,
   jurisWorkTasksRelations,
   jurisWorkStepsRelations,
 } from "./juris-work.js";
+import {
+  jurisWorkCreditBalances,
+  jurisWorkCreditLedger,
+  jurisWorkCreditBalancesRelations,
+  jurisWorkCreditLedgerRelations,
+} from "./juris-credits.js";
+import {
+  platformStaff,
+  platformAdminInvites,
+  platformStaffRelations,
+  platformAdminInvitesRelations,
+} from "./platform-admin.js";
 import {
   professionalVerificationCases,
   professionalIdentityDocuments,
@@ -1697,6 +1732,7 @@ export const schema = {
   marketplaceProposals,
   marketplaceProposalHistory,
   marketplaceEngagements,
+  marketplaceEngagementEvents,
   marketplaceDeliveries,
   marketplaceDisputes,
   serviceReviews,
@@ -1708,15 +1744,40 @@ export const schema = {
   marketplaceProposalsRelations,
   marketplaceProposalHistoryRelations,
   marketplaceEngagementsRelations,
+  marketplaceEngagementEventsRelations,
   marketplaceDeliveriesRelations,
   marketplaceDisputesRelations,
   serviceReviewsRelations,
   marketplaceCartsRelations,
   marketplaceCartItemsRelations,
+  socialProfiles,
+  socialPosts,
+  socialPostLikes,
+  socialComments,
+  socialReposts,
+  socialBookmarks,
+  socialFollows,
+  socialConnections,
+  socialHides,
+  socialBlocks,
+  socialReports,
+  socialNotifications,
+  socialProfilesRelations,
+  socialPostsRelations,
+  socialPostLikesRelations,
+  socialCommentsRelations,
   jurisWorkTasks,
   jurisWorkSteps,
   jurisWorkTasksRelations,
   jurisWorkStepsRelations,
+  jurisWorkCreditBalances,
+  jurisWorkCreditLedger,
+  jurisWorkCreditBalancesRelations,
+  jurisWorkCreditLedgerRelations,
+  platformStaff,
+  platformAdminInvites,
+  platformStaffRelations,
+  platformAdminInvitesRelations,
   professionalVerificationCases,
   professionalIdentityDocuments,
   biometricVerificationSessions,

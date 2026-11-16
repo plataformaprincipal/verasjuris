@@ -1,7 +1,8 @@
 import { SESSION_COOKIE } from "@verasjuris/security/constants";
 import { ONBOARDING_PERSONA_META } from "@verasjuris/validation";
 import { cookies } from "next/headers";
-import { DashboardHome } from "../../components/dashboard-home";
+import { Suspense } from "react";
+import { MarketplaceInicioHub } from "../../components/marketplace-inicio-hub";
 import { personaFromAccount } from "../../lib/persona-home";
 import { modulesForPersona } from "../../lib/persona-workspace";
 import { activeOrganizationId, getSession } from "../../lib/session";
@@ -76,20 +77,22 @@ export default async function DashboardPage() {
   const modules = modulesForPersona(persona, permissions);
 
   return (
-    <DashboardHome
-      organizationName={organization?.organizationName ?? null}
-      organizationSlug={organization?.organizationSlug ?? null}
-      verificationStatus={session.account.professionalVerificationStatus}
-      events={events}
-      actionLabels={actionLabels}
-      taskTotal={taskTotal}
-      calendarUpcoming={calendarUpcoming}
-      deadlineSuggested={deadlineSuggested}
-      deadlineConfirmed={deadlineConfirmed}
-      persona={persona}
-      personaLabel={personaLabel}
-      displayName={session.account.user.displayName}
-      modules={modules}
-    />
+    <Suspense fallback={<div className="vj-stack"><p>…</p></div>}>
+      <MarketplaceInicioHub
+        organizationName={organization?.organizationName ?? null}
+        organizationSlug={organization?.organizationSlug ?? null}
+        verificationStatus={session.account.professionalVerificationStatus}
+        events={events}
+        actionLabels={actionLabels}
+        taskTotal={taskTotal}
+        calendarUpcoming={calendarUpcoming}
+        deadlineSuggested={deadlineSuggested}
+        deadlineConfirmed={deadlineConfirmed}
+        persona={persona}
+        personaLabel={personaLabel}
+        displayName={session.account.user.displayName}
+        modules={modules}
+      />
+    </Suspense>
   );
 }
