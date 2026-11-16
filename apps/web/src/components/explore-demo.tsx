@@ -15,13 +15,11 @@ import {
 import { useMemo, useState } from "react";
 import {
   DEMO_APPOINTMENTS,
-  DEMO_BANNER,
   DEMO_CLIENTS,
   DEMO_DOCUMENTS,
   DEMO_FINANCIAL_ROWS,
   DEMO_MATTERS,
   DEMO_MARKETPLACE_SERVICES,
-  DEMO_ORGANIZATION,
   DEMO_TASKS,
   DEMO_VIEW_LABELS,
   DEMO_VIEWS,
@@ -29,6 +27,8 @@ import {
   getDemoClient,
   isDemoView,
 } from "../lib/demo-data";
+import { demoViewLabelKey } from "../lib/public-i18n";
+import { useLocale } from "./locale-provider";
 import { RequireAuthCta } from "./require-auth-cta";
 
 const VIEW_ICONS: Record<DemoView, typeof LayoutDashboard> = {
@@ -217,6 +217,7 @@ function DemoPanel({ view }: { view: DemoView }) {
 }
 
 export function ExploreDemo({ initialView = "painel" }: { initialView?: string }) {
+  const { t } = useLocale();
   const starting = isDemoView(initialView) ? initialView : "painel";
   const [view, setView] = useState<DemoView>(starting);
   const [selectedMatter, setSelectedMatter] = useState(DEMO_MATTERS[0]?.id ?? "");
@@ -229,15 +230,15 @@ export function ExploreDemo({ initialView = "painel" }: { initialView?: string }
   return (
     <div className="vj-explore">
       <p className="vj-demo-banner" role="status">
-        {DEMO_BANNER}
+        {t("demo.banner")}
       </p>
       <div className="vj-explore-shell">
-        <aside className="vj-explore-sidebar" aria-label="Módulos da demonstração">
+        <aside className="vj-explore-sidebar" aria-label={t("demo.previewAria")}>
           <p className="vj-brand-text-inverse vj-explore-org">
             <Building2 size={18} aria-hidden="true" />
-            <span>{DEMO_ORGANIZATION}</span>
+            <span>{t("demo.organization")}</span>
           </p>
-          <nav className="vj-nav" aria-label="Visualizações demonstrativas">
+          <nav className="vj-nav" aria-label={t("demo.previewAria")}>
             {DEMO_VIEWS.map((item) => {
               const Icon = VIEW_ICONS[item];
               const current = item === view;
@@ -250,7 +251,7 @@ export function ExploreDemo({ initialView = "painel" }: { initialView?: string }
                   onClick={() => setView(item)}
                 >
                   <Icon size={18} aria-hidden="true" />
-                  <span>{DEMO_VIEW_LABELS[item]}</span>
+                  <span>{t(demoViewLabelKey(item), DEMO_VIEW_LABELS[item])}</span>
                 </button>
               );
             })}
@@ -260,7 +261,7 @@ export function ExploreDemo({ initialView = "painel" }: { initialView?: string }
         <div className="vj-explore-main">
           <div className="vj-explore-topbar">
             <div>
-              <h1 className="vj-title">{DEMO_VIEW_LABELS[view]}</h1>
+              <h1 className="vj-title">{t(demoViewLabelKey(view), DEMO_VIEW_LABELS[view])}</h1>
               <p className="vj-meta">Pré-visualização pública com dados fictícios</p>
             </div>
             <div className="vj-inline-actions">

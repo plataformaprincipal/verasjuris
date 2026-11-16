@@ -2,7 +2,7 @@
  * Etapa 17 — Marketplace jurídico.
  * Distinto de Advogado Online (consulta rápida). Reutiliza lawyer_profiles, Contract, Document, Payment, Reviews.
  */
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -156,6 +156,8 @@ export const professionalServices = pgTable(
     index("professional_services_profile_idx").on(table.professionalProfileId),
     index("professional_services_category_idx").on(table.categoryId),
     index("professional_services_active_idx").on(table.active),
+    index("professional_services_title_lower_idx").on(sql`lower(${table.title})`),
+    index("professional_services_active_updated_idx").on(table.active, table.updatedAt.desc()),
   ],
 );
 
@@ -273,6 +275,10 @@ export const marketplaceEngagements = pgTable(
       onDelete: "set null",
     }),
     status: marketplaceEngagementStatusEnum("status").notNull().default("pending_contract"),
+    /** none | refund_requested | refund_pending | refunded | refund_failed | payment_failed — nunca "refunded" sem confirmação do provedor. */
+    financialStatus: text("financial_status").default("none"),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true, mode: "date" }),
+    cancellationReason: text("cancellation_reason"),
     revisionLimit: integer("revision_limit").notNull().default(2),
     revisionCount: integer("revision_count").notNull().default(0),
     startedAt: timestamp("started_at", { withTimezone: true, mode: "date" }),
@@ -284,6 +290,34 @@ export const marketplaceEngagements = pgTable(
     uniqueIndex("marketplace_engagements_proposal_unique").on(table.proposalId),
     index("marketplace_engagements_professional_idx").on(table.professionalProfileId),
     index("marketplace_engagements_status_idx").on(table.status),
+  ],
+);
+
+/** Trilha de eventos da contratação (cancelamento, reembolso, notas). Não substitui payment/checkout. */
+export const marketplaceEngagementEvents = pgTable(
+  "marketplace_engagement_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    engagementId: uuid("engagement_id")
+      .notNull()
+      .references(() => marketplaceEngagements.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "set null",
+    }),
+    actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+    /** status_change|cancel_requested|cancelled|refund_requested|refund_pending|refunded|refund_failed|note */
+    eventType: text("event_type").notNull(),
+    fromStatus: text("from_status"),
+    toStatus: text("to_status"),
+    reason: text("reason"),
+    amountCents: bigint("amount_cents", { mode: "number" }),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("marketplace_engagement_events_engagement_idx").on(table.engagementId),
+    index("marketplace_engagement_events_org_idx").on(table.organizationId),
+    index("marketplace_engagement_events_type_idx").on(table.eventType),
   ],
 );
 
@@ -444,7 +478,22 @@ export const marketplaceEngagementsRelations = relations(
     }),
     deliveries: many(marketplaceDeliveries),
     disputes: many(marketplaceDisputes),
+    events: many(marketplaceEngagementEvents),
     review: one(serviceReviews),
+  }),
+);
+
+export const marketplaceEngagementEventsRelations = relations(
+  marketplaceEngagementEvents,
+  ({ one }) => ({
+    engagement: one(marketplaceEngagements, {
+      fields: [marketplaceEngagementEvents.engagementId],
+      references: [marketplaceEngagements.id],
+    }),
+    actor: one(users, {
+      fields: [marketplaceEngagementEvents.actorUserId],
+      references: [users.id],
+    }),
   }),
 );
 

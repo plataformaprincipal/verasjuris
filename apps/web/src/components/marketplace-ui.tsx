@@ -23,12 +23,14 @@ export const MARKETPLACE_PUBLIC_TABS = [
 ];
 
 export const MARKETPLACE_APP_TABS = [
+  { href: "/app", labelKey: "inicio.nav.explore" },
   { href: "/app/marketplace", labelKey: "marketplace.overview" },
   { href: "/app/marketplace/perfil", labelKey: "marketplace.profile" },
   { href: "/app/marketplace/servicos", labelKey: "marketplace.myServices" },
   { href: "/app/marketplace/oportunidades", labelKey: "marketplace.opportunities" },
   { href: "/app/marketplace/propostas", labelKey: "marketplace.proposals" },
   { href: "/app/marketplace/contratacoes", labelKey: "marketplace.engagements" },
+  { href: "/app/carrinho", labelKey: "inicio.cart" },
   { href: "/app/marketplace/avaliacoes", labelKey: "marketplace.reviews" },
 ];
 

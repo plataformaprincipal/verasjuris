@@ -1,5 +1,8 @@
 import {
   acceptMarketplaceProposalSchema,
+  cancelMarketplaceEngagementSchema,
+  marketplaceCatalogSearchSchema,
+  requestMarketplaceRefundSchema,
   createMarketplaceDeliverySchema,
   createMarketplaceRequestSchema,
   addMarketplaceCartItemSchema,
@@ -31,6 +34,7 @@ import {
 } from "./cart.js";
 import {
   acceptMarketplaceProposal,
+  cancelMarketplaceEngagement,
   completeMarketplaceEngagement,
   createMarketplaceRequest,
   createMarketplaceReview,
@@ -54,7 +58,9 @@ import {
   publishMarketplaceRequest,
   recordManualMarketplacePayment,
   resolveMarketplaceDispute,
+  requestMarketplaceRefund,
   reviewMarketplaceDelivery,
+  searchMarketplaceCatalog,
   searchMarketplaceProfessionals,
   searchMarketplaceProfessionalsForOrg,
   submitMarketplaceDelivery,
@@ -92,6 +98,18 @@ export async function registerMarketplaceRoutes(app: FastifyInstance, deps: ApiD
   app.get("/marketplace/categories", async (request) => {
     await requireAccount(deps, request);
     return listMarketplaceCategories(deps.db);
+  });
+
+  app.get("/marketplace/catalog", async (request) => {
+    const account = await requireAccount(deps, request);
+    const query = parseInput(marketplaceCatalogSearchSchema, request.query ?? {});
+    return searchMarketplaceCatalog(deps.db, account, query);
+  });
+
+  app.get(`${root}/marketplace/catalog`, async (request) => {
+    const account = await requireAccount(deps, request);
+    const query = parseInput(marketplaceCatalogSearchSchema, request.query ?? {});
+    return searchMarketplaceCatalog(deps.db, account, query);
   });
 
   app.get("/marketplace/professionals", async (request) => {
@@ -344,6 +362,35 @@ export async function registerMarketplaceRoutes(app: FastifyInstance, deps: ApiD
       );
     },
   );
+
+  app.post(`${root}/marketplace/engagements/:engagementId/cancel`, async (request) => {
+    const account = await requireAccount(deps, request);
+    const params = request.params as Params;
+    const input = parseInput(cancelMarketplaceEngagementSchema, request.body);
+    return cancelMarketplaceEngagement(
+      deps.db,
+      account,
+      org(params),
+      parseInput(uuidSchema, params.engagementId),
+      input,
+      meta(request),
+    );
+  });
+
+  app.post(`${root}/marketplace/engagements/:engagementId/refunds`, async (request, reply) => {
+    const account = await requireAccount(deps, request);
+    const params = request.params as Params;
+    const input = parseInput(requestMarketplaceRefundSchema, request.body);
+    const result = await requestMarketplaceRefund(
+      deps.db,
+      account,
+      org(params),
+      parseInput(uuidSchema, params.engagementId),
+      input,
+      meta(request),
+    );
+    return reply.status(201).send(result);
+  });
 
   app.post(`${root}/marketplace/engagements/:engagementId/complete`, async (request) => {
     const account = await requireAccount(deps, request);

@@ -16,6 +16,7 @@ import {
   legalAreas,
   marketplaceDeliveries,
   marketplaceDisputes,
+  marketplaceEngagementEvents,
   marketplaceEngagements,
   marketplaceProposalHistory,
   marketplaceProposals,
@@ -28,8 +29,8 @@ import {
 } from "@verasjuris/database";
 import type { MemoryRateLimiter } from "@verasjuris/security";
 import { AppError } from "@verasjuris/types";
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
-import { authorize, iso } from "../ai/shared.js";
+import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { authorize, escapeLike, iso } from "../ai/shared.js";
 import type { RequestMeta } from "../auth/service.js";
 import { requireDocumentInOrg } from "../documents/service.js";
 import { MarketplaceRankingService, type ProfessionalSearchFilters } from "./ranking.js";
@@ -263,12 +264,30 @@ function serializeEngagement(row: typeof marketplaceEngagements.$inferSelect) {
     conversationThreadId: row.conversationThreadId,
     legalMatterId: row.legalMatterId,
     status: row.status,
+    financialStatus: row.financialStatus ?? "none",
+    cancelledAt: iso(row.cancelledAt),
+    cancellationReason: row.cancellationReason,
     revisionLimit: row.revisionLimit,
     revisionCount: row.revisionCount,
     startedAt: iso(row.startedAt),
     completedAt: iso(row.completedAt),
     createdAt: iso(row.createdAt),
     updatedAt: iso(row.updatedAt),
+  };
+}
+
+function serializeEngagementEvent(row: typeof marketplaceEngagementEvents.$inferSelect) {
+  return {
+    id: row.id,
+    engagementId: row.engagementId,
+    actorUserId: row.actorUserId,
+    eventType: row.eventType,
+    fromStatus: row.fromStatus,
+    toStatus: row.toStatus,
+    reason: row.reason,
+    amountCents: row.amountCents,
+    metadata: row.metadata,
+    createdAt: iso(row.createdAt),
   };
 }
 
@@ -1136,10 +1155,16 @@ export async function getMarketplaceEngagement(
   const disputes = await db.query.marketplaceDisputes.findMany({
     where: eq(marketplaceDisputes.engagementId, engagementId),
   });
+  const events = await db.query.marketplaceEngagementEvents.findMany({
+    where: eq(marketplaceEngagementEvents.engagementId, engagementId),
+    orderBy: desc(marketplaceEngagementEvents.createdAt),
+    limit: 200,
+  });
   return {
     engagement: serializeEngagement(row),
     deliveries: deliveries.map(serializeDelivery),
     disputes: disputes.map(serializeDispute),
+    events: events.map(serializeEngagementEvent),
   };
 }
 
@@ -1824,5 +1849,423 @@ export async function searchMarketplaceProfessionalsForOrg(
     ...query,
     legalAreaName: area?.name ?? query.legalAreaName,
     legalAreaSlug: area?.slug ?? query.legalAreaSlug,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Catálogo de serviços (busca paginada em SQL) e cancelamento/reembolso de contratações
+// ---------------------------------------------------------------------------
+
+export type MarketplaceCatalogFilters = {
+  q?: string;
+  categoryId?: string;
+  deliveryMode?: (typeof professionalServices.$inferSelect)["deliveryMode"];
+  pricingModel?: (typeof professionalServices.$inferSelect)["pricingModel"];
+  minPriceCents?: number;
+  maxPriceCents?: number;
+  sort?: "relevance" | "price_asc" | "price_desc" | "newest" | "rating";
+  limit: number;
+  offset: number;
+};
+
+const CATALOG_MAX_LIMIT = 50;
+
+export async function searchMarketplaceCatalog(
+  db: AppDatabase,
+  account: SessionAccount,
+  filters: MarketplaceCatalogFilters,
+) {
+  if (!account.memberships.length) {
+    throw new AppError("AUTHENTICATION_ERROR", "Faça login para consultar o catálogo.");
+  }
+  const limit = Math.min(Math.max(Math.trunc(filters.limit) || 20, 1), CATALOG_MAX_LIMIT);
+  const offset = Math.max(Math.trunc(filters.offset) || 0, 0);
+
+  // Preço efetivo para filtro/ordenação: valor base, senão mínimo.
+  const priceExpr = sql<number | null>`coalesce(${professionalServices.basePriceCents}, ${professionalServices.minPriceCents})`;
+  const ratingExpr = sql<number | null>`(
+    select avg(${serviceReviews.rating})::float8 from ${serviceReviews}
+    where ${serviceReviews.professionalProfileId} = ${lawyerProfiles.userId}
+      and ${serviceReviews.origin} = 'marketplace'
+      and ${serviceReviews.status} in ('published', 'pending')
+  )`;
+  const reviewCountExpr = sql<number>`(
+    select count(*)::int from ${serviceReviews}
+    where ${serviceReviews.professionalProfileId} = ${lawyerProfiles.userId}
+      and ${serviceReviews.origin} = 'marketplace'
+      and ${serviceReviews.status} in ('published', 'pending')
+  )`;
+
+  const conditions: SQL[] = [
+    eq(professionalServices.active, true),
+    eq(lawyerProfiles.marketplaceEnabled, true),
+    eq(lawyerProfiles.marketplaceStatus, "active"),
+    eq(marketplaceServiceCategories.active, true),
+  ];
+  const q = filters.q?.trim();
+  let qPattern: string | null = null;
+  if (q) {
+    const escaped = escapeLike(q);
+    qPattern = `%${escaped}%`;
+    conditions.push(
+      sql`(${professionalServices.title} ilike ${qPattern} or ${professionalServices.description} ilike ${qPattern})`,
+    );
+  }
+  if (filters.categoryId) conditions.push(eq(professionalServices.categoryId, filters.categoryId));
+  if (filters.deliveryMode) {
+    conditions.push(eq(professionalServices.deliveryMode, filters.deliveryMode));
+  }
+  if (filters.pricingModel) {
+    conditions.push(eq(professionalServices.pricingModel, filters.pricingModel));
+  }
+  if (filters.minPriceCents !== undefined) {
+    conditions.push(sql`${priceExpr} >= ${filters.minPriceCents}`);
+  }
+  if (filters.maxPriceCents !== undefined) {
+    conditions.push(sql`${priceExpr} <= ${filters.maxPriceCents}`);
+  }
+  const where = and(...conditions);
+
+  const sort = filters.sort ?? "relevance";
+  const orderBy: SQL[] = [];
+  if (sort === "price_asc") orderBy.push(sql`${priceExpr} asc nulls last`);
+  else if (sort === "price_desc") orderBy.push(sql`${priceExpr} desc nulls last`);
+  else if (sort === "newest") orderBy.push(desc(professionalServices.createdAt));
+  else if (sort === "rating") orderBy.push(sql`${ratingExpr} desc nulls last`);
+  else if (q) {
+    const prefix = `${escapeLike(q)}%`;
+    orderBy.push(
+      sql`case when ${professionalServices.title} ilike ${prefix} then 0 when ${professionalServices.title} ilike ${qPattern} then 1 else 2 end`,
+    );
+  }
+  orderBy.push(desc(professionalServices.updatedAt), asc(professionalServices.id));
+
+  const [countRow] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(professionalServices)
+    .innerJoin(lawyerProfiles, eq(lawyerProfiles.userId, professionalServices.professionalProfileId))
+    .innerJoin(
+      marketplaceServiceCategories,
+      eq(marketplaceServiceCategories.id, professionalServices.categoryId),
+    )
+    .where(where);
+
+  const rows = await db
+    .select({
+      service: professionalServices,
+      categoryName: marketplaceServiceCategories.name,
+      categoryKey: marketplaceServiceCategories.key,
+      professionalUserId: lawyerProfiles.userId,
+      professionalName: lawyerProfiles.professionalName,
+      headline: lawyerProfiles.marketplaceHeadline,
+      oabUf: lawyerProfiles.oabUf,
+      oabVerificationStatus: lawyerProfiles.oabVerificationStatus,
+      remoteAvailable: lawyerProfiles.remoteAvailable,
+      inPersonAvailable: lawyerProfiles.inPersonAvailable,
+      averageRating: ratingExpr,
+      reviewCount: reviewCountExpr,
+    })
+    .from(professionalServices)
+    .innerJoin(lawyerProfiles, eq(lawyerProfiles.userId, professionalServices.professionalProfileId))
+    .innerJoin(
+      marketplaceServiceCategories,
+      eq(marketplaceServiceCategories.id, professionalServices.categoryId),
+    )
+    .where(where)
+    .orderBy(...orderBy)
+    .limit(limit)
+    .offset(offset);
+
+  return {
+    items: rows.map((r) => ({
+      ...serializeService(r.service),
+      category: { id: r.service.categoryId, key: r.categoryKey, name: r.categoryName },
+      professional: {
+        userId: r.professionalUserId,
+        professionalName: r.professionalName,
+        headline: r.headline,
+        oabUf: r.oabUf,
+        oabVerificationStatus: r.oabVerificationStatus,
+        remoteAvailable: r.remoteAvailable,
+        inPersonAvailable: r.inPersonAvailable,
+        averageRating: r.averageRating ?? null,
+        reviewCount: r.reviewCount ?? 0,
+      },
+    })),
+    total: countRow?.total ?? 0,
+    limit,
+    offset,
+  };
+}
+
+const CANCELLABLE_ENGAGEMENT_STATUSES = [
+  "pending_contract",
+  "pending_payment",
+  "active",
+  "waiting_client",
+  "waiting_provider",
+  "delivered",
+] as const;
+
+const OPEN_REFUND_FINANCIAL_STATUSES = ["refund_requested", "refund_pending", "refunded"];
+
+/**
+ * Autoriza: quem gerencia contratações (permissão) OU é parte (solicitante / profissional).
+ * Sem vínculo com a organização => NOT_FOUND via authorize.
+ */
+async function authorizeEngagementParty(
+  db: AppDatabase | DbTx,
+  account: SessionAccount,
+  organizationId: string,
+  engagement: typeof marketplaceEngagements.$inferSelect,
+) {
+  authorize(account, organizationId, (access) =>
+    policyMarketplaceEngagement(access, "marketplace.read"),
+  );
+  let canManage = true;
+  try {
+    authorize(account, organizationId, (access) =>
+      policyMarketplaceEngagement(access, "marketplace.engagement.manage"),
+    );
+  } catch {
+    canManage = false;
+  }
+  const request = await db.query.marketplaceRequests.findFirst({
+    where: eq(marketplaceRequests.id, engagement.requestId),
+  });
+  const isParty =
+    engagement.professionalProfileId === account.user.id ||
+    request?.requesterUserId === account.user.id;
+  if (!canManage && !isParty) {
+    throw new AppError("AUTHORIZATION_ERROR", "Você não pode alterar esta contratação.");
+  }
+  return { request: request ?? null };
+}
+
+/** Valor pago conhecido (registro de pagamento ou intenção confirmada pelo provedor). */
+async function resolvePaidEvidence(
+  db: AppDatabase | DbTx,
+  organizationId: string,
+  engagement: typeof marketplaceEngagements.$inferSelect,
+): Promise<{ hasPayment: boolean; paidAmountCents: number | null; pendingIntent: boolean }> {
+  let paidAmountCents: number | null = null;
+  let hasPayment = false;
+  if (engagement.paymentRecordId) {
+    hasPayment = true;
+    const record = await db.query.clientPaymentRecords.findFirst({
+      where: and(
+        eq(clientPaymentRecords.id, engagement.paymentRecordId),
+        eq(clientPaymentRecords.organizationId, organizationId),
+      ),
+    });
+    paidAmountCents = record?.amountCents ?? null;
+  }
+  const intents = await db.query.paymentIntents.findMany({
+    where: and(
+      eq(paymentIntents.organizationId, organizationId),
+      eq(paymentIntents.referenceType, "marketplace_engagement"),
+      eq(paymentIntents.referenceId, engagement.id),
+    ),
+  });
+  const confirmed = intents.find((i) => i.status === "confirmed" || i.status === "authorized");
+  if (confirmed) {
+    hasPayment = true;
+    paidAmountCents ??= confirmed.amountCents;
+  }
+  const pendingIntent = intents.some((i) =>
+    ["created", "requires_action", "processing"].includes(i.status),
+  );
+  return { hasPayment, paidAmountCents, pendingIntent };
+}
+
+export async function cancelMarketplaceEngagement(
+  db: AppDatabase,
+  account: SessionAccount,
+  organizationId: string,
+  engagementId: string,
+  input: { reason: string; evidenceDocumentId?: string },
+  meta: RequestMeta,
+) {
+  const engagement = await requireEngagementInOrg(db, organizationId, engagementId);
+  const { request } = await authorizeEngagementParty(db, account, organizationId, engagement);
+  if (!(CANCELLABLE_ENGAGEMENT_STATUSES as readonly string[]).includes(engagement.status)) {
+    throw new AppError(
+      "CONFLICT",
+      `Não é possível cancelar uma contratação com status "${engagement.status}".`,
+    );
+  }
+  if (input.evidenceDocumentId) {
+    await requireDocumentInOrg(db, organizationId, input.evidenceDocumentId);
+  }
+  const reason = sanitizeText(input.reason);
+  const now = new Date();
+  const evidence = await resolvePaidEvidence(db, organizationId, engagement);
+  // Pagamento ainda pendente (pending_*) cancela direto; só pede reembolso se houver pagamento confirmado.
+  const needsRefund = evidence.hasPayment;
+  const financialStatus = needsRefund ? "refund_requested" : "none";
+
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(marketplaceEngagements)
+      .set({
+        status: "cancelled",
+        financialStatus,
+        cancelledAt: now,
+        cancellationReason: reason,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(marketplaceEngagements.id, engagementId),
+          eq(marketplaceEngagements.status, engagement.status),
+        ),
+      )
+      .returning();
+    if (!row) throw new AppError("CONFLICT", "A contratação foi alterada. Atualize e tente de novo.");
+
+    if (request) {
+      await tx
+        .update(marketplaceRequests)
+        .set({ status: "cancelled", updatedAt: now })
+        .where(eq(marketplaceRequests.id, request.id));
+    }
+
+    await tx.insert(marketplaceEngagementEvents).values({
+      engagementId,
+      organizationId,
+      actorUserId: account.user.id,
+      eventType: "cancelled",
+      fromStatus: engagement.status,
+      toStatus: "cancelled",
+      reason,
+      metadata: {
+        evidenceDocumentId: input.evidenceDocumentId ?? null,
+        hadPayment: evidence.hasPayment,
+        pendingPaymentIntent: evidence.pendingIntent,
+      },
+    });
+    if (needsRefund) {
+      await tx.insert(marketplaceEngagementEvents).values({
+        engagementId,
+        organizationId,
+        actorUserId: account.user.id,
+        eventType: "refund_requested",
+        fromStatus: "cancelled",
+        toStatus: "cancelled",
+        reason,
+        amountCents: evidence.paidAmountCents,
+        metadata: {
+          note: "Reembolso solicitado; aguardando processamento manual/confirmação do provedor. Nenhum estorno foi confirmado.",
+        },
+      });
+    }
+    await recordAudit(tx, {
+      actorUserId: account.user.id,
+      organizationId,
+      action: "marketplace.engagement_cancelled",
+      resourceType: "marketplace_engagement",
+      resourceId: engagementId,
+      source: "api",
+      requestId: meta.requestId,
+      ip: meta.ip,
+      before: { status: engagement.status, financialStatus: engagement.financialStatus },
+      after: { status: "cancelled", financialStatus },
+    });
+    if (needsRefund) {
+      await recordAudit(tx, {
+        actorUserId: account.user.id,
+        organizationId,
+        action: "marketplace.refund_requested",
+        resourceType: "marketplace_engagement",
+        resourceId: engagementId,
+        source: "api",
+        requestId: meta.requestId,
+        ip: meta.ip,
+        after: { amountCents: evidence.paidAmountCents, financialStatus },
+      });
+    }
+    return { engagement: serializeEngagement(row), refundRequested: needsRefund };
+  });
+}
+
+export async function requestMarketplaceRefund(
+  db: AppDatabase,
+  account: SessionAccount,
+  organizationId: string,
+  engagementId: string,
+  input: { reason: string; amountCents?: number | null; evidenceDocumentId?: string },
+  meta: RequestMeta,
+) {
+  const engagement = await requireEngagementInOrg(db, organizationId, engagementId);
+  await authorizeEngagementParty(db, account, organizationId, engagement);
+
+  let eligible = engagement.status === "cancelled" || engagement.status === "disputed";
+  if (engagement.status === "completed") {
+    // Concluída: só com disputa registrada na contratação.
+    const dispute = await db.query.marketplaceDisputes.findFirst({
+      where: eq(marketplaceDisputes.engagementId, engagementId),
+    });
+    eligible = Boolean(dispute);
+  }
+  if (!eligible) {
+    throw new AppError(
+      "CONFLICT",
+      "Reembolso só pode ser solicitado para contratações canceladas, em disputa ou concluídas com disputa.",
+    );
+  }
+  if (OPEN_REFUND_FINANCIAL_STATUSES.includes(engagement.financialStatus ?? "none")) {
+    throw new AppError("CONFLICT", "Já existe uma solicitação de reembolso para esta contratação.");
+  }
+  if (input.evidenceDocumentId) {
+    await requireDocumentInOrg(db, organizationId, input.evidenceDocumentId);
+  }
+  const evidence = await resolvePaidEvidence(db, organizationId, engagement);
+  if (!evidence.hasPayment) {
+    throw new AppError("CONFLICT", "Não há pagamento confirmado para reembolsar nesta contratação.");
+  }
+  const amountCents = input.amountCents ?? null;
+  if (amountCents !== null && evidence.paidAmountCents !== null && amountCents > evidence.paidAmountCents) {
+    throw new AppError("VALIDATION_ERROR", "O valor excede o total pago.", [
+      { path: "amountCents", message: "Valor superior ao pago." },
+    ]);
+  }
+  const reason = sanitizeText(input.reason);
+  const now = new Date();
+  const requestedAmount = amountCents ?? evidence.paidAmountCents;
+
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(marketplaceEngagements)
+      .set({ financialStatus: "refund_requested", updatedAt: now })
+      .where(eq(marketplaceEngagements.id, engagementId))
+      .returning();
+    await tx.insert(marketplaceEngagementEvents).values({
+      engagementId,
+      organizationId,
+      actorUserId: account.user.id,
+      eventType: "refund_requested",
+      fromStatus: engagement.status,
+      toStatus: engagement.status,
+      reason,
+      amountCents: requestedAmount,
+      metadata: {
+        fullRefund: amountCents === null,
+        evidenceDocumentId: input.evidenceDocumentId ?? null,
+        note: "Solicitação registrada; reembolso depende de processamento manual/confirmação do provedor.",
+      },
+    });
+    await recordAudit(tx, {
+      actorUserId: account.user.id,
+      organizationId,
+      action: "marketplace.refund_requested",
+      resourceType: "marketplace_engagement",
+      resourceId: engagementId,
+      source: "api",
+      requestId: meta.requestId,
+      ip: meta.ip,
+      before: { financialStatus: engagement.financialStatus },
+      after: { financialStatus: "refund_requested", amountCents: requestedAmount },
+    });
+    return { engagement: serializeEngagement(row!) };
   });
 }

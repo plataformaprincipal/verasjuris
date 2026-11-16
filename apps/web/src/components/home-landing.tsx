@@ -1,12 +1,16 @@
 "use client";
 
 import { ButtonLink } from "@verasjuris/ui";
+import { CATEGORY_META, PUBLIC_CATALOG, listCategories } from "../lib/public-catalog";
 import {
-  AVAILABILITY_META,
-  CATEGORY_META,
-  PUBLIC_CATALOG,
-  listCategories,
-} from "../lib/public-catalog";
+  categoryDescriptionKey,
+  categoryLabelKey,
+  featureNameKey,
+  featureProblemKey,
+  featureSummaryKey,
+  solutionSummaryKey,
+  solutionTitleKey,
+} from "../lib/public-i18n";
 import { SOLUTIONS } from "../lib/solutions";
 import { HomeProductPreview } from "./home-product-preview";
 import { useLocale } from "./locale-provider";
@@ -58,8 +62,10 @@ export function HomeLanding() {
               className="vj-card vj-card-link"
               href={`/ferramentas?categoria=${category}`}
             >
-              <h3 className="vj-section-title">{CATEGORY_META[category].label}</h3>
-              <p>{CATEGORY_META[category].description}</p>
+              <h3 className="vj-section-title">
+                {t(categoryLabelKey(category), CATEGORY_META[category].label)}
+              </h3>
+              <p>{t(categoryDescriptionKey(category), CATEGORY_META[category].description)}</p>
             </a>
           ))}
         </div>
@@ -72,11 +78,12 @@ export function HomeLanding() {
               <article key={feature.slug} className="vj-card">
                 <div className="vj-inline-actions">
                   <AvailabilityBadge availability={feature.availability} />
-                  <span className="vj-meta">{AVAILABILITY_META[feature.availability].label}</span>
                 </div>
-                <h3 className="vj-section-title">{feature.name}</h3>
-                <p>{feature.summary}</p>
-                <p className="vj-meta">{feature.problem}</p>
+                <h3 className="vj-section-title">
+                  {t(featureNameKey(feature.slug), feature.name)}
+                </h3>
+                <p>{t(featureSummaryKey(feature.slug), feature.summary)}</p>
+                <p className="vj-meta">{t(featureProblemKey(feature.slug), feature.problem)}</p>
                 <a href={`/ferramentas/${feature.slug}`}>{t("home.viewDetails")}</a>
               </article>
             ) : null,
@@ -92,8 +99,10 @@ export function HomeLanding() {
               className="vj-card vj-card-link"
               href={`/solucoes/${solution.slug}`}
             >
-              <h3 className="vj-section-title">{solution.title}</h3>
-              <p>{solution.summary}</p>
+              <h3 className="vj-section-title">
+                {t(solutionTitleKey(solution.slug), solution.title)}
+              </h3>
+              <p>{t(solutionSummaryKey(solution.slug), solution.summary)}</p>
             </a>
           ))}
         </div>

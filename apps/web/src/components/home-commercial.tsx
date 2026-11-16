@@ -19,8 +19,14 @@ import {
   BrainCircuit,
   Workflow,
 } from "lucide-react";
-import { AVAILABILITY_META, PUBLIC_CATALOG } from "../lib/public-catalog";
-import { DEMO_MARKETPLACE_SERVICES, DEMO_BANNER } from "../lib/demo-data";
+import { PUBLIC_CATALOG } from "../lib/public-catalog";
+import { DEMO_MARKETPLACE_SERVICES } from "../lib/demo-data";
+import {
+  featureNameKey,
+  featureSummaryKey,
+  solutionSummaryKey,
+  solutionTitleKey,
+} from "../lib/public-i18n";
 import { SOLUTIONS } from "../lib/solutions";
 import { HomeProductPreview } from "./home-product-preview";
 import { PublicPageShell, PublicSection, AvailabilityBadge } from "./public-page-shell";
@@ -107,18 +113,21 @@ export function HomeCommercial() {
 
       <PublicSection title={t("home.marketplace.title")} lead={t("home.marketplace.lead")}>
         <p className="vj-demo-banner" role="status">
-          {DEMO_BANNER}
+          {t("demo.banner")}
         </p>
         <div className="vj-feature-grid">
           {DEMO_MARKETPLACE_SERVICES.map((service) => (
             <article key={service.id} className="vj-card">
               <p className="vj-meta">{t("home.marketplace.example")}</p>
-              <h3 className="vj-section-title">{service.title}</h3>
-              <p>{service.description}</p>
+              <h3 className="vj-section-title">
+                {t(`demo.marketplace.${service.id}.title`, service.title)}
+              </h3>
+              <p>{t(`demo.marketplace.${service.id}.description`, service.description)}</p>
               <p className="vj-meta">
-                {service.provider} · {service.area}
+                {t(`demo.marketplace.${service.id}.provider`, service.provider)} ·{" "}
+                {t(`demo.marketplace.${service.id}.area`, service.area)}
               </p>
-              <p className="vj-meta">{service.priceNote}</p>
+              <p className="vj-meta">{t("demo.marketplace.priceNote", service.priceNote)}</p>
               <RequireAuthCta
                 actionLabel={t("home.marketplace.requestProposal", "Solicitar proposta")}
                 title={t("home.marketplace.ctaAuth")}
@@ -148,9 +157,8 @@ export function HomeCommercial() {
               >
                 <Icon size={20} aria-hidden="true" />
                 <AvailabilityBadge availability={feature.availability} />
-                <strong>{feature.name}</strong>
-                <span className="vj-meta">{AVAILABILITY_META[feature.availability].label}</span>
-                <p>{feature.summary}</p>
+                <strong>{t(featureNameKey(feature.slug), feature.name)}</strong>
+                <p>{t(featureSummaryKey(feature.slug), feature.summary)}</p>
               </a>
             ) : null,
           )}
@@ -164,8 +172,10 @@ export function HomeCommercial() {
         <div className="vj-audience-grid">
           {SOLUTIONS.map((solution) => (
             <a key={solution.slug} className="vj-service-card" href={`/solucoes/${solution.slug}`}>
-              <strong>{solution.title}</strong>
-              <span className="vj-meta">{solution.summary}</span>
+              <strong>{t(solutionTitleKey(solution.slug), solution.title)}</strong>
+              <span className="vj-meta">
+                {t(solutionSummaryKey(solution.slug), solution.summary)}
+              </span>
             </a>
           ))}
         </div>

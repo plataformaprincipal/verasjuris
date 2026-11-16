@@ -2,6 +2,7 @@ import {
   createAssistantSessionSchema,
   parseInput,
   sendAssistantMessageSchema,
+  updateAssistantConversationSchema,
   uuidSchema,
 } from "@verasjuris/validation";
 import type { FastifyInstance } from "fastify";
@@ -10,9 +11,12 @@ import { requireAccount, type ApiDeps } from "../auth/routes.js";
 import { AssistantService } from "./service.js";
 
 export async function registerAssistantRoutes(app: FastifyInstance, deps: ApiDeps): Promise<void> {
-  const svc = () => new AssistantService(deps.db, deps.aiGateway);
+  const svc = () =>
+    new AssistantService(deps.db, deps.aiGateway, { rateLimiter: deps.rateLimiter });
 
-  app.post("/organizations/:organizationId/assistant/conversations", async (request, reply) => {
+  const orgRoot = "/organizations/:organizationId/assistant";
+
+  app.post(`${orgRoot}/conversations`, async (request, reply) => {
     const account = await requireAccount(deps, request);
     const organizationId = parseInput(
       uuidSchema,
@@ -24,7 +28,7 @@ export async function registerAssistantRoutes(app: FastifyInstance, deps: ApiDep
       .send(await svc().createConversation(account, { ...body, organizationId }));
   });
 
-  app.get("/organizations/:organizationId/assistant/conversations", async (request, reply) => {
+  app.get(`${orgRoot}/conversations`, async (request, reply) => {
     const account = await requireAccount(deps, request);
     const organizationId = parseInput(
       uuidSchema,
@@ -33,7 +37,32 @@ export async function registerAssistantRoutes(app: FastifyInstance, deps: ApiDep
     return reply.send(await svc().listConversations(account, organizationId));
   });
 
-  app.post("/organizations/:organizationId/assistant/messages", async (request, reply) => {
+  app.get(`${orgRoot}/conversations/:conversationId/messages`, async (request, reply) => {
+    const account = await requireAccount(deps, request);
+    const params = request.params as { organizationId?: string; conversationId?: string };
+    parseInput(uuidSchema, params.organizationId);
+    const conversationId = parseInput(uuidSchema, params.conversationId);
+    return reply.send(await svc().getMessages(account, conversationId));
+  });
+
+  app.patch(`${orgRoot}/conversations/:conversationId`, async (request, reply) => {
+    const account = await requireAccount(deps, request);
+    const params = request.params as { organizationId?: string; conversationId?: string };
+    parseInput(uuidSchema, params.organizationId);
+    const conversationId = parseInput(uuidSchema, params.conversationId);
+    const body = parseInput(updateAssistantConversationSchema, request.body ?? {});
+    return reply.send(await svc().updateConversation(account, conversationId, body));
+  });
+
+  app.delete(`${orgRoot}/conversations/:conversationId`, async (request, reply) => {
+    const account = await requireAccount(deps, request);
+    const params = request.params as { organizationId?: string; conversationId?: string };
+    parseInput(uuidSchema, params.organizationId);
+    const conversationId = parseInput(uuidSchema, params.conversationId);
+    return reply.send(await svc().deleteConversation(account, conversationId));
+  });
+
+  app.post(`${orgRoot}/messages`, async (request, reply) => {
     const account = await requireAccount(deps, request);
     const organizationId = parseInput(
       uuidSchema,
@@ -44,7 +73,7 @@ export async function registerAssistantRoutes(app: FastifyInstance, deps: ApiDep
     return reply.status(201).send(await svc().sendMessage(account, body));
   });
 
-  app.post("/organizations/:organizationId/assistant/tools/:tool", async (request, reply) => {
+  app.post(`${orgRoot}/tools/:tool`, async (request, reply) => {
     const account = await requireAccount(deps, request);
     const params = request.params as { organizationId?: string; tool?: string };
     parseInput(uuidSchema, params.organizationId);
@@ -71,7 +100,7 @@ export async function registerAssistantRoutes(app: FastifyInstance, deps: ApiDep
     );
   });
 
-  app.post("/organizations/:organizationId/assistant/feedback", async (request, reply) => {
+  app.post(`${orgRoot}/feedback`, async (request, reply) => {
     const account = await requireAccount(deps, request);
     parseInput(uuidSchema, (request.params as { organizationId?: string }).organizationId);
     const body = parseInput(

@@ -2,13 +2,15 @@
 
 import { CSRF_HEADER } from "@verasjuris/security/constants";
 import { Menu } from "@verasjuris/ui";
-import { LogOut, Menu as MenuIcon } from "lucide-react";
+import { ArrowLeft, LogOut, Menu as MenuIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { PLATFORM_HOME_HREF } from "../lib/platform-nav";
 import { PORTAL_NAV } from "./client-portal-ui";
 import type { Membership } from "../lib/types";
 import { roleLabel } from "../lib/types";
+import { useLocale } from "./locale-provider";
 
 function NavLinks({ pathname }: { pathname: string }) {
   return (
@@ -46,6 +48,7 @@ export function PortalShell({
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const { t } = useLocale();
 
   async function chooseOrganization(organizationId: string) {
     await fetch("/session/organizacao", {
@@ -75,9 +78,13 @@ export function PortalShell({
           {brand}
         </a>
         <p className="vj-meta">Portal do Cliente</p>
+        <a href={PLATFORM_HOME_HREF} className="vj-button vj-button-secondary vj-back-platform">
+          <ArrowLeft size={16} aria-hidden="true" />
+          {t("nav.backToPlatform", "Voltar à plataforma")}
+        </a>
         <NavLinks pathname={pathname} />
         <a href="/app" className="vj-link">
-          Voltar ao escritório
+          {t("nav.backToOffice", "Voltar ao escritório")}
         </a>
       </aside>
       <div className="vj-main">
@@ -89,8 +96,15 @@ export function PortalShell({
               onClick={() => setOpen(true)}
             >
               <MenuIcon size={20} aria-hidden="true" />
-              Menu
+              {t("nav.menu", "Menu")}
             </button>
+            <a
+              href={PLATFORM_HOME_HREF}
+              className="vj-button vj-button-secondary vj-back-platform-top"
+            >
+              <ArrowLeft size={16} aria-hidden="true" />
+              {t("nav.backToPlatform", "Voltar à plataforma")}
+            </a>
             {organization ? (
               organizations.length > 1 ? (
                 <label className="vj-meta">

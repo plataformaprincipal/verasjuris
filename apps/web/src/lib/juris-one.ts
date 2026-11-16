@@ -113,8 +113,10 @@ export function jurisOneReply(
 export const JURIS_WORK_STATUS = {
   /** Superfície pública: sem execução. O scaffold autenticado fica em /app/juris-one/work. */
   available: false as const,
+  /** App autenticado: scaffold com saldo de créditos; ações externas ainda bloqueadas. */
+  authenticatedAvailable: true as const,
   authenticatedScaffold: true as const,
   label: "Work",
   detail:
-    "Na superfície pública o Work permanece indisponível. No app autenticado há um scaffold de planejamento com aprovação humana; ações externas (protocolo, pagamento, envio) continuam bloqueadas até homologação.",
+    "Na superfície pública o Work permanece indisponível. No app autenticado há um scaffold com créditos (saldo inicial), planejamento e aprovação humana; ações externas (protocolo, pagamento, envio) continuam bloqueadas até homologação.",
 };

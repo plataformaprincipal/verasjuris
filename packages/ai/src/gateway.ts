@@ -312,6 +312,11 @@ export const DEFAULT_AI_FEATURES: Readonly<Record<string, AIFeatureDefinition>> 
     requires: [AICapability.TEXT],
     outputDisposition: "assistive",
   },
+  /** Juris One Chat — assistiva; nunca substitui advogado nem inventa jurisprudência. */
+  "juris_one.chat": {
+    requires: [AICapability.TEXT],
+    outputDisposition: "assistive",
+  },
   document_embedding: { requires: [AICapability.EMBEDDINGS], outputDisposition: "assistive" },
   document_vision: { requires: [AICapability.VISION], outputDisposition: "requires_review" },
 };

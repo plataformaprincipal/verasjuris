@@ -1,71 +1,71 @@
 "use client";
 
 import { ButtonLink } from "@verasjuris/ui";
+import { useLocale } from "../../components/locale-provider";
 import { PublicPageShell } from "../../components/public-page-shell";
 import { RequireAuthCta } from "../../components/require-auth-cta";
-import { DEMO_BANNER, DEMO_MARKETPLACE_SERVICES } from "../../lib/demo-data";
+import { DEMO_MARKETPLACE_SERVICES } from "../../lib/demo-data";
 import { getFeature } from "../../lib/public-catalog";
 
 export default function MarketplaceJuridicoPage() {
+  const { t } = useLocale();
   const feature = getFeature("marketplace-juridico");
 
   return (
     <PublicPageShell>
       <div className="vj-stack">
         <div>
-          <p className="vj-meta">Marketplace jurídico</p>
-          <h1 className="vj-display">Conheça o marketplace do VerasJuris</h1>
-          <p className="vj-lead">
-            Apresentação pública de categorias, perfis demonstrativos e o funcionamento geral da
-            contratação. Solicitar propostas, contratar serviços e iniciar atendimentos exige
-            autenticação. Perfis abaixo são exemplos e não representam profissionais reais
-            cadastrados.
-          </p>
+          <p className="vj-meta">{t("marketplace.public.meta")}</p>
+          <h1 className="vj-display">{t("marketplace.public.knowTitle")}</h1>
+          <p className="vj-lead">{t("marketplace.public.lead")}</p>
           <p className="vj-demo-banner" role="status">
-            {DEMO_BANNER}
+            {t("demo.banner")}
           </p>
           <div className="vj-form-actions">
             <RequireAuthCta
-              actionLabel="Solicitar proposta"
-              title="Entre para solicitar uma proposta"
-              message="Para solicitar uma proposta ou contratar um serviço, entre na sua conta ou cadastre-se no VerasJuris."
+              actionLabel={t("marketplace.public.requestProposal")}
+              title={t("marketplace.public.requestTitle")}
+              message={t("marketplace.public.requestMessage")}
               redirectTo="/marketplace/solicitacoes/nova"
             />
             <ButtonLink href="/explorar?view=marketplace" variant="secondary">
-              Ver demonstração
+              {t("marketplace.public.demoCta")}
             </ButtonLink>
             <ButtonLink href="/ferramentas/marketplace-juridico" variant="ghost">
-              Detalhes do módulo
+              {t("marketplace.public.moduleDetails")}
             </ButtonLink>
           </div>
         </div>
 
         <section className="vj-card">
-          <h2 className="vj-section-title">Como funciona</h2>
+          <h2 className="vj-section-title">{t("marketplace.public.howTitle")}</h2>
           <ol>
-            <li>O visitante conhece categorias e o fluxo de contratação.</li>
-            <li>Para criar solicitações ou contratar, é necessário entrar ou criar conta.</li>
-            <li>A comunicação e o acompanhamento ocorrem na área autenticada.</li>
-            <li>Pagamentos seguem a disponibilidade efetiva dos serviços de cobrança.</li>
+            <li>{t("marketplace.public.how1")}</li>
+            <li>{t("marketplace.public.how2")}</li>
+            <li>{t("marketplace.public.how3")}</li>
+            <li>{t("marketplace.public.how4")}</li>
           </ol>
         </section>
 
         <section className="vj-stack">
-          <h2 className="vj-section-title">Exemplos de serviços</h2>
+          <h2 className="vj-section-title">{t("marketplace.public.examplesTitle")}</h2>
           <div className="vj-feature-grid">
             {DEMO_MARKETPLACE_SERVICES.map((service) => (
               <article key={service.id} className="vj-card">
-                <p className="vj-meta">Perfil demonstrativo</p>
-                <h3 className="vj-section-title">{service.title}</h3>
-                <p>{service.description}</p>
+                <p className="vj-meta">{t("marketplace.public.demoProfile")}</p>
+                <h3 className="vj-section-title">
+                  {t(`demo.marketplace.${service.id}.title`, service.title)}
+                </h3>
+                <p>{t(`demo.marketplace.${service.id}.description`, service.description)}</p>
                 <p className="vj-meta">
-                  {service.provider} · {service.area}
+                  {t(`demo.marketplace.${service.id}.provider`, service.provider)} ·{" "}
+                  {t(`demo.marketplace.${service.id}.area`, service.area)}
                 </p>
-                <p className="vj-meta">{service.priceNote}</p>
+                <p className="vj-meta">{t("demo.marketplace.priceNote", service.priceNote)}</p>
                 <RequireAuthCta
-                  actionLabel="Contratar serviço"
-                  title="Entre para contratar"
-                  message="Para contratar este serviço, entre na sua conta ou cadastre-se no VerasJuris."
+                  actionLabel={t("marketplace.public.hire")}
+                  title={t("marketplace.public.hireTitle")}
+                  message={t("marketplace.public.hireMessage")}
                   redirectTo="/marketplace"
                   variant="secondary"
                 />
@@ -76,7 +76,7 @@ export default function MarketplaceJuridicoPage() {
 
         {feature ? (
           <section className="vj-card vj-card-calm">
-            <h2 className="vj-section-title">Limitações relevantes</h2>
+            <h2 className="vj-section-title">{t("marketplace.public.limitationsTitle")}</h2>
             <ul>
               {feature.limitations.map((item) => (
                 <li key={item}>{item}</li>

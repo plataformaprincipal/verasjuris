@@ -426,4 +426,253 @@ describe("Etapa 17 — Marketplace jurídico API", () => {
     expect(res.statusCode).toBe(200);
     expect(res.json<{ paymentRecordId: string }>().paymentRecordId).toBeTruthy();
   });
+  it("catálogo: busca por título retorna serviço publicado e filtros vazios retornam 0", async () => {
+    const title = "Parecer especial catalogoxyz";
+    const created = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/services`,
+      {
+        categoryId,
+        title,
+        description: "Parecer jurídico detalhado sobre contratos empresariais.",
+        deliveryMode: "remote",
+        pricingModel: "fixed",
+        basePriceCents: 90_000,
+      },
+      lawyerB,
+    );
+    expect(created.statusCode).toBe(201);
+    const serviceId = created.json<{ service: { id: string } }>().service.id;
+
+    const found = await call(
+      app,
+      "GET",
+      "/v1/marketplace/catalog?q=catalogoxyz&limit=500",
+      undefined,
+      s.memberA,
+    );
+    // limite acima de 50 é rejeitado pela validação
+    expect(found.statusCode).toBe(400);
+
+    const ok = await call(
+      app,
+      "GET",
+      `${root()}/marketplace/catalog?q=CATALOGOXYZ&sort=price_asc&maxPriceCents=100000`,
+      undefined,
+      s.memberA,
+    );
+    expect(ok.statusCode).toBe(200);
+    const body = ok.json<{
+      items: Array<{ id: string; professional: { professionalName: string | null } }>;
+      total: number;
+      limit: number;
+    }>();
+    expect(body.items.some((i) => i.id === serviceId)).toBe(true);
+    expect(body.total).toBeGreaterThanOrEqual(1);
+    expect(body.limit).toBe(20);
+
+    const empty = await call(
+      app,
+      "GET",
+      "/v1/marketplace/catalog?q=catalogoxyz&minPriceCents=200000",
+      undefined,
+      s.memberA,
+    );
+    expect(empty.statusCode).toBe(200);
+    expect(empty.json<{ items: unknown[]; total: number }>()).toMatchObject({ items: [], total: 0 });
+
+    const anon = await call(app, "GET", "/v1/marketplace/catalog");
+    expect(anon.statusCode).toBeGreaterThanOrEqual(401);
+  });
+
+  it("cancela contratação após aceite e registra evento; reembolso exige cancelamento", async () => {
+    const created = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/requests`,
+      {
+        clientId,
+        categoryId,
+        title: "Contrato para cancelamento",
+        description: "Solicitação criada para testar cancelamento da contratação aceita.",
+        locationState: "SP",
+        status: "open",
+      },
+      s.memberA,
+    );
+    const rid = created.json<{ request: { id: string } }>().request.id;
+    const prop = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/requests/${rid}/proposals`,
+      { amountCents: 70_000, message: "Proposta para teste de cancelamento." },
+      lawyerB,
+    );
+    const pid = prop.json<{ proposal: { id: string } }>().proposal.id;
+    const acc = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/proposals/${pid}/accept`,
+      {},
+      s.memberA,
+    );
+    const eid = acc.json<{ engagement: { id: string } }>().engagement.id;
+
+    const early = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/engagements/${eid}/refunds`,
+      { reason: "Tentativa de reembolso antes de cancelar." },
+      s.memberA,
+    );
+    expect(early.statusCode).toBe(409);
+
+    const shortReason = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/engagements/${eid}/cancel`,
+      { reason: "curto" },
+      s.memberA,
+    );
+    expect(shortReason.statusCode).toBe(400);
+
+    const cancelled = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/engagements/${eid}/cancel`,
+      { reason: "Cliente desistiu da contratação antes do pagamento." },
+      s.memberA,
+    );
+    expect(cancelled.statusCode).toBe(200);
+    const cb = cancelled.json<{
+      engagement: { status: string; financialStatus: string; cancelledAt: string | null };
+      refundRequested: boolean;
+    }>();
+    expect(cb.engagement.status).toBe("cancelled");
+    expect(cb.engagement.financialStatus).toBe("none");
+    expect(cb.engagement.cancelledAt).toBeTruthy();
+    expect(cb.refundRequested).toBe(false);
+
+    const detail = await call(
+      app,
+      "GET",
+      `${root()}/marketplace/engagements/${eid}`,
+      undefined,
+      s.memberA,
+    );
+    const events = detail.json<{ events: Array<{ eventType: string; toStatus: string | null }> }>()
+      .events;
+    expect(events.some((e) => e.eventType === "cancelled" && e.toStatus === "cancelled")).toBe(true);
+
+    const again = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/engagements/${eid}/cancel`,
+      { reason: "Segundo cancelamento não deveria ser permitido." },
+      s.memberA,
+    );
+    expect(again.statusCode).toBe(409);
+
+    // cancelada, porém sem pagamento confirmado → não há o que reembolsar
+    const noPayment = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/engagements/${eid}/refunds`,
+      { reason: "Reembolso sem pagamento registrado." },
+      s.memberA,
+    );
+    expect(noPayment.statusCode).toBe(409);
+
+    // concluída não pode ser cancelada
+    const completedCancel = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/engagements/${engagementId}/cancel`,
+      { reason: "Tentativa de cancelar contratação concluída." },
+      s.memberA,
+    );
+    expect(completedCancel.statusCode).toBe(409);
+  });
+
+  it("cancela contratação paga e solicita reembolso sem marcar como reembolsado", async () => {
+    const created = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/requests`,
+      {
+        clientId,
+        categoryId,
+        title: "Contrato pago para reembolso",
+        description: "Solicitação criada para testar cancelamento com pagamento registrado.",
+        locationState: "SP",
+        status: "open",
+      },
+      s.memberA,
+    );
+    const rid = created.json<{ request: { id: string } }>().request.id;
+    const prop = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/requests/${rid}/proposals`,
+      { amountCents: 60_000, message: "Proposta para teste de reembolso." },
+      lawyerB,
+    );
+    const pid = prop.json<{ proposal: { id: string } }>().proposal.id;
+    const acc = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/proposals/${pid}/accept`,
+      {},
+      s.memberA,
+    );
+    const eid = acc.json<{ engagement: { id: string } }>().engagement.id;
+    const paid = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/engagements/${eid}/payment/manual`,
+      { amountCents: 60_000, evidenceDocumentId: evidenceDocId, description: "PIX manual" },
+      s.memberA,
+    );
+    expect(paid.statusCode).toBe(200);
+
+    const cancelled = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/engagements/${eid}/cancel`,
+      { reason: "Cancelamento após pagamento por acordo entre as partes." },
+      s.memberA,
+    );
+    expect(cancelled.statusCode).toBe(200);
+    const cb = cancelled.json<{ engagement: { status: string; financialStatus: string } }>();
+    expect(cb.engagement.status).toBe("cancelled");
+    expect(cb.engagement.financialStatus).toBe("refund_requested");
+
+    const tooMuch = await call(
+      app,
+      "POST",
+      `${root()}/marketplace/engagements/${eid}/refunds`,
+      { reason: "Reembolso acima do valor pago.", amountCents: 999_999 },
+      s.memberA,
+    );
+    // já existe solicitação aberta (criada no cancelamento)
+    expect(tooMuch.statusCode).toBe(409);
+
+    const detail = await call(
+      app,
+      "GET",
+      `${root()}/marketplace/engagements/${eid}`,
+      undefined,
+      s.memberA,
+    );
+    const body = detail.json<{
+      engagement: { financialStatus: string };
+      events: Array<{ eventType: string }>;
+    }>();
+    expect(body.engagement.financialStatus).toBe("refund_requested");
+    expect(body.events.map((e) => e.eventType)).toEqual(
+      expect.arrayContaining(["cancelled", "refund_requested"]),
+    );
+    expect(body.events.some((e) => e.eventType === "refunded")).toBe(false);
+  });
 });

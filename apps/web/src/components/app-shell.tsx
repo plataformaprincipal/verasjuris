@@ -3,6 +3,7 @@
 import { CSRF_HEADER } from "@verasjuris/security/constants";
 import { Menu } from "@verasjuris/ui";
 import {
+  ArrowLeft,
   BookOpen,
   BrainCircuit,
   Briefcase,
@@ -42,9 +43,14 @@ import {
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import {
+  PLATFORM_HOME_HREF,
+  shouldShowBackToPlatform,
+} from "../lib/platform-nav";
 import type { Membership } from "../lib/types";
 import { roleLabel } from "../lib/types";
 import { LanguageSwitcher, useLocale } from "./locale-provider";
+import { PublicMainNav } from "./public-main-nav";
 
 type NavItem = {
   href: string;
@@ -194,11 +200,20 @@ export function AppShell({
     window.location.assign("/");
   }
 
+  const showBack = shouldShowBackToPlatform(pathname);
+
   return (
     <div className="vj-shell">
       <aside className="vj-sidebar vj-sidebar-desktop">
         <a href="/app" className="vj-brand-text vj-brand-text-inverse">
           {brand}
+        </a>
+        <a
+          href={PLATFORM_HOME_HREF}
+          className="vj-button vj-button-secondary vj-back-platform"
+        >
+          <ArrowLeft size={16} aria-hidden="true" />
+          {t("nav.backToPlatform", "Voltar à plataforma")}
         </a>
         <NavLinks items={items} pathname={pathname} />
       </aside>
@@ -215,6 +230,15 @@ export function AppShell({
               <MenuIcon size={20} aria-hidden="true" />
               {t("nav.menu", "Menu")}
             </button>
+            {showBack ? (
+              <a
+                href={PLATFORM_HOME_HREF}
+                className="vj-button vj-button-secondary vj-back-platform-top"
+              >
+                <ArrowLeft size={16} aria-hidden="true" />
+                {t("nav.backToPlatform", "Voltar à plataforma")}
+              </a>
+            ) : null}
             {organization ? (
               organizations.length > 1 ? (
                 <label className="vj-meta">
@@ -248,8 +272,23 @@ export function AppShell({
               <p className="vj-meta" role="presentation">
                 {email}
               </p>
+              <a href="/app" role="menuitem">
+                {t("nav.platformHome", "Início da plataforma")}
+              </a>
               <a href="/app/conta" role="menuitem">
                 {t("nav.account", "Minha conta")}
+              </a>
+              <a href="/app/configuracoes/seguranca" role="menuitem">
+                {t("nav.settings", "Configurações")}
+              </a>
+              <a href="/app/carrinho" role="menuitem">
+                {t("nav.cart", "Carrinho e compras")}
+              </a>
+              <a href="/app/marketplace" role="menuitem">
+                {t("nav.orders", "Pedidos e marketplace")}
+              </a>
+              <a href="/explorar" role="menuitem">
+                {t("nav.publications", "Publicações")}
               </a>
               <a href="/app/perfis" role="menuitem">
                 {t("nav.profiles", "Perfis profissionais")}
@@ -266,6 +305,9 @@ export function AppShell({
             </Menu>
           </div>
         </header>
+        <div className="vj-platform-strip-wrap" aria-label={t("public.nav.aria", "Principal")}>
+          <PublicMainNav variant="app-strip" authenticated />
+        </div>
         <div className="vj-content" id="conteudo">
           {organization ? (
             <p className="vj-meta">
@@ -293,6 +335,19 @@ export function AppShell({
             aria-label={t("nav.menu", "Menu")}
           >
             {brand}
+            <a
+              href={PLATFORM_HOME_HREF}
+              className="vj-button vj-button-secondary vj-back-platform"
+              onClick={() => setOpen(false)}
+            >
+              <ArrowLeft size={16} aria-hidden="true" />
+              {t("nav.backToPlatform", "Voltar à plataforma")}
+            </a>
+            <PublicMainNav
+              variant="mobile-drawer"
+              authenticated
+              onNavigate={() => setOpen(false)}
+            />
             <NavLinks items={items} pathname={pathname} />
             <button
               type="button"

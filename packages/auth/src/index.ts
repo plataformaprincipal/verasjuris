@@ -338,6 +338,7 @@ export {
   revokeOtherSessions,
   revokeSession,
   toPublicSession,
+  type PlatformAccess,
   type SessionAccount,
   type UserStatus,
 } from "./session.js";

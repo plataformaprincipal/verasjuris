@@ -22,13 +22,45 @@ export type MarketplaceCategory = {
 
 export type MarketplaceService = {
   id: string;
+  professionalProfileId: string;
   title: string;
   description?: string | null;
   categoryId: string;
   deliveryMode: string;
   pricingModel: string;
   basePriceCents?: number | null;
+  minPriceCents?: number | null;
+  maxPriceCents?: number | null;
+  estimatedDuration?: string | null;
   active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type MarketplaceCatalogItem = MarketplaceService & {
+  category?: { id: string; key: string; name: string };
+  professional?: {
+    userId: string;
+    professionalName?: string | null;
+    headline?: string | null;
+    oabUf?: string | null;
+    oabVerificationStatus?: string | null;
+    remoteAvailable?: boolean;
+    inPersonAvailable?: boolean;
+    averageRating?: number | null;
+    reviewCount?: number;
+  };
+};
+
+export type MarketplaceEngagementEvent = {
+  id: string;
+  engagementId: string;
+  eventType: string;
+  fromStatus?: string | null;
+  toStatus?: string | null;
+  reason?: string | null;
+  amountCents?: number | null;
+  createdAt: string;
 };
 
 export type MarketplaceProfessional = {
@@ -84,6 +116,9 @@ export type MarketplaceEngagement = {
   revisionCount: number;
   paymentRecordId?: string | null;
   conversationThreadId?: string | null;
+  financialStatus?: string | null;
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
 };
 
 export type MarketplaceCartItem = {
@@ -301,7 +336,64 @@ export async function fetchMarketplaceEngagement(orgId: string, engagementId: st
     engagement: MarketplaceEngagement;
     deliveries: MarketplaceDelivery[];
     disputes: MarketplaceDispute[];
+    events: MarketplaceEngagementEvent[];
   }>(orgPath(orgId, `/marketplace/engagements/${engagementId}`));
+}
+
+export async function fetchMarketplaceCatalog(
+  query: Record<string, string | number | boolean | undefined> = {},
+  orgId?: string,
+) {
+  const path = orgId
+    ? orgPath(orgId, `/marketplace/catalog${qs(query)}`)
+    : `/api/v1/marketplace/catalog${qs(query)}`;
+  return request<{ items: MarketplaceCatalogItem[]; total: number; limit: number; offset: number }>(
+    path,
+  );
+}
+
+export async function fetchMyMarketplaceServices(orgId: string) {
+  return request<{ items: MarketplaceService[] }>(orgPath(orgId, "/marketplace/services/mine"));
+}
+
+export async function createMarketplaceService(orgId: string, body: Record<string, unknown>) {
+  return request<{ service: MarketplaceService }>(orgPath(orgId, "/marketplace/services"), {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function updateMarketplaceService(
+  orgId: string,
+  serviceId: string,
+  body: Record<string, unknown>,
+) {
+  return request<{ service: MarketplaceService }>(
+    orgPath(orgId, `/marketplace/services/${serviceId}`),
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
+export async function cancelMarketplaceEngagement(
+  orgId: string,
+  engagementId: string,
+  body: { reason: string; evidenceDocumentId?: string },
+) {
+  return request<{ engagement: MarketplaceEngagement }>(
+    orgPath(orgId, `/marketplace/engagements/${engagementId}/cancel`),
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function requestMarketplaceRefund(
+  orgId: string,
+  engagementId: string,
+  body: { reason: string; amountCents?: number | null; evidenceDocumentId?: string },
+) {
+  return request<{ engagement: MarketplaceEngagement }>(
+    orgPath(orgId, `/marketplace/engagements/${engagementId}/refunds`),
+    { method: "POST", body: JSON.stringify(body) },
+  );
 }
 
 export async function fetchMarketplaceDispute(orgId: string, disputeId: string) {
@@ -356,6 +448,24 @@ export async function addMarketplaceCartItem(
   return request<{ cart: MarketplaceCart; items: MarketplaceCartItem[] }>(
     orgPath(orgId, "/marketplace/cart/items"),
     { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function updateMarketplaceCartItem(
+  orgId: string,
+  itemId: string,
+  body: { quantity: number; notes?: string },
+) {
+  return request<{ cart: MarketplaceCart; items: MarketplaceCartItem[] }>(
+    orgPath(orgId, `/marketplace/cart/items/${itemId}`),
+    { method: "PATCH", body: JSON.stringify(body) },
+  );
+}
+
+export async function removeMarketplaceCartItem(orgId: string, itemId: string) {
+  return request<{ cart: MarketplaceCart; items: MarketplaceCartItem[] }>(
+    orgPath(orgId, `/marketplace/cart/items/${itemId}`),
+    { method: "DELETE" },
   );
 }
 

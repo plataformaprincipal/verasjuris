@@ -246,6 +246,45 @@ export const marketplaceListQuerySchema = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 });
 
+export const MARKETPLACE_CATALOG_SORTS = [
+  "relevance",
+  "price_asc",
+  "price_desc",
+  "newest",
+  "rating",
+] as const;
+
+/** Busca no catálogo de serviços (professional_services) — paginação limitada a 50 itens. */
+export const marketplaceCatalogSearchSchema = marketplaceListQuerySchema
+  .omit({ status: true, limit: true, minPriceCents: true, maxPriceCents: true })
+  .extend({
+    deliveryMode: z.enum(MARKETPLACE_DELIVERY_MODES).optional(),
+    pricingModel: z.enum(MARKETPLACE_PRICING_MODELS).optional(),
+    minPriceCents: z.coerce.number().int().min(0).optional(),
+    maxPriceCents: z.coerce.number().int().min(0).optional(),
+    sort: z.enum(MARKETPLACE_CATALOG_SORTS).default("relevance"),
+    limit: z.coerce.number().int().min(1).max(50).default(20),
+  })
+  .refine(
+    (v) =>
+      v.minPriceCents === undefined ||
+      v.maxPriceCents === undefined ||
+      v.minPriceCents <= v.maxPriceCents,
+    { message: "O preço mínimo não pode ser maior que o máximo.", path: ["minPriceCents"] },
+  );
+
+export const cancelMarketplaceEngagementSchema = z.object({
+  reason: safeText(10, 2000),
+  evidenceDocumentId: optionalUuid,
+});
+
+export const requestMarketplaceRefundSchema = z.object({
+  reason: safeText(10, 2000),
+  /** null/ausente = reembolso integral do valor pago. */
+  amountCents: cents.refine((v) => v > 0, "Informe um valor positivo em centavos.").nullable().optional(),
+  evidenceDocumentId: optionalUuid,
+});
+
 export const marketplaceProfessionalSearchSchema = marketplaceListQuerySchema.omit({
   status: true,
 });

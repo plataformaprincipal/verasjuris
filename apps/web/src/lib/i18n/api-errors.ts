@@ -30,6 +30,12 @@ const CODE_KEYS: Record<string, string> = {
   UNAVAILABLE: "errors.unavailable",
   SERVICE_UNAVAILABLE: "errors.unavailable",
   NOT_CONFIGURED: "errors.unavailable",
+  AI_PROVIDER_NOT_CONFIGURED: "errors.unavailable",
+  OCR_PROVIDER_NOT_CONFIGURED: "errors.unavailable",
+  INTERNAL_ERROR: "errors.unexpected",
+  INTERNAL_SERVER_ERROR: "errors.unexpected",
+  PAYMENT_FAILED: "errors.paymentFailed",
+  PAYMENT_PROVIDER_NOT_CONFIGURED: "errors.paymentUnavailable",
   NETWORK: "errors.network",
   NETWORK_ERROR: "errors.network",
 };

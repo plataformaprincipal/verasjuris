@@ -37,3 +37,13 @@ export const updateAssistantSettingsSchema = z.object({
   allowCriticalActions: z.literal(false).default(false),
   systemPromptOverride: z.string().trim().max(8_000).optional(),
 });
+
+export const updateAssistantConversationSchema = z
+  .object({
+    title: z.string().trim().min(1).max(200).optional(),
+    status: z.enum(["active", "archived"]).optional(),
+    favorite: z.boolean().optional(),
+  })
+  .refine((v) => v.title !== undefined || v.status !== undefined || v.favorite !== undefined, {
+    message: "Informe ao menos um campo: title, status ou favorite.",
+  });
