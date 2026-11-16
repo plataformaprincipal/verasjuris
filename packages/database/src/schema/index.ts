@@ -30,6 +30,7 @@ export * from "./client-portal.js";
 export * from "./communication.js";
 export * from "./online-lawyer.js";
 export * from "./marketplace.js";
+export * from "./juris-work.js";
 export * from "./professional-verification.js";
 export * from "./diligence.js";
 export * from "./extrajudicial.js";
@@ -708,6 +709,8 @@ import {
   marketplaceDeliveries,
   marketplaceDisputes,
   serviceReviews,
+  marketplaceCarts,
+  marketplaceCartItems,
   marketplaceServiceCategoriesRelations,
   professionalServicesRelations,
   marketplaceRequestsRelations,
@@ -717,7 +720,15 @@ import {
   marketplaceDeliveriesRelations,
   marketplaceDisputesRelations,
   serviceReviewsRelations,
+  marketplaceCartsRelations,
+  marketplaceCartItemsRelations,
 } from "./marketplace.js";
+import {
+  jurisWorkTasks,
+  jurisWorkSteps,
+  jurisWorkTasksRelations,
+  jurisWorkStepsRelations,
+} from "./juris-work.js";
 import {
   professionalVerificationCases,
   professionalIdentityDocuments,
@@ -1689,6 +1700,8 @@ export const schema = {
   marketplaceDeliveries,
   marketplaceDisputes,
   serviceReviews,
+  marketplaceCarts,
+  marketplaceCartItems,
   marketplaceServiceCategoriesRelations,
   professionalServicesRelations,
   marketplaceRequestsRelations,
@@ -1698,6 +1711,12 @@ export const schema = {
   marketplaceDeliveriesRelations,
   marketplaceDisputesRelations,
   serviceReviewsRelations,
+  marketplaceCartsRelations,
+  marketplaceCartItemsRelations,
+  jurisWorkTasks,
+  jurisWorkSteps,
+  jurisWorkTasksRelations,
+  jurisWorkStepsRelations,
   professionalVerificationCases,
   professionalIdentityDocuments,
   biometricVerificationSessions,

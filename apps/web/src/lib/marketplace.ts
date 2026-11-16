@@ -83,6 +83,32 @@ export type MarketplaceEngagement = {
   revisionLimit: number;
   revisionCount: number;
   paymentRecordId?: string | null;
+  conversationThreadId?: string | null;
+};
+
+export type MarketplaceCartItem = {
+  id: string;
+  professionalServiceId: string;
+  quantity: number;
+  notes?: string | null;
+  lineTotalCents: number | null;
+  service: {
+    id: string;
+    title: string;
+    professionalProfileId: string;
+    pricingModel: string;
+    unitPriceCents: number | null;
+    quoteRequired: boolean;
+  } | null;
+};
+
+export type MarketplaceCart = {
+  id: string;
+  status: string;
+  totalCents: number | null;
+  checkoutReady: boolean;
+  currency: string;
+  itemCount: number;
 };
 
 export type MarketplaceDelivery = {
@@ -313,6 +339,60 @@ export async function submitMarketplaceProposal(
 export async function patchMarketplaceProfile(orgId: string, body: Record<string, unknown>) {
   return request(orgPath(orgId, "/marketplace/profile"), {
     method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function fetchMarketplaceCart(orgId: string) {
+  return request<{ cart: MarketplaceCart; items: MarketplaceCartItem[] }>(
+    orgPath(orgId, "/marketplace/cart"),
+  );
+}
+
+export async function addMarketplaceCartItem(
+  orgId: string,
+  body: { professionalServiceId: string; quantity?: number; notes?: string },
+) {
+  return request<{ cart: MarketplaceCart; items: MarketplaceCartItem[] }>(
+    orgPath(orgId, "/marketplace/cart/items"),
+    { method: "POST", body: JSON.stringify(body) },
+  );
+}
+
+export async function checkoutMarketplaceCart(
+  orgId: string,
+  body: { paymentMethod?: string; acceptTerms: true; clientId?: string },
+) {
+  return request<{
+    cartId: string;
+    status: string;
+    totalCents: number;
+    items: Array<{
+      engagementId: string;
+      paymentIntentId: string;
+      checkoutUrl: string | null;
+      amountCents: number;
+    }>;
+  }>(orgPath(orgId, "/marketplace/cart/checkout"), {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function initiateMarketplaceProviderPayment(
+  orgId: string,
+  engagementId: string,
+  body: { paymentMethod?: string } = {},
+) {
+  return request<{
+    paymentIntentId: string;
+    status: string;
+    checkoutUrl: string | null;
+    amountCents: number;
+    currency: string;
+    alreadyExists: boolean;
+  }>(orgPath(orgId, `/marketplace/engagements/${engagementId}/payment/provider`), {
+    method: "POST",
     body: JSON.stringify(body),
   });
 }

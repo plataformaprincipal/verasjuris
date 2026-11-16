@@ -1,5 +1,6 @@
 import { AppError } from "@verasjuris/types";
 import type { EmailProvider, OutboundEmail, SendEmailResult } from "./index.js";
+import { extractActionUrlFromText, renderTransactionalEmailHtml } from "./templates.js";
 
 export type ResendEmailProviderOptions = {
   apiKey: string;
@@ -39,6 +40,15 @@ export class ResendEmailProvider implements EmailProvider {
   }
 
   async send(message: OutboundEmail): Promise<SendEmailResult> {
+    const html =
+      message.html ??
+      renderTransactionalEmailHtml({
+        kind: message.kind,
+        subject: message.subject,
+        text: message.text,
+        actionUrl: extractActionUrlFromText(message.text),
+      });
+
     const response = await this.fetchImpl(this.endpoint, {
       method: "POST",
       headers: {
@@ -50,6 +60,7 @@ export class ResendEmailProvider implements EmailProvider {
         to: [message.to],
         subject: message.subject,
         text: message.text,
+        html,
       }),
     });
 

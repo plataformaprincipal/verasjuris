@@ -45,11 +45,14 @@ describe("ResendEmailProvider", () => {
       to: string[];
       subject: string;
       text: string;
+      html?: string;
     };
     expect(body.from).toBe("noreply@example.com");
     expect(body.to).toEqual(["user@example.com"]);
     expect(body.subject).toBe("Verifique seu e-mail");
     expect(body.text).toBe("Token de teste");
+    expect(body.html).toContain("VerasJuris");
+    expect(body.html).toContain("Confirmação de e-mail");
   });
 
   it("falha com EXTERNAL_SERVICE_ERROR sem vazar detalhes", async () => {

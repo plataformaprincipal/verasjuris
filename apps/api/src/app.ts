@@ -173,6 +173,7 @@ import { registerContractRoutes } from "./modules/contracts/routes.js";
 import { registerLegalAreaRoutes } from "./modules/legal-areas/routes.js";
 import { registerClientPortalRoutes } from "./modules/client-portal/routes.js";
 import { registerOnlineLawyerRoutes } from "./modules/online-lawyer/routes.js";
+import { registerJurisWorkRoutes } from "./modules/juris-work/routes.js";
 import { registerMarketplaceRoutes } from "./modules/marketplace/routes.js";
 import { registerProfessionalVerificationRoutes } from "./modules/professional-verification/routes.js";
 import { registerDiligenceRoutes } from "./modules/diligence/routes.js";
@@ -526,6 +527,7 @@ export async function buildApp(options: BuildAppOptions) {
       await registerClientPortalRoutes(v1, deps);
       await registerOnlineLawyerRoutes(v1, deps);
       await registerMarketplaceRoutes(v1, deps);
+      await registerJurisWorkRoutes(v1, deps);
       await registerProfessionalVerificationRoutes(v1, deps);
       await registerDiligenceRoutes(v1, deps);
       await registerExtrajudicialRoutes(v1, deps);

@@ -21,6 +21,7 @@ import {
   marketplaceProposals,
   marketplaceRequests,
   marketplaceServiceCategories,
+  paymentIntents,
   professionalServices,
   serviceReviews,
   type AppDatabase,
@@ -1023,6 +1024,34 @@ export async function acceptMarketplaceProposal(
           ),
         );
 
+      const [thread] = await tx
+        .insert(conversationThreads)
+        .values({
+          organizationId,
+          clientId: request.clientId,
+          subject: `Marketplace — ${sanitizeText(request.title).slice(0, 120)}`,
+          status: "open",
+          createdByUserId: account.user.id,
+          contextType: "marketplace_proposal",
+          contextId: proposal.id,
+        })
+        .returning();
+
+      await tx.insert(conversationParticipants).values([
+        {
+          organizationId,
+          threadId: thread!.id,
+          userId: request.requesterUserId,
+          participantRole: "client",
+        },
+        {
+          organizationId,
+          threadId: thread!.id,
+          userId: proposal.professionalProfileId,
+          participantRole: "provider",
+        },
+      ]);
+
       const [engagement] = await tx
         .insert(marketplaceEngagements)
         .values({
@@ -1031,11 +1060,21 @@ export async function acceptMarketplaceProposal(
           proposalId: proposal.id,
           clientId: request.clientId,
           professionalProfileId: proposal.professionalProfileId,
+          conversationThreadId: thread!.id,
           status: "pending_payment",
           revisionLimit: input.revisionLimit,
           startedAt: now,
         })
         .returning();
+
+      await tx
+        .update(conversationThreads)
+        .set({
+          contextType: "marketplace_engagement",
+          contextId: engagement!.id,
+          updatedAt: now,
+        })
+        .where(eq(conversationThreads.id, thread!.id));
 
       await tx
         .update(marketplaceRequests)
@@ -1485,25 +1524,218 @@ export async function createMarketplaceReview(
 }
 
 export async function initiateMarketplaceProviderPayment(
+  db: AppDatabase,
   account: SessionAccount,
   organizationId: string,
   engagementId: string,
+  input: { paymentMethod?: "pix" | "boleto" | "credit_card" },
   deps: MarketplaceModuleDeps,
+  meta: RequestMeta,
 ) {
   authorize(account, organizationId, (access) =>
     policyMarketplaceEngagement(access, "marketplace.engagement.manage"),
   );
+
   const health = await deps.paymentProvider.healthCheck();
-  if (health.status === "not_configured") {
+  const configured =
+    health.status !== "not_configured" && deps.paymentProvider.id !== "not_configured";
+  if (!configured) {
     throw new AppError(
       "PAYMENT_PROVIDER_NOT_CONFIGURED",
       "Pagamento online não está configurado. Registre o pagamento manualmente com comprovante.",
     );
   }
-  throw new AppError(
-    "NOT_CONFIGURED",
-    "Cobrança via provedor ainda não está disponível para o marketplace.",
-  );
+
+  const engagement = await requireEngagementInOrg(db, organizationId, engagementId);
+  if (engagement.status !== "pending_payment") {
+    throw new AppError(
+      "CONFLICT",
+      "Somente contratações aguardando pagamento podem iniciar cobrança online.",
+    );
+  }
+
+  const proposal = await db.query.marketplaceProposals.findFirst({
+    where: eq(marketplaceProposals.id, engagement.proposalId),
+  });
+  if (!proposal) {
+    throw new AppError("NOT_FOUND", "Proposta contratada não encontrada.");
+  }
+  if (proposal.amountCents <= 0) {
+    throw new AppError("VALIDATION_ERROR", "O valor da proposta deve ser maior que zero.");
+  }
+
+  const idempotencyKey = `marketplace_engagement:${engagementId}:v1`;
+  const existing = await db.query.paymentIntents.findFirst({
+    where: and(
+      eq(paymentIntents.organizationId, organizationId),
+      eq(paymentIntents.idempotencyKey, idempotencyKey),
+    ),
+  });
+  if (existing) {
+    const existingMeta =
+      existing.metadata && typeof existing.metadata === "object"
+        ? (existing.metadata as Record<string, unknown>)
+        : {};
+    return {
+      paymentIntentId: existing.id,
+      status: existing.status,
+      checkoutUrl:
+        typeof existingMeta.checkoutUrl === "string" ? existingMeta.checkoutUrl : null,
+      alreadyExists: true as const,
+      amountCents: existing.amountCents,
+      currency: existing.currency,
+    };
+  }
+
+  const paymentMethod = input.paymentMethod ?? "pix";
+  const providerResult = await deps.paymentProvider.createPaymentIntent({
+    amountCents: proposal.amountCents,
+    currency: "BRL",
+    paymentMethod,
+    description: `Marketplace ${engagementId.slice(0, 8)}`,
+    referenceType: "marketplace_engagement",
+    referenceId: engagementId,
+    idempotencyKey,
+    metadata: {
+      engagementId,
+      proposalId: proposal.id,
+      requestId: engagement.requestId,
+    },
+  });
+
+  if (providerResult.status === "not_configured" || !providerResult.externalIntentId) {
+    throw new AppError(
+      "PAYMENT_PROVIDER_NOT_CONFIGURED",
+      "O provedor não criou uma cobrança válida. Use pagamento manual com comprovante ou verifique as credenciais.",
+    );
+  }
+
+  try {
+    const [intent] = await db
+      .insert(paymentIntents)
+      .values({
+        organizationId,
+        payerType: engagement.clientId ? "crm_client" : "user",
+        payerId: engagement.clientId ?? account.user.id,
+        invoiceId: null,
+        referenceType: "marketplace_engagement",
+        referenceId: engagementId,
+        amountCents: proposal.amountCents,
+        currency: "BRL",
+        paymentMethod,
+        status: providerResult.status,
+        providerKey: providerResult.providerKey || deps.paymentProvider.id,
+        externalIntentId: providerResult.externalIntentId,
+        idempotencyKey,
+        expiresAt: providerResult.expiresAt ? new Date(providerResult.expiresAt) : null,
+        metadata: {
+          engagementId,
+          proposalId: proposal.id,
+          ...(providerResult.metadata ?? {}),
+          ...(providerResult.checkoutUrl ? { checkoutUrl: providerResult.checkoutUrl } : {}),
+        },
+      })
+      .returning();
+
+    await recordAudit(db, {
+      actorUserId: account.user.id,
+      organizationId,
+      action: "marketplace.payment_intent_created",
+      resourceType: "marketplace_engagement",
+      resourceId: engagementId,
+      source: "api",
+      requestId: meta.requestId,
+      ip: meta.ip,
+      after: {
+        paymentIntentId: intent!.id,
+        amountCents: intent!.amountCents,
+        providerKey: intent!.providerKey,
+        status: intent!.status,
+      },
+    });
+
+    return {
+      paymentIntentId: intent!.id,
+      status: intent!.status,
+      checkoutUrl: providerResult.checkoutUrl ?? null,
+      alreadyExists: false as const,
+      amountCents: intent!.amountCents,
+      currency: intent!.currency,
+    };
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      const raced = await db.query.paymentIntents.findFirst({
+        where: and(
+          eq(paymentIntents.organizationId, organizationId),
+          eq(paymentIntents.idempotencyKey, idempotencyKey),
+        ),
+      });
+      if (raced) {
+        const racedMeta =
+          raced.metadata && typeof raced.metadata === "object"
+            ? (raced.metadata as Record<string, unknown>)
+            : {};
+        return {
+          paymentIntentId: raced.id,
+          status: raced.status,
+          checkoutUrl: typeof racedMeta.checkoutUrl === "string" ? racedMeta.checkoutUrl : null,
+          alreadyExists: true as const,
+          amountCents: raced.amountCents,
+          currency: raced.currency,
+        };
+      }
+    }
+    throw error;
+  }
+}
+
+/**
+ * Liberação operacional após confirmação financeira confiável (webhook/provider/manual).
+ * Nunca chama a partir do redirect visual do checkout.
+ */
+export async function activateMarketplaceEngagementOnPayment(
+  db: AppDatabase,
+  input: {
+    organizationId: string;
+    engagementId: string;
+    paymentIntentId: string;
+  },
+): Promise<{ activated: boolean }> {
+  const engagement = await db.query.marketplaceEngagements.findFirst({
+    where: and(
+      eq(marketplaceEngagements.id, input.engagementId),
+      eq(marketplaceEngagements.organizationId, input.organizationId),
+    ),
+  });
+  if (!engagement) return { activated: false };
+  if (engagement.status !== "pending_payment") return { activated: false };
+
+  const now = new Date();
+  const [updated] = await db
+    .update(marketplaceEngagements)
+    .set({ status: "active", updatedAt: now })
+    .where(
+      and(
+        eq(marketplaceEngagements.id, engagement.id),
+        eq(marketplaceEngagements.status, "pending_payment"),
+      ),
+    )
+    .returning();
+  if (!updated) return { activated: false };
+
+  await recordAudit(db, {
+    actorUserId: null,
+    organizationId: input.organizationId,
+    action: "marketplace.engagement_activated_on_payment",
+    resourceType: "marketplace_engagement",
+    resourceId: engagement.id,
+    source: "system",
+    requestId: null,
+    ip: null,
+    after: { paymentIntentId: input.paymentIntentId, status: "active" },
+  });
+
+  return { activated: true };
 }
 
 export async function recordManualMarketplacePayment(

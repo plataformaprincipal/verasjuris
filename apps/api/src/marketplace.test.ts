@@ -178,7 +178,12 @@ describe("Etapa 17 — Marketplace jurídico API", () => {
       s.memberA,
     );
     expect(accepted.statusCode).toBe(200);
-    engagementId = accepted.json<{ engagement: { id: string } }>().engagement.id;
+    const acceptedBody = accepted.json<{
+      engagement: { id: string; conversationThreadId: string | null; status: string };
+    }>();
+    engagementId = acceptedBody.engagement.id;
+    expect(acceptedBody.engagement.status).toBe("pending_payment");
+    expect(acceptedBody.engagement.conversationThreadId).toBeTruthy();
 
     const delivery = await call(
       app,

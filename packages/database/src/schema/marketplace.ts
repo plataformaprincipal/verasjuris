@@ -468,3 +468,64 @@ export const serviceReviewsRelations = relations(serviceReviews, ({ one }) => ({
     references: [marketplaceEngagements.id],
   }),
 }));
+
+/** Carrinho persistente por usuário autenticado — preços sempre recalculados no servidor. */
+export const marketplaceCarts = pgTable(
+  "marketplace_carts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("open"),
+    ...timestamps,
+  },
+  (table) => [
+    index("marketplace_carts_org_user_idx").on(table.organizationId, table.userId),
+    index("marketplace_carts_user_idx").on(table.userId),
+  ],
+);
+
+export const marketplaceCartItems = pgTable(
+  "marketplace_cart_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cartId: uuid("cart_id")
+      .notNull()
+      .references(() => marketplaceCarts.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    professionalServiceId: uuid("professional_service_id")
+      .notNull()
+      .references(() => professionalServices.id, { onDelete: "restrict" }),
+    quantity: integer("quantity").notNull().default(1),
+    notes: text("notes"),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("marketplace_cart_items_cart_service_unique").on(
+      table.cartId,
+      table.professionalServiceId,
+    ),
+    index("marketplace_cart_items_org_idx").on(table.organizationId),
+  ],
+);
+
+export const marketplaceCartsRelations = relations(marketplaceCarts, ({ many }) => ({
+  items: many(marketplaceCartItems),
+}));
+
+export const marketplaceCartItemsRelations = relations(marketplaceCartItems, ({ one }) => ({
+  cart: one(marketplaceCarts, {
+    fields: [marketplaceCartItems.cartId],
+    references: [marketplaceCarts.id],
+  }),
+  service: one(professionalServices, {
+    fields: [marketplaceCartItems.professionalServiceId],
+    references: [professionalServices.id],
+  }),
+}));

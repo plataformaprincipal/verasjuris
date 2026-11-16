@@ -32,6 +32,7 @@ import { and, count, desc, eq, inArray, type SQL } from "drizzle-orm";
 import { authorize, iso } from "../ai/shared.js";
 import type { RequestMeta } from "../auth/service.js";
 import { requireDocumentInOrg } from "../documents/service.js";
+import { activateMarketplaceEngagementOnPayment } from "../marketplace/service.js";
 import { BillingService } from "./billing-service.js";
 import { LedgerPostingService } from "./ledger-posting-service.js";
 
@@ -561,6 +562,23 @@ export class PaymentService {
         result.invoiceId,
         result.payment.amountCents,
       );
+    }
+
+    if (!result.alreadyConfirmed) {
+      const intent = await this.db.query.paymentIntents.findFirst({
+        where: eq(paymentIntents.id, result.payment.paymentIntentId),
+      });
+      if (
+        intent?.referenceType === "marketplace_engagement" &&
+        intent.referenceId &&
+        intent.organizationId
+      ) {
+        await activateMarketplaceEngagementOnPayment(this.db, {
+          organizationId: intent.organizationId,
+          engagementId: intent.referenceId,
+          paymentIntentId: intent.id,
+        });
+      }
     }
 
     return {

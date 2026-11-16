@@ -2,6 +2,8 @@ import {
   acceptMarketplaceProposalSchema,
   createMarketplaceDeliverySchema,
   createMarketplaceRequestSchema,
+  addMarketplaceCartItemSchema,
+  checkoutMarketplaceCartSchema,
   createMarketplaceReviewSchema,
   createMarketplaceServiceSchema,
   manualMarketplacePaymentSchema,
@@ -10,14 +12,23 @@ import {
   openMarketplaceDisputeSchema,
   parseInput,
   patchMarketplaceProfileSchema,
+  providerMarketplacePaymentSchema,
   resolveMarketplaceDisputeSchema,
   reviewMarketplaceDeliverySchema,
   submitMarketplaceProposalSchema,
+  updateMarketplaceCartItemSchema,
   updateMarketplaceServiceSchema,
   uuidSchema,
 } from "@verasjuris/validation";
 import type { FastifyInstance } from "fastify";
 import { meta, requireAccount, type ApiDeps } from "../auth/routes.js";
+import {
+  addMarketplaceCartItem,
+  checkoutMarketplaceCart,
+  getMarketplaceCart,
+  removeMarketplaceCartItem,
+  updateMarketplaceCartItem,
+} from "./cart.js";
 import {
   acceptMarketplaceProposal,
   completeMarketplaceEngagement,
@@ -403,14 +414,75 @@ export async function registerMarketplaceRoutes(app: FastifyInstance, deps: ApiD
     return reply.status(201).send(result);
   });
 
+  app.get(`${root}/marketplace/cart`, async (request) => {
+    const account = await requireAccount(deps, request);
+    return getMarketplaceCart(deps.db, account, org(request.params as Params));
+  });
+
+  app.post(`${root}/marketplace/cart/items`, async (request, reply) => {
+    const account = await requireAccount(deps, request);
+    const input = parseInput(addMarketplaceCartItemSchema, request.body);
+    const result = await addMarketplaceCartItem(
+      deps.db,
+      account,
+      org(request.params as Params),
+      input,
+      meta(request),
+    );
+    return reply.status(201).send(result);
+  });
+
+  app.patch(`${root}/marketplace/cart/items/:itemId`, async (request) => {
+    const account = await requireAccount(deps, request);
+    const params = request.params as Params & { itemId?: string };
+    const input = parseInput(updateMarketplaceCartItemSchema, request.body);
+    return updateMarketplaceCartItem(
+      deps.db,
+      account,
+      org(params),
+      parseInput(uuidSchema, params.itemId),
+      input,
+      meta(request),
+    );
+  });
+
+  app.delete(`${root}/marketplace/cart/items/:itemId`, async (request) => {
+    const account = await requireAccount(deps, request);
+    const params = request.params as Params & { itemId?: string };
+    return removeMarketplaceCartItem(
+      deps.db,
+      account,
+      org(params),
+      parseInput(uuidSchema, params.itemId),
+      meta(request),
+    );
+  });
+
+  app.post(`${root}/marketplace/cart/checkout`, async (request) => {
+    const account = await requireAccount(deps, request);
+    const input = parseInput(checkoutMarketplaceCartSchema, request.body);
+    return checkoutMarketplaceCart(
+      deps.db,
+      account,
+      org(request.params as Params),
+      input,
+      moduleDeps(),
+      meta(request),
+    );
+  });
+
   app.post(`${root}/marketplace/engagements/:engagementId/payment/provider`, async (request) => {
     const account = await requireAccount(deps, request);
     const params = request.params as Params;
+    const input = parseInput(providerMarketplacePaymentSchema, request.body ?? {});
     return initiateMarketplaceProviderPayment(
+      deps.db,
       account,
       org(params),
       parseInput(uuidSchema, params.engagementId),
+      { paymentMethod: input.paymentMethod },
       moduleDeps(),
+      meta(request),
     );
   });
 

@@ -1,7 +1,16 @@
 import { AppError } from "@verasjuris/types";
 import { ResendEmailProvider } from "./resend-provider.js";
 
-export type EmailKind = "email_verification" | "password_reset" | "organization_invitation";
+export type EmailKind =
+  | "email_verification"
+  | "password_reset"
+  | "organization_invitation"
+  | "order_confirmation"
+  | "proposal_update"
+  | "payment_update"
+  | "engagement_update"
+  | "juris_work_update"
+  | "security_alert";
 
 export type EmailDeliveryStatus = "sent" | "not_configured" | "captured";
 
@@ -10,6 +19,8 @@ export type OutboundEmail = {
   to: string;
   subject: string;
   text: string;
+  /** HTML opcional; se omitido, o provedor Resend gera a partir do texto. */
+  html?: string;
   /** Presente apenas no adapter de memória (testes/dev). Nunca expor via API pública. */
   token?: string;
   metadata?: Record<string, string>;
@@ -101,3 +112,8 @@ export function publicEmailDeliveryMessage(status: EmailDeliveryStatus): string 
 }
 
 export { ResendEmailProvider, type ResendEmailProviderOptions } from "./resend-provider.js";
+export {
+  extractActionUrlFromText,
+  renderTransactionalEmailHtml,
+  type EmailTemplateRenderInput,
+} from "./templates.js";

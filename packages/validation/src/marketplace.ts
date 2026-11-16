@@ -198,6 +198,29 @@ export const manualMarketplacePaymentSchema = z.object({
   externalReference: z.string().trim().max(120).optional(),
 });
 
+export const providerMarketplacePaymentSchema = z.object({
+  paymentMethod: z.enum(["pix", "boleto", "credit_card"]).default("pix"),
+});
+
+export const addMarketplaceCartItemSchema = z.object({
+  professionalServiceId: uuid,
+  quantity: z.coerce.number().int().min(1).max(20).default(1),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const updateMarketplaceCartItemSchema = z.object({
+  quantity: z.coerce.number().int().min(1).max(20),
+  notes: z.string().trim().max(1000).optional(),
+});
+
+export const checkoutMarketplaceCartSchema = z.object({
+  paymentMethod: z.enum(["pix", "boleto", "credit_card"]).default("pix"),
+  acceptTerms: z.literal(true, {
+    errorMap: () => ({ message: "Aceite os termos para continuar." }),
+  }),
+  clientId: optionalUuid,
+});
+
 export const marketplaceListQuerySchema = z.object({
   status: z.string().trim().max(40).optional(),
   categoryId: optionalUuid,

@@ -155,6 +155,13 @@
       "when": 1793600000000,
       "tag": "0021_onboarding_profile_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793700000000,
+      "tag": "0022_marketplace_cart_juris_work",
+      "breakpoints": true
     }
   ]
 }
