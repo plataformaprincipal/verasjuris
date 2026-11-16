@@ -143,10 +143,16 @@ describe("API da fundação", () => {
     expect(crossMember.statusCode).toBe(404);
 
     const caioSession = await call(app, "GET", "/v1/auth/session", undefined, caioCookie);
+    const caioMemberships = caioSession.json<{
+      account: { memberships: Array<{ organizationId: string; roles: string[] }> };
+    }>().account.memberships;
+    // Cadastro cria org pessoal (owner); o convite à Alfa adiciona membership member.
     expect(
-      caioSession.json<{ account: { memberships: Array<{ roles: string[] }> } }>().account
-        .memberships[0]?.roles,
-    ).toEqual(["member"]);
+      caioMemberships.some(
+        (membership) =>
+          membership.organizationId === alfaId && membership.roles.includes("member"),
+      ),
+    ).toBe(true);
 
     const forbiddenUpdate = await call(
       app,

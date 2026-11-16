@@ -1,46 +1,40 @@
 import { describe, expect, it } from "vitest";
-import { MESSAGE_CATALOGS } from "./catalogs";
+import { MESSAGE_CATALOGS, SOURCE_KEYS } from "./catalogs";
 import { coverageReport, differenceRatio, listMissingKeys } from "./coverage";
-import { LOCALE_META, SUPPORTED_LOCALES, type Locale } from "./locales";
+import { DEFAULT_LOCALE, LOCALE_META, SUPPORTED_LOCALES, normalizeLocale } from "./locales";
 
-const RTL_LOCALES: Locale[] = ["ar-SA", "he-IL", "fa-IR"];
-
-describe("i18n coverage", () => {
-  it("formaliza exatamente 30 locales", () => {
-    expect(SUPPORTED_LOCALES).toHaveLength(30);
-    expect(Object.keys(MESSAGE_CATALOGS)).toHaveLength(30);
+describe("i18n coverage — três idiomas oficiais", () => {
+  it("formaliza exatamente pt-BR, en-US e es-ES", () => {
+    expect(SUPPORTED_LOCALES).toEqual(["pt-BR", "en-US", "es-ES"]);
+    expect(Object.keys(MESSAGE_CATALOGS).sort()).toEqual(["en-US", "es-ES", "pt-BR"]);
   });
 
-  it("garante 100% das chaves de pt-BR em cada locale", () => {
+  it("garante 100% das chaves de pt-BR em cada locale oficial", () => {
     const report = coverageReport();
     for (const locale of SUPPORTED_LOCALES) {
       expect(listMissingKeys(locale), locale).toEqual([]);
       expect(report[locale], locale).toBe(100);
     }
+    expect(SOURCE_KEYS.length).toBeGreaterThan(150);
   });
 
-  it("marca RTL para ar-SA, he-IL e fa-IR", () => {
-    for (const locale of RTL_LOCALES) {
-      expect(LOCALE_META[locale].dir).toBe("rtl");
-    }
+  it("usa direção LTR nos três idiomas oficiais", () => {
     for (const locale of SUPPORTED_LOCALES) {
-      if (!RTL_LOCALES.includes(locale)) {
-        expect(LOCALE_META[locale].dir).toBe("ltr");
-      }
+      expect(LOCALE_META[locale].dir).toBe("ltr");
     }
   });
 
-  it("não copia o catálogo pt-BR para outros idiomas", () => {
-    for (const locale of SUPPORTED_LOCALES) {
-      if (locale === "pt-BR") continue;
-      expect(differenceRatio(locale), locale).toBeGreaterThan(0);
-    }
+  it("não copia o catálogo pt-BR para en-US e es-ES", () => {
     expect(differenceRatio("en-US")).toBeGreaterThanOrEqual(0.8);
-    expect(differenceRatio("fr-FR")).toBeGreaterThanOrEqual(0.8);
-    expect(differenceRatio("de-DE")).toBeGreaterThanOrEqual(0.8);
-    expect(differenceRatio("ar-SA")).toBeGreaterThanOrEqual(0.8);
-    expect(differenceRatio("ja-JP")).toBeGreaterThanOrEqual(0.8);
-    // Cognatos com o português: exige maioria distinta, não 80%.
     expect(differenceRatio("es-ES")).toBeGreaterThanOrEqual(0.5);
+  });
+
+  it("normaliza locales legados para os oficiais e faz fallback para pt-BR", () => {
+    expect(normalizeLocale("pt-PT")).toBe("pt-BR");
+    expect(normalizeLocale("en-GB")).toBe("en-US");
+    expect(normalizeLocale("es-MX")).toBe("es-ES");
+    expect(normalizeLocale("fr-FR")).toBeNull();
+    expect(normalizeLocale("en")).toBe("en-US");
+    expect(DEFAULT_LOCALE).toBe("pt-BR");
   });
 });

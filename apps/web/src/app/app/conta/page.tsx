@@ -202,7 +202,11 @@ export default function AccountPage() {
               required
             />
           </FormField>
-          <FormField id="newPassword" label="Nova senha" hint="Use pelo menos 12 caracteres.">
+          <FormField
+            id="newPassword"
+            label="Nova senha"
+            hint="Mínimo de 8 caracteres, com maiúscula, minúscula, número e caractere especial."
+          >
             <Input
               id="newPassword"
               name="newPassword"

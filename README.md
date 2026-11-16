@@ -29,7 +29,7 @@ pnpm dev
 - API: http://127.0.0.1:4000/health
 - Worker: http://127.0.0.1:4001/health
 
-`pnpm db:seed` grava os papéis e as permissões de referência. Sem essa etapa, a API recusa iniciar. Um usuário local só é criado se `SEED_USER_NAME`, `SEED_USER_EMAIL` e `SEED_USER_PASSWORD` estiverem preenchidos no `.env`. A senha precisa ter pelo menos 12 caracteres e não fica no repositório.
+`pnpm db:seed` grava os papéis e as permissões de referência. Sem essa etapa, a API recusa iniciar. Um usuário local só é criado se `SEED_USER_NAME`, `SEED_USER_EMAIL` e `SEED_USER_PASSWORD` estiverem preenchidos no `.env`. A senha precisa ter pelo menos 8 caracteres (com maiúscula, minúscula, número e caractere especial) e não fica no repositório.
 
 Se o Docker não estiver disponível, suba um PostgreSQL 16 local com o mesmo usuário, senha e banco descritos em `.env.example`.
 

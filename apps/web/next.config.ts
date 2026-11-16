@@ -1,16 +1,24 @@
 import type { NextConfig } from "next";
 
+/** Hosts oficiais do plugin VLibras (gov.br) — necessários para Libras funcional. */
+const VLIBRAS_HOSTS =
+  "https://vlibras.gov.br https://www.vlibras.gov.br https://*.vlibras.gov.br https://cdn.jsdelivr.net";
+
 const contentSecurityPolicy = [
   "default-src 'self'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  "img-src 'self' data:",
+  `img-src 'self' data: blob: ${VLIBRAS_HOSTS}`,
   "font-src 'self' data:",
-  "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  "connect-src 'self'",
+  `style-src 'self' 'unsafe-inline' ${VLIBRAS_HOSTS}`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: ${VLIBRAS_HOSTS}`,
+  `connect-src 'self' ${VLIBRAS_HOSTS}`,
+  `frame-src 'self' ${VLIBRAS_HOSTS}`,
+  `worker-src 'self' blob: ${VLIBRAS_HOSTS}`,
+  `child-src 'self' blob: ${VLIBRAS_HOSTS}`,
+  `media-src 'self' blob: ${VLIBRAS_HOSTS}`,
 ].join("; ");
 
 const nextConfig: NextConfig = {

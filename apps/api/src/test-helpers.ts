@@ -3,7 +3,8 @@ import { CSRF_HEADER, SESSION_COOKIE } from "@verasjuris/security";
 import type { FastifyInstance } from "fastify";
 import { expect } from "vitest";
 
-export const testPassword = "senha-local-12";
+/** Atende política BOA/EXCELENTE (≥8, maiúscula, minúscula, número e especial). */
+export const testPassword = "Veras@Local12";
 
 export async function call(
   app: FastifyInstance,

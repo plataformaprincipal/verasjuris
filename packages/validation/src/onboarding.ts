@@ -1,12 +1,13 @@
 import { z } from "zod";
+import { validateBirthDateValue } from "./birth-date.js";
 import {
   digitsOnly,
-  isCommonPassword,
   isValidCep,
   isValidCnpj,
   isValidCpf,
   toE164BrMobile,
 } from "./br-documents.js";
+import { passwordSchema } from "./password-policy.js";
 
 const emailSchema = z
   .string()
@@ -15,11 +16,6 @@ const emailSchema = z
   .max(320, "O e-mail é longo demais.")
   .email("Informe um e-mail válido.")
   .transform((value) => value.toLowerCase());
-
-const passwordSchema = z
-  .string()
-  .min(12, "A senha precisa ter pelo menos 12 caracteres.")
-  .max(128, "A senha é longa demais.");
 
 const displayNameSchema = z
   .string()
@@ -132,16 +128,12 @@ const phoneSchema = z
 const birthDateSchema = z
   .string()
   .trim()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data no formato AAAA-MM-DD.")
-  .refine((value) => {
-    const date = new Date(`${value}T12:00:00.000Z`);
-    if (Number.isNaN(date.getTime())) return false;
-    const now = new Date();
-    if (date > now) return false;
-    const ageMs = now.getTime() - date.getTime();
-    const years = ageMs / (365.25 * 24 * 60 * 60 * 1000);
-    return years >= 16 && years <= 120;
-  }, "Informe uma data de nascimento válida.");
+  .superRefine((value, ctx) => {
+    const message = validateBirthDateValue(value);
+    if (message) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+    }
+  });
 
 const cepSchema = z
   .string()
@@ -166,9 +158,7 @@ const addressSchema = z.object({
 
 const passwordPairSchema = z
   .object({
-    password: passwordSchema.refine((value) => !isCommonPassword(value), {
-      message: "Escolha uma senha menos comum.",
-    }),
+    password: passwordSchema,
     passwordConfirm: z.string().min(1, "Confirme a senha."),
   })
   .superRefine((value, ctx) => {
@@ -242,9 +232,7 @@ export const onboardingRegisterSchema = z
       ])
       .optional(),
     partnerDescription: z.string().trim().max(600).optional().or(z.literal("")),
-    password: passwordSchema.refine((value) => !isCommonPassword(value), {
-      message: "Escolha uma senha menos comum.",
-    }),
+    password: passwordSchema,
     passwordConfirm: z.string().min(1, "Confirme a senha."),
     acceptTerms: z.literal(true, {
       errorMap: () => ({ message: "Aceite os Termos de Uso para continuar." }),

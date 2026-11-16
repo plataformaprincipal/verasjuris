@@ -23,7 +23,7 @@ export default async function ResetPasswordPage({
         <div className="vj-card vj-panel vj-auth-panel">
           <h1 className="vj-title">Redefinir senha</h1>
           <p>
-            Defina uma nova senha com pelo menos 12 caracteres. As sessões anteriores serão
+            Defina uma nova senha com pelo menos 8 caracteres, incluindo maiúscula, minúscula, número e caractere especial. As sessões anteriores serão
             encerradas.
           </p>
           <ConfirmResetForm token={params.token ?? ""} />

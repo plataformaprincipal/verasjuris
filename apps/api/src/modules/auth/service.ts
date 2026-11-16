@@ -11,6 +11,7 @@ import type { AppDatabase } from "@verasjuris/database";
 import {
   emailVerificationTokens,
   isUniqueViolation,
+  uniqueViolationInfo,
   lawyerProfiles,
   membershipRoles,
   organizationMembers,
@@ -191,7 +192,8 @@ export async function registerAccount(
   if (existing) {
     throw new AppError(
       "CONFLICT",
-      "Não foi possível criar a conta com os dados informados. Se você já possui acesso, entre com seu e-mail e senha.",
+      "Este e-mail já está cadastrado. Entre com seu e-mail e senha ou recupere o acesso.",
+      [{ path: "email", message: "Este e-mail já está cadastrado." }],
     );
   }
 
@@ -202,7 +204,8 @@ export async function registerAccount(
     if (cpfOwner) {
       throw new AppError(
         "CONFLICT",
-        "Não foi possível criar a conta com os dados informados. Se você já possui acesso, entre com seu e-mail e senha.",
+        "Este CPF já está cadastrado. Se você já possui acesso, entre com seu e-mail e senha.",
+        [{ path: "cpf", message: "Este CPF já está cadastrado." }],
       );
     }
   }
@@ -367,6 +370,23 @@ export async function registerAccount(
     await ensureJudicialReferenceCatalog(db);
   } catch (error) {
     if (isUniqueViolation(error)) {
+      const info = uniqueViolationInfo(error);
+      const constraint = info?.constraint?.toLowerCase() ?? "";
+      const detail = info?.detail?.toLowerCase() ?? "";
+      if (constraint.includes("email") || detail.includes("(email)")) {
+        throw new AppError(
+          "CONFLICT",
+          "Este e-mail já está cadastrado. Entre com seu e-mail e senha ou recupere o acesso.",
+          [{ path: "email", message: "Este e-mail já está cadastrado." }],
+        );
+      }
+      if (constraint.includes("cpf") || detail.includes("cpf_normalized")) {
+        throw new AppError(
+          "CONFLICT",
+          "Este CPF já está cadastrado. Se você já possui acesso, entre com seu e-mail e senha.",
+          [{ path: "cpf", message: "Este CPF já está cadastrado." }],
+        );
+      }
       throw new AppError(
         "CONFLICT",
         "Não foi possível criar a conta com os dados informados. Se você já possui acesso, entre com seu e-mail e senha.",

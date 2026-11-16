@@ -10,7 +10,7 @@ Data de referência: 2026-11-11. Branch base: `fix/production-hardening-compilat
 | Arquivos web com `useLocale`/`t(` | ~55 |
 | Arquivos com strings PT hardcoded (amostra Entrar/Painel/…) | ~296 |
 | Locales documentados antes | 3 (`pt-BR`, `en-US`, `es-ES`) |
-| Lista canônica de 30 idiomas no repositório | **Ausente** (formalizada nesta reformulação) |
+| Lista canônica de idiomas oficiais (pt-BR, en-US, es-ES) | **Presente** em `locales.ts` |
 | Painel a11y | Presente, mas sync API↔cliente com contratos divergentes |
 | Auth pages | `/entrar`, `/cadastro`, `/recuperar-conta`, `/redefinir-senha`, `/verificar-email` |
 
@@ -43,7 +43,7 @@ Legenda: FUNCIONAL · PARCIALMENTE FUNCIONAL · NÃO FUNCIONAL · NÃO IMPLEMENT
 
 | Lote | Foco | Estado |
 | --- | --- | --- |
-| A | Fundação i18n 30 locales, a11y sync, design tokens, auditoria | Entregue (parcial: cobertura de strings ainda concentrada no chrome/auth) |
+| A | Fundação i18n (pt-BR/en-US/es-ES), a11y sync, design tokens, auditoria | Entregue (parcial: cobertura de strings ainda concentrada no chrome/auth) |
 | B | Auth UX profissional + i18n | Entregue (forms + páginas; E2E homologação pendente) |
 | C | Shell, dashboard, homepage, navegação | Parcial (homepage + shell i18n; dashboard ainda PT em breadcrumbs) |
 | D–E | Módulos jurídicos/avançados | Pendente |
@@ -51,6 +51,6 @@ Legenda: FUNCIONAL · PARCIALMENTE FUNCIONAL · NÃO FUNCIONAL · NÃO IMPLEMENT
 
 ## Observações de execução
 
-- Nenhuma lista prévia de 30 idiomas foi encontrada em `docs/` ou ADRs; a lista canônica é introduzida no código i18n desta branch.
+- Idiomas oficiais da UI: `pt-BR`, `en-US`, `es-ES` (lista canônica em `apps/web/src/lib/i18n/locales.ts`).
 - Não declarar WCAG AA integral só com axe; testes manuais VoiceOver/NVDA permanecem necessários.
 - Conteúdo de usuário/documentos jurídicos **não** é traduzido automaticamente.

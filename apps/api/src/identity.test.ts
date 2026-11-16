@@ -106,7 +106,7 @@ describe("Etapa 1 — identidade", () => {
 
     const mail = email.latest("password_reset", "icaro@exemplo.com");
     expect(mail?.token).toBeTruthy();
-    const newPassword = "nova-senha-segura";
+    const newPassword = "Nova-Senha-Segura9!";
     const reset = await call(app, "POST", "/v1/auth/password-reset/confirm", {
       token: mail?.token,
       password: newPassword,

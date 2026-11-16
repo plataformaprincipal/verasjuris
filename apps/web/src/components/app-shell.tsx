@@ -243,7 +243,7 @@ export function AppShell({
             )}
           </div>
           <div className="vj-header-actions">
-            <LanguageSwitcher />
+            <LanguageSwitcher compact />
             <Menu label={userName}>
               <p className="vj-meta" role="presentation">
                 {email}

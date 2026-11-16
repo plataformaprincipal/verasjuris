@@ -32,7 +32,9 @@ Data: 2026-11-13.
 
 ## Campos
 
-- **Obrigatórios comuns:** nome, e-mail, telefone, endereço, senha (≥12), termos + privacidade.
+- **Obrigatórios comuns:** nome, e-mail, telefone, endereço, senha (≥8 com composição; classificação Boa/Excelente), termos + privacidade.
+- **Idade mínima provisória:** 18 anos (documentada para aprovação antes da publicação; mensagem específica distinta de data inválida).
+- **Senha:** mínimo 8 (Boa) / 12+ (Excelente), com maiúscula, minúscula, número e especial; comuns continuam rejeitadas.
 - **Por persona:** CPF/CNPJ/OAB/org conforme schema `onboardingRegisterSchema`.
 - **Opcionais:** nome social, complemento, marketing (desmarcado), descrição/áreas.
 

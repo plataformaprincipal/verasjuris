@@ -16,7 +16,10 @@ export type ColorVisionMode =
   | "tritanopia"
   | "achromatopsia";
 export type InterfaceDensity = "comfortable" | "compact" | "spacious";
-export type ColorTheme = "system" | "light" | "dark";
+export type ColorTheme = "system" | "light" | "dark" | "black";
+export type LetterSpacingMode = "normal" | "wide" | "wider";
+export type LineSpacingMode = "normal" | "relaxed" | "loose";
+export type UiZoomMode = "100" | "110" | "125" | "150";
 
 export type AccessibilityPreferences = {
   fontScale: string;
@@ -40,6 +43,12 @@ export type AccessibilityPreferences = {
   largeControls?: boolean;
   underlineLinks?: boolean;
   colorTheme?: ColorTheme;
+  /** Local-only until API schema expands. */
+  letterSpacing?: LetterSpacingMode;
+  highlightInteractive?: boolean;
+  uiZoom?: UiZoomMode;
+  reduceDistractions?: boolean;
+  simplifiedUi?: boolean;
 };
 
 /** Shape returned/accepted by `/v1/me/accessibility-preferences`. */
@@ -71,6 +80,18 @@ export type AccessibilityApiPreferences = {
   reducedTransparency?: boolean;
 };
 
+/** Campos locais que a API ainda não persiste — preservados no merge. */
+export type AccessibilityLocalExtras = Pick<
+  AccessibilityPreferences,
+  | "underlineLinks"
+  | "colorTheme"
+  | "letterSpacing"
+  | "highlightInteractive"
+  | "uiZoom"
+  | "reduceDistractions"
+  | "simplifiedUi"
+>;
+
 export const DEFAULT_A11Y: AccessibilityPreferences = {
   fontScale: "100",
   lineSpacing: "normal",
@@ -93,6 +114,11 @@ export const DEFAULT_A11Y: AccessibilityPreferences = {
   largeControls: false,
   underlineLinks: false,
   colorTheme: "system",
+  letterSpacing: "normal",
+  highlightInteractive: false,
+  uiZoom: "100",
+  reduceDistractions: false,
+  simplifiedUi: false,
 };
 
 export type QuickProfileId =
@@ -131,6 +157,7 @@ export const QUICK_PROFILES: Array<{
       largeControls: true,
       focusEnhancement: true,
       interfaceDensity: "spacious",
+      uiZoom: "125",
       activeProfile: "low_vision",
     },
   },
@@ -166,6 +193,8 @@ export const QUICK_PROFILES: Array<{
       cognitiveSupportMode: true,
       reducedMotion: true,
       simplifiedLanguage: true,
+      reduceDistractions: true,
+      simplifiedUi: true,
       activeProfile: "autism",
     },
   },
@@ -175,6 +204,7 @@ export const QUICK_PROFILES: Array<{
     patch: {
       dyslexiaFriendlyMode: true,
       lineSpacing: "relaxed",
+      letterSpacing: "wide",
       readingGuide: true,
       fontScale: "120",
       activeProfile: "dyslexia",
@@ -187,6 +217,7 @@ export const QUICK_PROFILES: Array<{
       cognitiveSupportMode: true,
       reducedMotion: true,
       readingGuide: true,
+      reduceDistractions: true,
       activeProfile: "adhd",
     },
   },
@@ -206,12 +237,27 @@ export const QUICK_PROFILES: Array<{
     patch: {
       simplifiedLanguage: true,
       cognitiveSupportMode: true,
+      simplifiedUi: true,
+      reduceDistractions: true,
       activeProfile: "simplified",
     },
   },
 ];
 
 const STORAGE_KEY = "vj.accessibility.preferences";
+export const A11Y_CHANGE_EVENT = "vj:accessibility-change";
+
+function pickLocalExtras(prefs: AccessibilityPreferences): AccessibilityLocalExtras {
+  return {
+    underlineLinks: prefs.underlineLinks,
+    colorTheme: prefs.colorTheme,
+    letterSpacing: prefs.letterSpacing,
+    highlightInteractive: prefs.highlightInteractive,
+    uiZoom: prefs.uiZoom,
+    reduceDistractions: prefs.reduceDistractions,
+    simplifiedUi: prefs.simplifiedUi,
+  };
+}
 
 export function loadLocalAccessibility(): AccessibilityPreferences {
   if (typeof window === "undefined") return { ...DEFAULT_A11Y };
@@ -227,6 +273,7 @@ export function loadLocalAccessibility(): AccessibilityPreferences {
 export function saveLocalAccessibility(prefs: AccessibilityPreferences): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+  window.dispatchEvent(new CustomEvent(A11Y_CHANGE_EVENT, { detail: prefs }));
 }
 
 function mapContrastFromApi(mode?: string): ContrastMode {
@@ -250,14 +297,14 @@ function mapContrastToApi(
 
 export function fromApi(
   api: AccessibilityApiPreferences,
-  localExtras?: Pick<AccessibilityPreferences, "underlineLinks" | "colorTheme">,
+  localExtras?: AccessibilityLocalExtras,
 ): AccessibilityPreferences {
   return fromApiPreferences(api, localExtras);
 }
 
 export function fromApiPreferences(
   api: AccessibilityApiPreferences,
-  localExtras?: Pick<AccessibilityPreferences, "underlineLinks" | "colorTheme">,
+  localExtras?: AccessibilityLocalExtras,
 ): AccessibilityPreferences {
   const fontScale = String(api.fontScalePercent ?? api.fontScale ?? DEFAULT_A11Y.fontScale);
   const largeControls =
@@ -291,6 +338,11 @@ export function fromApiPreferences(
     largeControls: Boolean(largeControls),
     underlineLinks: localExtras?.underlineLinks ?? DEFAULT_A11Y.underlineLinks,
     colorTheme: localExtras?.colorTheme ?? DEFAULT_A11Y.colorTheme,
+    letterSpacing: localExtras?.letterSpacing ?? DEFAULT_A11Y.letterSpacing,
+    highlightInteractive: localExtras?.highlightInteractive ?? DEFAULT_A11Y.highlightInteractive,
+    uiZoom: localExtras?.uiZoom ?? DEFAULT_A11Y.uiZoom,
+    reduceDistractions: localExtras?.reduceDistractions ?? DEFAULT_A11Y.reduceDistractions,
+    simplifiedUi: localExtras?.simplifiedUi ?? DEFAULT_A11Y.simplifiedUi,
   };
 }
 
@@ -331,30 +383,51 @@ export function toApiPatch(patch: Partial<AccessibilityPreferences>): Record<str
   if (patch.reducedTransparency !== undefined) {
     body.reducedTransparency = patch.reducedTransparency;
   }
+  // Local-only fields intentionally omitted from API body.
   return body;
 }
 
-/** Aplica preferências em <html> via CSS variables e data-attributes. */
+function boolAttr(value: boolean | undefined): "true" | "false" {
+  return value ? "true" : "false";
+}
+
+/** Aplica preferências em <html> via CSS variables e data-attributes (sem filtros globais). */
 export function applyAccessibilityToDocument(prefs: AccessibilityPreferences): void {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
   const scale = Number.parseInt(prefs.fontScale, 10);
+  const zoom = Number.parseInt(prefs.uiZoom ?? "100", 10);
   root.style.setProperty("--vj-a11y-font-scale", Number.isFinite(scale) ? `${scale / 100}` : "1");
+  root.style.setProperty("--vj-a11y-ui-zoom", Number.isFinite(zoom) ? `${zoom / 100}` : "1");
+
+  const letter =
+    prefs.letterSpacing === "wider" ? "0.08em" : prefs.letterSpacing === "wide" ? "0.04em" : "0";
+  root.style.setProperty("--vj-a11y-letter-spacing", letter);
+
   root.dataset.contrast = prefs.contrastMode;
   root.dataset.colorVision = prefs.colorVisionMode;
-  root.dataset.reducedMotion = prefs.reducedMotion ? "true" : "false";
-  root.dataset.cognitiveSupport = prefs.cognitiveSupportMode ? "true" : "false";
-  root.dataset.readingGuide = prefs.readingGuide ? "true" : "false";
-  root.dataset.dyslexia = prefs.dyslexiaFriendlyMode ? "true" : "false";
-  root.dataset.lineSpacing = prefs.lineSpacing;
-  root.dataset.focusEnhancement = prefs.focusEnhancement ? "true" : "false";
-  root.dataset.largeControls = prefs.largeControls ? "true" : "false";
-  root.dataset.simplifiedLanguage = prefs.simplifiedLanguage ? "true" : "false";
-  root.dataset.keyboardOnly = prefs.keyboardOnly ? "true" : "false";
+  root.dataset.reducedMotion = boolAttr(prefs.reducedMotion);
+  root.dataset.cognitiveSupport = boolAttr(prefs.cognitiveSupportMode);
+  root.dataset.readingGuide = boolAttr(prefs.readingGuide);
+  root.dataset.dyslexia = boolAttr(prefs.dyslexiaFriendlyMode);
+  root.dataset.lineSpacing = prefs.lineSpacing || "normal";
+  root.dataset.letterSpacing = prefs.letterSpacing ?? "normal";
+  root.dataset.focusEnhancement = boolAttr(prefs.focusEnhancement);
+  root.dataset.largeControls = boolAttr(prefs.largeControls);
+  root.dataset.simplifiedLanguage = boolAttr(prefs.simplifiedLanguage);
+  root.dataset.keyboardOnly = boolAttr(prefs.keyboardOnly);
   root.dataset.density = prefs.interfaceDensity;
   root.dataset.a11yProfile = prefs.activeProfile ?? "";
-  root.dataset.underlineLinks = prefs.underlineLinks ? "true" : "false";
+  root.dataset.underlineLinks = boolAttr(prefs.underlineLinks);
   root.dataset.theme = prefs.colorTheme ?? "system";
+  root.dataset.highlightInteractive = boolAttr(prefs.highlightInteractive);
+  root.dataset.largeCursor = boolAttr(prefs.highVisibilityCursor);
+  root.dataset.uiZoom = prefs.uiZoom ?? "100";
+  root.dataset.reduceDistractions = boolAttr(prefs.reduceDistractions);
+  root.dataset.simplifiedUi = boolAttr(prefs.simplifiedUi);
+  root.dataset.screenReader = boolAttr(prefs.screenReaderOptimized);
+  root.dataset.signLanguage = boolAttr(prefs.signLanguagePreferred);
+  root.dataset.reducedTransparency = boolAttr(prefs.reducedTransparency);
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T | AiApiFailure> {
@@ -388,10 +461,7 @@ export async function fetchAccessibilityPreferences(): Promise<
     "/api/v1/me/accessibility-preferences",
   );
   if (isApiFailure(res)) return res;
-  return fromApiPreferences(res.preferences, {
-    underlineLinks: local.underlineLinks,
-    colorTheme: local.colorTheme,
-  });
+  return fromApiPreferences(res.preferences, pickLocalExtras(local));
 }
 
 export async function updateAccessibilityPreferences(
@@ -410,13 +480,10 @@ export async function updateAccessibilityPreferences(
     { method: "PUT", body: JSON.stringify(toApiPatch(patch)) },
   );
   if (isApiFailure(res)) {
-    // Preferências locais (incl. tema/underline) permanecem aplicadas.
+    // Preferências locais (tema, letter-spacing, etc.) permanecem aplicadas.
     return nextLocal;
   }
-  return fromApiPreferences(res.preferences, {
-    underlineLinks: nextLocal.underlineLinks,
-    colorTheme: nextLocal.colorTheme,
-  });
+  return fromApiPreferences(res.preferences, pickLocalExtras(nextLocal));
 }
 
 /** Documentação: gráficos devem oferecer tabela alternativa (padrão control-ui). */

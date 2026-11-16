@@ -336,7 +336,7 @@ describe("Etapa 21 — Payments API", () => {
     // Login on not-configured app with same credentials
     const login = await call(appNotConfigured, "POST", "/v1/auth/login", {
       email: "owner.a.payments@exemplo.com",
-      password: "senha-local-12",
+      password: "Veras@Local12",
     });
     expect(login.statusCode).toBe(200);
     const raw = login.headers["set-cookie"];

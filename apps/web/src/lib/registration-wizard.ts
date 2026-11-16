@@ -1,8 +1,11 @@
 import {
+  passwordPolicyError,
+  validateBirthDateValue,
+} from "@verasjuris/validation";
+import {
   formatCep,
   formatCnpj,
   formatCpf,
-  isCommonPassword,
   isValidCep,
   isValidCnpj,
   isValidCpf,
@@ -230,14 +233,7 @@ export function maskPhone(value: string): string {
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function validateBirthDate(value: string, now: Date = new Date()): string | undefined {
-  const trimmed = value.trim();
-  if (!trimmed) return "Informe a data de nascimento.";
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return "Informe uma data de nascimento válida.";
-  const date = new Date(`${trimmed}T12:00:00.000Z`);
-  if (Number.isNaN(date.getTime()) || date > now) return "Informe uma data de nascimento válida.";
-  const years = (now.getTime() - date.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
-  if (years < 16 || years > 120) return "Informe uma data de nascimento válida.";
-  return undefined;
+  return validateBirthDateValue(value, now);
 }
 
 export function validatePasswordFields(
@@ -245,9 +241,8 @@ export function validatePasswordFields(
   passwordConfirm: string,
 ): Pick<WizardErrors, "password" | "passwordConfirm"> {
   const errors: Pick<WizardErrors, "password" | "passwordConfirm"> = {};
-  if (password.length < 12) errors.password = "A senha precisa ter pelo menos 12 caracteres.";
-  else if (password.length > 128) errors.password = "A senha é longa demais.";
-  else if (isCommonPassword(password)) errors.password = "Escolha uma senha menos comum.";
+  const passwordError = passwordPolicyError(password);
+  if (passwordError) errors.password = passwordError;
   if (!passwordConfirm) errors.passwordConfirm = "Confirme a senha.";
   else if (password !== passwordConfirm) errors.passwordConfirm = "As senhas não coincidem.";
   return errors;

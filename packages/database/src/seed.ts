@@ -100,9 +100,9 @@ export async function seedDevelopmentUser(
   const email = env.SEED_USER_EMAIL.trim().toLowerCase();
   const password = env.SEED_USER_PASSWORD;
   if (!name && !email && !password) return "skipped";
-  if (!name || !email || password.length < 12) {
+  if (!name || !email || password.length < 8) {
     throw new Error(
-      "Para criar o usuário de desenvolvimento, informe SEED_USER_NAME, SEED_USER_EMAIL e SEED_USER_PASSWORD com pelo menos 12 caracteres.",
+      "Para criar o usuário de desenvolvimento, informe SEED_USER_NAME, SEED_USER_EMAIL e SEED_USER_PASSWORD com pelo menos 8 caracteres (maiúscula, minúscula, número e especial).",
     );
   }
   const existing = await db.query.users.findFirst({ where: eq(users.email, email) });

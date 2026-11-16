@@ -36,8 +36,8 @@ const baseFilled: Partial<WizardState> = {
   district: "Bela Vista",
   city: "São Paulo",
   state: "SP",
-  password: "uma-senha-bem-longa-9!",
-  passwordConfirm: "uma-senha-bem-longa-9!",
+  password: "Uma-senha-bem-longa-9!",
+  passwordConfirm: "Uma-senha-bem-longa-9!",
   acceptTerms: true,
   acceptPrivacy: true,
 };
@@ -80,12 +80,17 @@ describe("validateStep", () => {
     expect(validateStep("identification", pj, NOW)).toEqual({});
   });
 
-  it("rejeita data de nascimento futura ou de menor de 16 anos", () => {
+  it("distingue data futura, idade insuficiente e data válida", () => {
     const base = { persona: "lawyer" as const, fullName: "Ana Lima", cpf: VALID_CPF };
     expect(validateStep("identification", state({ ...base, birthDate: "2027-01-01" }), NOW).birthDate)
-      .toBeDefined();
+      .toBe("A data de nascimento não pode ser posterior à data atual.");
     expect(validateStep("identification", state({ ...base, birthDate: "2020-01-01" }), NOW).birthDate)
-      .toBeDefined();
+      .toBe("Para criar uma conta no VerasJuris, você deve ter pelo menos 18 anos de idade.");
+    expect(validateStep("identification", state({ ...base, birthDate: "2008-02-30" }), NOW).birthDate)
+      .toBe("Informe uma data de nascimento válida.");
+    expect(validateStep("identification", state({ ...base, birthDate: "2008-11-13" }), NOW)).toEqual(
+      {},
+    );
     expect(validateStep("identification", state({ ...base, birthDate: "1985-03-02" }), NOW)).toEqual(
       {},
     );
@@ -136,20 +141,23 @@ describe("validateStep", () => {
     ).toEqual({});
   });
 
-  it("valida senha: mínimo 12, comum e confirmação", () => {
-    expect(validateStep("password", state({ password: "curta" }), NOW).password).toContain("12");
+  it("valida senha: mínimo 8 com composição, comum e confirmação", () => {
+    expect(validateStep("password", state({ password: "Veras@1" }), NOW).password).toContain("8");
+    expect(
+      validateStep("password", state({ password: "Veras@12", passwordConfirm: "Veras@12" }), NOW),
+    ).toEqual({});
     expect(
       validateStep("password", state({ password: "password1234", passwordConfirm: "password1234" }), NOW)
         .password,
-    ).toBe("Escolha uma senha menos comum.");
+    ).toBeDefined();
     expect(
-      validateStep("password", state({ password: "uma-senha-bem-longa-9!", passwordConfirm: "outra" }), NOW)
+      validateStep("password", state({ password: "Uma-senha-bem-longa-9!", passwordConfirm: "outra" }), NOW)
         .passwordConfirm,
     ).toBe("As senhas não coincidem.");
     expect(
       validateStep(
         "password",
-        state({ password: "uma-senha-bem-longa-9!", passwordConfirm: "uma-senha-bem-longa-9!" }),
+        state({ password: "Uma-senha-bem-longa-9!", passwordConfirm: "Uma-senha-bem-longa-9!" }),
         NOW,
       ),
     ).toEqual({});
@@ -234,11 +242,13 @@ describe("máscaras", () => {
 });
 
 describe("passwordStrength", () => {
-  it("classifica senhas", () => {
+  it("classifica senhas em Não atende, Boa e Excelente", () => {
     expect(passwordStrength("").score).toBe(0);
-    expect(passwordStrength("password1234").score).toBe(0);
-    expect(passwordStrength("curta").score).toBe(1);
-    expect(passwordStrength("uma-senha-bem-longa-9!").score).toBeGreaterThanOrEqual(2);
+    expect(passwordStrength("password1234").label).toBe("Senha muito comum");
+    expect(passwordStrength("Veras@1").label).toBe("Não atende");
+    expect(passwordStrength("Veras@12").label).toBe("Boa");
+    expect(passwordStrength("Veras@12345").label).toBe("Boa");
+    expect(passwordStrength("VerasJuris@2026").label).toBe("Excelente");
   });
 });
 

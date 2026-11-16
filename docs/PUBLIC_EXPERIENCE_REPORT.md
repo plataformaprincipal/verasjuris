@@ -62,7 +62,7 @@ A camada pública deixou de ser um shell textual e passou a oferecer apresentaç
 - Homologação WCAG AA manual (VoiceOver/NVDA) **ainda pendente**
 
 ## Idiomas
-- Infraestrutura de 30 locales intacta (cobertura de chaves chrome = 100%)
+- Idiomas oficiais: pt-BR, en-US, es-ES (cobertura de chaves chrome = 100%)
 - Conteúdo novo da experiência pública está em português (fonte canônica do catálogo); tradução integral desses textos **pendente**
 - Página `/idiomas` comunica cobertura progressiva
 

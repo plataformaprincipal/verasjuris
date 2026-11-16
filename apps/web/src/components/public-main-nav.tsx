@@ -3,6 +3,7 @@
 import { BrainCircuit, Compass, House, Wrench } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { isPublicTabActive, PUBLIC_MAIN_TABS } from "../lib/public-nav";
+import { useLocale } from "./locale-provider";
 
 const ICONS = {
   house: House,
@@ -19,6 +20,7 @@ export function PublicMainNav({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname() ?? "/";
+  const { t } = useLocale();
   const className =
     variant === "bottom"
       ? "vj-bottom-nav"
@@ -27,7 +29,7 @@ export function PublicMainNav({
         : "vj-main-tabs vj-main-tabs-drawer";
 
   return (
-    <nav className={className} aria-label="Principal">
+    <nav className={className} aria-label={t("public.nav.aria", "Principal")}>
       {PUBLIC_MAIN_TABS.map((tab) => {
         const Icon = ICONS[tab.icon];
         const current = isPublicTabActive(pathname, tab.href);
@@ -40,7 +42,7 @@ export function PublicMainNav({
             onClick={onNavigate}
           >
             <Icon size={variant === "bottom" ? 22 : 18} aria-hidden="true" />
-            <span>{tab.label}</span>
+            <span>{t(tab.labelKey)}</span>
           </a>
         );
       })}

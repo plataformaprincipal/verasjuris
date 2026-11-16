@@ -58,7 +58,7 @@ export function PublicSiteHeader() {
               Contato
             </a>
           </Menu>
-          <LanguageSwitcher />
+          <LanguageSwitcher compact />
           <ButtonLink href="/entrar" variant="ghost">
             {t("nav.login")}
           </ButtonLink>

@@ -159,4 +159,95 @@ describe("onboarding register multi-persona", () => {
     });
     expect(badCpf.statusCode).toBe(400);
   });
+
+  it("aceita senha BOA de 8 caracteres e rejeita idade insuficiente com mensagem específica", async () => {
+    const underage = await call(app, "POST", "/v1/auth/register", {
+      persona: "client_pf",
+      fullName: "Diego Nunes Alves",
+      cpf: "111.444.777-35",
+      birthDate: "2015-01-01",
+      email: "diego.menor@exemplo.com",
+      phone: "11988887777",
+      address: {
+        postalCode: "01310-100",
+        street: "Avenida Paulista",
+        number: "2",
+        district: "Bela Vista",
+        city: "São Paulo",
+        state: "SP",
+        country: "Brasil",
+      },
+      password: "Veras@12",
+      passwordConfirm: "Veras@12",
+      acceptTerms: true,
+      acceptPrivacy: true,
+    });
+    expect(underage.statusCode).toBe(400);
+    const underageBody = underage.json<{
+      error: { details?: Array<{ path: string; message: string }> };
+    }>();
+    expect(underageBody.error.details?.some((detail) => detail.path === "birthDate")).toBe(true);
+    expect(
+      underageBody.error.details?.find((detail) => detail.path === "birthDate")?.message,
+    ).toContain("pelo menos 18 anos");
+
+    const ok = await call(app, "POST", "/v1/auth/register", {
+      persona: "client_pf",
+      fullName: "Elena Costa Ribeiro",
+      cpf: "123.456.789-09",
+      birthDate: "1994-06-15",
+      email: "elena.boa@exemplo.com",
+      phone: "11977776666",
+      address: {
+        postalCode: "01310-100",
+        street: "Avenida Paulista",
+        number: "3",
+        district: "Bela Vista",
+        city: "São Paulo",
+        state: "SP",
+        country: "Brasil",
+      },
+      password: "Veras@12",
+      passwordConfirm: "Veras@12",
+      acceptTerms: true,
+      acceptPrivacy: true,
+    });
+    expect(ok.statusCode).toBe(201);
+    expect(sessionFrom(ok.headers)).toBeTruthy();
+  });
+
+  it("rejeita cadastro duplicado de e-mail de forma controlada", async () => {
+    const payload = {
+      persona: "client_pf" as const,
+      fullName: "Fabio Rocha Mendes",
+      cpf: "246.813.579-28",
+      birthDate: "1991-04-04",
+      email: "fabio.dup@exemplo.com",
+      phone: "11966665555",
+      address: {
+        postalCode: "01310-100",
+        street: "Avenida Paulista",
+        number: "4",
+        district: "Bela Vista",
+        city: "São Paulo",
+        state: "SP",
+        country: "Brasil",
+      },
+      password,
+      passwordConfirm: password,
+      acceptTerms: true,
+      acceptPrivacy: true,
+    };
+    const first = await call(app, "POST", "/v1/auth/register", payload);
+    expect(first.statusCode).toBe(201);
+
+    const duplicate = await call(app, "POST", "/v1/auth/register", {
+      ...payload,
+      cpf: "135.792.468-28",
+    });
+    expect(duplicate.statusCode).toBe(409);
+    const body = duplicate.json<{ error: { message: string; details?: Array<{ path: string }> } }>();
+    expect(body.error.message).toMatch(/e-mail já está cadastrado/i);
+    expect(body.error.details?.some((detail) => detail.path === "email")).toBe(true);
+  });
 });

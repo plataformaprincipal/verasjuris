@@ -13,6 +13,7 @@ import {
   DEFAULT_LOCALE,
   LOCALE_LABELS,
   LOCALE_META,
+  LOCALE_SHORT_LABELS,
   LOCALE_STORAGE_KEY,
   SUPPORTED_LOCALES,
   browserPreferredLocale,
@@ -146,23 +147,39 @@ export function useLocale(): LocaleContextValue {
   return ctx;
 }
 
-export function LanguageSwitcher({ className }: { className?: string }) {
+export function LanguageSwitcher({
+  className,
+  compact = false,
+}: {
+  className?: string;
+  /** Exibe códigos curtos (PT/EN/ES) — adequado ao cabeçalho. */
+  compact?: boolean;
+}) {
   const { locale, setLocale, labels, supported, t } = useLocale();
   return (
-    <label className={className ?? "vj-language-switcher"}>
-      <span className="vj-visually-hidden">{t("nav.language")}</span>
-      <select
-        className="vj-select"
-        aria-label={t("nav.language")}
-        value={locale}
-        onChange={(event) => void setLocale(event.target.value as Locale)}
-      >
-        {supported.map((code) => (
-          <option key={code} value={code}>
-            {labels[code]}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div className={className ?? "vj-language-switcher"} role="group" aria-label={t("nav.language")}>
+      <span className="vj-visually-hidden" id="vj-language-switcher-label">
+        {t("nav.language")}
+      </span>
+      <div className="vj-language-switcher-options" aria-labelledby="vj-language-switcher-label">
+        {supported.map((code) => {
+          const active = code === locale;
+          return (
+            <button
+              key={code}
+              type="button"
+              className="vj-language-option"
+              data-active={active ? "true" : "false"}
+              aria-pressed={active}
+              aria-label={labels[code]}
+              title={labels[code]}
+              onClick={() => void setLocale(code)}
+            >
+              {compact ? LOCALE_SHORT_LABELS[code] : labels[code]}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }

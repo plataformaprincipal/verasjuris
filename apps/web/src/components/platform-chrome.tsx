@@ -10,6 +10,7 @@ import { PwaRegister } from "./pwa-register";
 import { SessionLocaleBootstrap } from "./session-locale-bootstrap";
 import { SkipLinks } from "./skip-links";
 import { VerasJurisAssistant } from "./verasjuris-assistant";
+import { VLibrasWidget } from "./vlibras-widget";
 
 export function PlatformChrome({
   children,
@@ -33,6 +34,7 @@ export function PlatformChrome({
         {children}
         {showFooter ? <InstitutionalFooter /> : null}
         <AccessibilityPanel />
+        <VLibrasWidget />
         <VerasJurisAssistant />
         <PwaRegister />
       </LiveAnnouncerProvider>

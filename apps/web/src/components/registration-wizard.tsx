@@ -397,10 +397,11 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
 
       if (response.status !== 201) {
         const mapped = mapServerErrors(data.error?.details);
-        setSubmitError(
-          data.error?.message ??
-            "Não foi possível criar a conta. Nenhum cadastro foi confirmado.",
-        );
+        const fallback =
+          response.status >= 500
+            ? "Não foi possível concluir o cadastro neste momento. Nenhuma conta foi confirmada. Tente novamente em instantes."
+            : "Não foi possível criar a conta. Nenhum cadastro foi confirmado.";
+        setSubmitError(data.error?.message ?? fallback);
         if (hasErrors(mapped.errors)) {
           setErrors(mapped.errors);
           if (mapped.firstStep && steps.includes(mapped.firstStep)) setStepId(mapped.firstStep);
@@ -857,6 +858,15 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
 
   function renderPassword() {
     const meterId = fid("password-meter");
+    const requirementsId = fid("password-requirements");
+    const requirements = strength.requirements;
+    const requirementItems: Array<{ key: keyof typeof requirements; label: string; ok: boolean }> = [
+      { key: "minLength", label: "Pelo menos 8 caracteres", ok: requirements.minLength },
+      { key: "uppercase", label: "Uma letra maiúscula", ok: requirements.uppercase },
+      { key: "lowercase", label: "Uma letra minúscula", ok: requirements.lowercase },
+      { key: "number", label: "Um número", ok: requirements.number },
+      { key: "special", label: "Um caractere especial", ok: requirements.special },
+    ];
     return (
       <div className="vj-stack">
         <PasswordInput
@@ -865,20 +875,37 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
           value={state.password}
           onChange={(value) => setField("password", value)}
           error={errors.password}
-          hint="Mínimo de 12 caracteres. Evite sequências e senhas comuns."
+          hint="Mínimo de 8 caracteres, com maiúscula, minúscula, número e caractere especial. Evite senhas comuns."
           autoComplete="new-password"
           show={showPassword}
           onToggle={() => setShowPassword((value) => !value)}
         />
+        <ul
+          className="vj-password-requirements"
+          id={requirementsId}
+          aria-label="Requisitos da senha"
+        >
+          {requirementItems.map((item) => (
+            <li key={item.key} data-met={item.ok ? "true" : "false"}>
+              <span className="vj-password-requirement-mark" aria-hidden="true" />
+              <span className="vj-visually-hidden">{item.ok ? "Atendido: " : "Pendente: "}</span>
+              {item.label}
+            </li>
+          ))}
+        </ul>
         <div className="vj-password-meter" id={meterId} role="status" aria-live="polite">
           <div className="vj-password-meter-track" aria-hidden="true">
             <div className="vj-password-meter-bar" data-score={strength.score} />
           </div>
           <span>
-            Força da senha: <strong>{strength.label}</strong>
-            {state.password.length > 0 && state.password.length < 12
-              ? ` · faltam ${12 - state.password.length} caracteres`
-              : ""}
+            Classificação: <strong>{strength.label}</strong>
+            {strength.classification === "boa"
+              ? " · aceita para cadastro"
+              : strength.classification === "excelente"
+                ? " · aceita para cadastro"
+                : state.password.length > 0
+                  ? " · ainda não atende aos requisitos"
+                  : ""}
           </span>
         </div>
         {commonPassword ? (
@@ -897,7 +924,9 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
           onToggle={() => setShowPassword((value) => !value)}
         />
         <p className="vj-hint">
-          Sua senha não é armazenada no navegador e é enviada somente ao concluir o cadastro.
+          A classificação é um indicador de conformidade com a política, não uma garantia
+          criptográfica. Sua senha não é armazenada no navegador e é enviada somente ao concluir o
+          cadastro.
         </p>
       </div>
     );

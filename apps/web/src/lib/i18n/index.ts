@@ -9,6 +9,7 @@ export { coverageReport, differenceRatio, listMissingKeys } from "./coverage";
 export {
   DEFAULT_LOCALE,
   LOCALE_LABELS,
+  LOCALE_SHORT_LABELS,
   LOCALE_META,
   LOCALE_STORAGE_KEY,
   SUPPORTED_LOCALES,
@@ -21,4 +22,5 @@ export {
   type LocaleDirection,
   type TextDirection,
 } from "./locales";
+export { formatCurrency, formatDate, formatNumber } from "./format";
 export { interpolate, translate } from "./translate";

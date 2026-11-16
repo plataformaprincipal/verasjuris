@@ -1,5 +1,6 @@
 import { AppError, SYSTEM_ROLE_KEYS, type FieldIssue } from "@verasjuris/types";
 import { z } from "zod";
+import { passwordSchema } from "./password-policy.js";
 
 const roleKey = z.enum(SYSTEM_ROLE_KEYS);
 
@@ -10,11 +11,6 @@ export const emailSchema = z
   .max(320, "O e-mail é longo demais.")
   .email("Informe um e-mail válido.")
   .transform((value) => value.toLowerCase());
-
-export const passwordSchema = z
-  .string()
-  .min(12, "A senha precisa ter pelo menos 12 caracteres.")
-  .max(128, "A senha é longa demais.");
 
 export const displayNameSchema = z
   .string()
@@ -792,8 +788,10 @@ export function parseInput<S extends z.ZodTypeAny>(schema: S, data: unknown): z.
   return parsed.data;
 }
 
+export * from "./birth-date.js";
 export * from "./br-documents.js";
 export * from "./onboarding.js";
+export * from "./password-policy.js";
 export * from "./ai.js";
 export * from "./legal-review.js";
 export * from "./legal-research.js";

@@ -1,8 +1,8 @@
 export const PUBLIC_MAIN_TABS = [
-  { href: "/", label: "Início", icon: "house" as const },
-  { href: "/ferramentas", label: "Ferramentas", icon: "wrench" as const },
-  { href: "/explorar", label: "Explorar", icon: "compass" as const },
-  { href: "/juris-one", label: "Juris One", icon: "brain-circuit" as const },
+  { href: "/", labelKey: "public.tab.home", icon: "house" as const },
+  { href: "/ferramentas", labelKey: "public.tab.tools", icon: "wrench" as const },
+  { href: "/explorar", labelKey: "public.tab.explore", icon: "compass" as const },
+  { href: "/juris-one", labelKey: "public.tab.jurisOne", icon: "brain-circuit" as const },
 ] as const;
 
 export type PublicMainTab = (typeof PUBLIC_MAIN_TABS)[number];
