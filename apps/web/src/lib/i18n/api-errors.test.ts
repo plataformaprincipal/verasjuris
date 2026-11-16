@@ -9,13 +9,13 @@ import { mapErrorCode, translateApiFailure, translateFieldError } from "./api-er
 import { MESSAGE_CATALOGS } from "./catalogs";
 
 const t = (key: string, fallback?: string) =>
-  MESSAGE_CATALOGS["en-US"][key as keyof (typeof MESSAGE_CATALOGS)["en-US"]] ??
-  fallback ??
-  key;
+  MESSAGE_CATALOGS["en-US"][key as keyof (typeof MESSAGE_CATALOGS)["en-US"]] ?? fallback ?? key;
 
 describe("mapErrorCode", () => {
   it("maps stable API codes without relying on message text", () => {
-    expect(mapErrorCode("VALIDATION_ERROR", t)).toBe(MESSAGE_CATALOGS["en-US"]["errors.validation"]);
+    expect(mapErrorCode("VALIDATION_ERROR", t)).toBe(
+      MESSAGE_CATALOGS["en-US"]["errors.validation"],
+    );
     expect(mapErrorCode("CONFLICT", t)).toBe(MESSAGE_CATALOGS["en-US"]["errors.conflict"]);
     expect(mapErrorCode("RATE_LIMIT", t)).toBe(MESSAGE_CATALOGS["en-US"]["errors.rateLimited"]);
     expect(mapErrorCode("RATE_LIMITED", t)).toBe(MESSAGE_CATALOGS["en-US"]["errors.rateLimited"]);

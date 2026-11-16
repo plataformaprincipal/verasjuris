@@ -34,11 +34,10 @@ export default function PublicPlanosPage() {
   return (
     <main className="vj-page" id="conteudo">
       <div className="vj-stack">
-        <Breadcrumb items={[{ label: t("plans.homeBreadcrumb"), href: "/" }, { label: t("plans.title") }]} />
-        <PageHeader
-          title={t("plans.title")}
-          description={t("plans.description")}
+        <Breadcrumb
+          items={[{ label: t("plans.homeBreadcrumb"), href: "/" }, { label: t("plans.title") }]}
         />
+        <PageHeader title={t("plans.title")} description={t("plans.description")} />
         {loading ? <LoadingState label={t("plans.loading")} /> : null}
         {error ? <ErrorState title={t("plans.error")}>{error}</ErrorState> : null}
         {!loading && !error ? <PublicPlansComparison items={items} /> : null}

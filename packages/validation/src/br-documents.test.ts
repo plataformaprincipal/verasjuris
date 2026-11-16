@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  isCommonPassword,
-  isValidCnpj,
-  isValidCpf,
-  toE164BrMobile,
-} from "./br-documents.js";
+import { isCommonPassword, isValidCnpj, isValidCpf, toE164BrMobile } from "./br-documents.js";
 
 describe("br-documents", () => {
   it("valida CPF conhecido", () => {

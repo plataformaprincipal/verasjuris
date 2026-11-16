@@ -72,7 +72,11 @@ export default function MarketplaceHomePage() {
         title={t("marketplace.publicTitle")}
         description={t("marketplace.publicDescription")}
       />
-      <SectionTabs label={t("common.sections")} items={translateMarketplaceTabs(t, MARKETPLACE_PUBLIC_TABS)} current="" />
+      <SectionTabs
+        label={t("common.sections")}
+        items={translateMarketplaceTabs(t, MARKETPLACE_PUBLIC_TABS)}
+        current=""
+      />
       <MarketplacePaymentBanner status={paymentStatus} />
       {loading ? <LoadingState label={t("marketplace.loading")} /> : null}
       {error ? <p role="alert">{error}</p> : null}

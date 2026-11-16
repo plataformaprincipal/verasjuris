@@ -107,7 +107,11 @@ function Toggle({
 }) {
   return (
     <label className="vj-check-row">
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+      />
       <span>{label}</span>
     </label>
   );
@@ -509,9 +513,7 @@ export function AccessibilityPanel() {
                   patch({ interfaceDensity: event.target.value as InterfaceDensity })
                 }
               >
-                <option value="comfortable">
-                  {t("a11y.density.comfortable", "Confortável")}
-                </option>
+                <option value="comfortable">{t("a11y.density.comfortable", "Confortável")}</option>
                 <option value="compact">{t("a11y.density.compact", "Compacta")}</option>
                 <option value="spacious">{t("a11y.density.spacious", "Espaçosa")}</option>
               </select>
@@ -543,7 +545,12 @@ export function AccessibilityPanel() {
               label={t("a11y.vlibras", "VLibras (Libras)")}
               onChange={(value) => patch({ signLanguagePreferred: value })}
             />
-            <p className="vj-meta" role="status" aria-live="polite" data-vlibras-status={vlibrasStatus}>
+            <p
+              className="vj-meta"
+              role="status"
+              aria-live="polite"
+              data-vlibras-status={vlibrasStatus}
+            >
               {vlibrasStatusLabel(t, vlibrasStatus)}
             </p>
             <p className="vj-meta">

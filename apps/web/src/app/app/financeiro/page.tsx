@@ -73,11 +73,10 @@ export default function AppFinanceiroPage() {
 
   return (
     <div className="vj-stack">
-      <Breadcrumb items={[{ label: t("dashboard.title"), href: "/app" }, { label: t("finance.title") }]} />
-      <PageHeader
-        title={t("finance.title")}
-        description={t("finance.description")}
+      <Breadcrumb
+        items={[{ label: t("dashboard.title"), href: "/app" }, { label: t("finance.title") }]}
       />
+      <PageHeader title={t("finance.title")} description={t("finance.description")} />
       <SectionTabs
         label={t("common.sections")}
         items={financeTabsForPermissions(org.permissions)}

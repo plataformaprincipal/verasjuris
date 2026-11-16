@@ -100,7 +100,7 @@ export default function DocumentosPage() {
       setTotal(data.total);
       setLoading(false);
     },
-    [q, status, categoryId, ownerType, ownerId],
+    [q, status, categoryId, ownerType, ownerId, t],
   );
 
   useEffect(() => {
@@ -204,15 +204,16 @@ export default function DocumentosPage() {
     await load(orgId);
   }
 
-  const breadcrumb = [{ label: t("dashboard.title"), href: "/app" }, { label: t("documents.title") }];
+  const breadcrumb = [
+    { label: t("dashboard.title"), href: "/app" },
+    { label: t("documents.title") },
+  ];
 
   if (!canRead) {
     return (
       <div className="vj-stack">
         <Breadcrumb items={breadcrumb} />
-        <ErrorState title={t("nav.noPermission")}>
-          {t("documents.noPermissionBody")}
-        </ErrorState>
+        <ErrorState title={t("nav.noPermission")}>{t("documents.noPermissionBody")}</ErrorState>
       </div>
     );
   }
@@ -220,12 +221,13 @@ export default function DocumentosPage() {
   return (
     <div className="vj-stack">
       <Breadcrumb items={breadcrumb} />
-      <PageHeader
-        title={t("documents.title")}
-        description={t("documents.pageDescription")}
-      />
+      <PageHeader title={t("documents.title")} description={t("documents.pageDescription")} />
 
-      <form className="vj-card vj-stack" onSubmit={applyFilters} aria-label={t("documents.filtersAria")}>
+      <form
+        className="vj-card vj-stack"
+        onSubmit={applyFilters}
+        aria-label={t("documents.filtersAria")}
+      >
         <div className="vj-split">
           <FormField id="doc-q" label="Busca">
             <Input

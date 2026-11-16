@@ -41,4 +41,10 @@ export const FEED_DEMO_POSTS: FeedDemoPost[] = [
   },
 ];
 
-export const FEED_TOPICS = ["Produtividade", "Gestão", "Serviços", "Educação", "Tecnologia"] as const;
+export const FEED_TOPICS = [
+  "Produtividade",
+  "Gestão",
+  "Serviços",
+  "Educação",
+  "Tecnologia",
+] as const;

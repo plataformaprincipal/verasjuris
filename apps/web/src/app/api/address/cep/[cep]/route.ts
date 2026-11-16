@@ -12,10 +12,7 @@ type ViaCepResponse = {
   uf?: string;
 };
 
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ cep: string }> },
-) {
+export async function GET(_request: Request, context: { params: Promise<{ cep: string }> }) {
   const { cep: raw } = await context.params;
   const cep = digitsOnly(raw);
   if (!isValidCep(cep)) {
@@ -46,7 +43,12 @@ export async function GET(
     const data = (await response.json()) as ViaCepResponse;
     if (data.erro) {
       return Response.json(
-        { error: { code: "NOT_FOUND", message: "CEP não encontrado. Preencha o endereço manualmente." } },
+        {
+          error: {
+            code: "NOT_FOUND",
+            message: "CEP não encontrado. Preencha o endereço manualmente.",
+          },
+        },
         { status: 404 },
       );
     }

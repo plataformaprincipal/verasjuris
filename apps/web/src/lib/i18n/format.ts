@@ -11,11 +11,7 @@ export function formatNumber(value: number, locale: Locale): string {
   return new Intl.NumberFormat(locale).format(value);
 }
 
-export function formatCurrency(
-  valueInCents: number,
-  locale: Locale,
-  currency = "BRL",
-): string {
+export function formatCurrency(valueInCents: number, locale: Locale, currency = "BRL"): string {
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency,

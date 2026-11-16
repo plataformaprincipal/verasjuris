@@ -44,7 +44,11 @@ export default function MarketplaceProfessionalsPage() {
         title="Profissionais"
         description="Busca ranqueada de advogados no marketplace."
       />
-      <SectionTabs label={t("common.sections")} items={translateMarketplaceTabs(t, MARKETPLACE_PUBLIC_TABS)} current="" />
+      <SectionTabs
+        label={t("common.sections")}
+        items={translateMarketplaceTabs(t, MARKETPLACE_PUBLIC_TABS)}
+        current=""
+      />
       {loading ? <LoadingState label="Carregando profissionais…" /> : null}
       {error ? <ErrorState title="Erro">{error}</ErrorState> : null}
       {!loading && !error && items.length === 0 ? (

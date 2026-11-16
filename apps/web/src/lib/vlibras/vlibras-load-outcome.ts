@@ -39,9 +39,7 @@ export function nextScriptUrl(
 }
 
 /** Converte outcome de load para status de UI do painel. */
-export function toVLibrasUiStatus(
-  outcome: VLibrasLoadOutcome,
-): "ready" | "error" | "unavailable" {
+export function toVLibrasUiStatus(outcome: VLibrasLoadOutcome): "ready" | "error" | "unavailable" {
   if (outcome.status === "ready") return "ready";
   if (outcome.status === "timeout" || outcome.status === "failed") return "error";
   return "unavailable";

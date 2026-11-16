@@ -185,8 +185,7 @@ export async function registerAccount(
   const emailAddress = input.email;
   const displayName = input.mode === "legacy" ? input.displayName : input.displayName;
   const password = input.password;
-  const persona: OnboardingPersona | "legacy" =
-    input.mode === "legacy" ? "legacy" : input.persona;
+  const persona: OnboardingPersona | "legacy" = input.mode === "legacy" ? "legacy" : input.persona;
 
   const existing = await db.query.users.findFirst({ where: eq(users.email, emailAddress) });
   if (existing) {
@@ -237,15 +236,14 @@ export async function registerAccount(
       await tx.insert(profiles).values({
         userId: user.id,
         displayName,
-        socialName: input.mode === "onboarding" ? input.socialName ?? null : null,
+        socialName: input.mode === "onboarding" ? (input.socialName ?? null) : null,
         phoneE164: input.mode === "onboarding" ? input.phone : null,
-        cpfNormalized: input.mode === "onboarding" ? input.cpf ?? null : null,
+        cpfNormalized: input.mode === "onboarding" ? (input.cpf ?? null) : null,
         birthDate:
           input.mode === "onboarding" && input.birthDate
             ? new Date(`${input.birthDate}T12:00:00.000Z`)
             : null,
-        addressJson:
-          input.mode === "onboarding" ? JSON.stringify(input.address) : null,
+        addressJson: input.mode === "onboarding" ? JSON.stringify(input.address) : null,
         onboardingPersona: persona === "legacy" ? "client_pf" : persona,
         termsAcceptedAt: now,
         termsVersion: input.mode === "onboarding" ? input.termsVersion : "2026-11-16",
@@ -304,7 +302,9 @@ export async function registerAccount(
           "Não foi possível vincular a organização. Nenhuma conta foi concluída. Tente novamente.",
         );
       }
-      await tx.insert(membershipRoles).values({ membershipId: membership.id, roleId: ownerRole.id });
+      await tx
+        .insert(membershipRoles)
+        .values({ membershipId: membership.id, roleId: ownerRole.id });
 
       if (
         (persona === "lawyer" || persona === "law_firm") &&
@@ -352,10 +352,8 @@ export async function registerAccount(
           emailVerified: false,
           persona,
           organizationId: organization.id,
-          termsVersion:
-            input.mode === "onboarding" ? input.termsVersion : "2026-11-16",
-          privacyVersion:
-            input.mode === "onboarding" ? input.privacyVersion : "2026-11-16",
+          termsVersion: input.mode === "onboarding" ? input.termsVersion : "2026-11-16",
+          privacyVersion: input.mode === "onboarding" ? input.privacyVersion : "2026-11-16",
           termsAcceptedAt: now.toISOString(),
           privacyAcceptedAt: now.toISOString(),
           acceptanceEvidence: "affirmative_checkbox",

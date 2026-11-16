@@ -52,9 +52,7 @@ export function DashboardHome({
           <h2 className="vj-section-title">{t("dashboard.activeContext")}</h2>
           <p>
             {organizationName}
-            {organizationSlug ? (
-              <span className="vj-technical"> · {organizationSlug}</span>
-            ) : null}
+            {organizationSlug ? <span className="vj-technical"> · {organizationSlug}</span> : null}
           </p>
           {verification ? <p>{verification}</p> : null}
         </section>

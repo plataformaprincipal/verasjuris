@@ -68,12 +68,14 @@ export function LocaleProvider({
   orgLocale?: string | null;
   persist?: boolean;
 }) {
+  // Primeiro render idêntico no servidor e no cliente (sem localStorage/navigator)
+  // para evitar mismatch de hidratação; preferências do browser entram no effect.
   const [locale, setLocaleState] = useState<Locale>(() =>
     resolveLocale({
       userLocale,
       orgLocale,
-      storedLocale: typeof window !== "undefined" ? readStoredLocale() : null,
-      browserLocale: typeof navigator !== "undefined" ? browserPreferredLocale() : null,
+      storedLocale: null,
+      browserLocale: null,
     }),
   );
 
@@ -158,11 +160,11 @@ export function LanguageSwitcher({
 }) {
   const { locale, setLocale, labels, supported, t } = useLocale();
   return (
-    <div className={className ?? "vj-language-switcher"} role="group" aria-label={t("nav.language")}>
-      <span className="vj-visually-hidden" id="vj-language-switcher-label">
+    <fieldset className={className ?? "vj-language-switcher"}>
+      <legend className="vj-visually-hidden" id="vj-language-switcher-label">
         {t("nav.language")}
-      </span>
-      <div className="vj-language-switcher-options" aria-labelledby="vj-language-switcher-label">
+      </legend>
+      <div className="vj-language-switcher-options">
         {supported.map((code) => {
           const active = code === locale;
           return (
@@ -181,6 +183,6 @@ export function LanguageSwitcher({
           );
         })}
       </div>
-    </div>
+    </fieldset>
   );
 }

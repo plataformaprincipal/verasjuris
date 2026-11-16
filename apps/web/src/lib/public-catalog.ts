@@ -196,10 +196,7 @@ export const PUBLIC_CATALOG: CatalogFeature[] = [
       "Lembretes dentro da plataforma",
     ],
     audience: ["Advogados", "Escritórios", "Departamentos jurídicos"],
-    benefits: [
-      "Visão clara do que vence primeiro",
-      "Responsabilidade definida para cada prazo",
-    ],
+    benefits: ["Visão clara do que vence primeiro", "Responsabilidade definida para cada prazo"],
     limitations: [
       "Os prazos são informados pelo usuário; a plataforma não os calcula a partir de publicações",
       "A conferência da contagem é sempre responsabilidade do profissional",
@@ -269,7 +266,8 @@ export const PUBLIC_CATALOG: CatalogFeature[] = [
     slug: "clientes",
     category: "atendimento",
     name: "Clientes",
-    summary: "Cadastro de clientes com dados de contato, casos vinculados e histórico de atendimento.",
+    summary:
+      "Cadastro de clientes com dados de contato, casos vinculados e histórico de atendimento.",
     problem: "Dados de clientes espalhados dificultam o atendimento e a continuidade do trabalho.",
     capabilities: [
       "Cadastro de pessoas físicas e jurídicas",
@@ -325,7 +323,8 @@ export const PUBLIC_CATALOG: CatalogFeature[] = [
     slug: "potenciais-clientes",
     category: "atendimento",
     name: "Potenciais clientes e oportunidades",
-    summary: "Acompanhe contatos de potenciais clientes desde o primeiro atendimento até a contratação.",
+    summary:
+      "Acompanhe contatos de potenciais clientes desde o primeiro atendimento até a contratação.",
     problem: "Sem acompanhamento, oportunidades de atendimento são esquecidas.",
     capabilities: [
       "Cadastro de potenciais clientes e origem do contato",
@@ -343,7 +342,8 @@ export const PUBLIC_CATALOG: CatalogFeature[] = [
     slug: "atendimento-online",
     category: "atendimento",
     name: "Atendimento online",
-    summary: "Receba solicitações de pessoas que buscam orientação jurídica, com triagem organizada.",
+    summary:
+      "Receba solicitações de pessoas que buscam orientação jurídica, com triagem organizada.",
     problem:
       "Pessoas e empresas têm dificuldade de saber como iniciar o contato com um profissional.",
     capabilities: [
@@ -352,7 +352,10 @@ export const PUBLIC_CATALOG: CatalogFeature[] = [
       "Acompanhamento da solicitação pelo solicitante",
     ],
     audience: ["Clientes", "Advogados", "Escritórios"],
-    benefits: ["Primeiro contato mais claro", "Informações iniciais já organizadas para o profissional"],
+    benefits: [
+      "Primeiro contato mais claro",
+      "Informações iniciais já organizadas para o profissional",
+    ],
     limitations: [
       "A plataforma não presta consultoria jurídica",
       "A relação profissional é estabelecida diretamente com o advogado ou escritório",
@@ -382,7 +385,8 @@ export const PUBLIC_CATALOG: CatalogFeature[] = [
     category: "documentos",
     name: "Documentos",
     summary: "Envie e organize arquivos por caso, com pastas, tipos e histórico.",
-    problem: "Arquivos em e-mails e pastas locais são difíceis de achar e de compartilhar com segurança.",
+    problem:
+      "Arquivos em e-mails e pastas locais são difíceis de achar e de compartilhar com segurança.",
     capabilities: [
       "Envio de arquivos vinculados a casos, processos e clientes",
       "Classificação por tipo de documento",
@@ -479,7 +483,8 @@ export const PUBLIC_CATALOG: CatalogFeature[] = [
     slug: "marketplace-juridico",
     category: "marketplace",
     name: "Marketplace jurídico",
-    summary: "Encontre profissionais e serviços jurídicos e veja como cada um funciona antes de contratar.",
+    summary:
+      "Encontre profissionais e serviços jurídicos e veja como cada um funciona antes de contratar.",
     problem: "Não é simples comparar profissionais e entender o que cada serviço inclui.",
     capabilities: [
       "Catálogo de profissionais e serviços",
@@ -564,7 +569,8 @@ export const PUBLIC_CATALOG: CatalogFeature[] = [
     slug: "organizacoes",
     category: "empresarial",
     name: "Organizações",
-    summary: "Crie a organização do seu escritório ou departamento e mantenha os dados separados dos demais.",
+    summary:
+      "Crie a organização do seu escritório ou departamento e mantenha os dados separados dos demais.",
     problem: "Cada escritório ou empresa precisa de um espaço próprio, com seus dados protegidos.",
     capabilities: [
       "Criação e configuração da organização",
@@ -720,7 +726,8 @@ export const PUBLIC_CATALOG: CatalogFeature[] = [
     slug: "integracao-tribunais",
     category: "integracoes",
     name: "Integração com tribunais",
-    summary: "Consulta de andamentos e protocolo eletrônico diretamente nos sistemas dos tribunais.",
+    summary:
+      "Consulta de andamentos e protocolo eletrônico diretamente nos sistemas dos tribunais.",
     problem: "Acompanhar andamentos exige acessar vários sistemas separadamente.",
     capabilities: [
       "Previsto: consulta automática de andamentos",

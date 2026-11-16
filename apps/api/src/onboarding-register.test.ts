@@ -80,6 +80,10 @@ describe("onboarding register multi-persona", () => {
     expect(profile?.displayName).toBe("Ana Souza Silva");
     expect(profile?.cpfNormalized).toBe("39053344705");
     expect(profile?.phoneE164).toBe("+5511988887777");
+    expect(profile?.termsVersion).toBe("2026-11-16");
+    expect(profile?.privacyVersion).toBe("2026-11-16");
+    expect(profile?.termsAcceptedAt).toBeTruthy();
+    expect(profile?.privacyAcceptedAt).toBeTruthy();
   });
 
   it("aceita payload do wizard sem displayName e deriva do fullName", async () => {

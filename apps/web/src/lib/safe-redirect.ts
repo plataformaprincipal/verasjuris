@@ -17,6 +17,8 @@ export const SAFE_REDIRECT_PREFIXES = [
 ] as const;
 
 const MAX_REDIRECT_LENGTH = 2048;
+// Controles C0 + DEL — rejeitar open-redirect com caracteres invisíveis.
+// biome-ignore lint/suspicious/noControlCharactersInRegex: intentional allowlist denial
 const CONTROL_OR_SPACE = /[\u0000-\u0020\u007f]/;
 
 type SearchParamsLike = { get(name: string): string | null };

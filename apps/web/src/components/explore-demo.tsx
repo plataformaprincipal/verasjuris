@@ -85,7 +85,9 @@ function DemoPanel({ view }: { view: DemoView }) {
         <div className="vj-split vj-metrics">
           <article className="vj-card">
             <p className="vj-meta">Processos ativos</p>
-            <p className="vj-title">{DEMO_MATTERS.filter((m) => m.status !== "Concluído").length}</p>
+            <p className="vj-title">
+              {DEMO_MATTERS.filter((m) => m.status !== "Concluído").length}
+            </p>
           </article>
           <article className="vj-card">
             <p className="vj-meta">Clientes exemplo</p>
@@ -99,7 +101,11 @@ function DemoPanel({ view }: { view: DemoView }) {
         <DemoTable
           caption="Próximos prazos demonstrativos"
           headers={["Processo", "Responsável", "Prazo"]}
-          rows={DEMO_MATTERS.map((matter) => [matter.title, matter.responsible, matter.nextDeadline])}
+          rows={DEMO_MATTERS.map((matter) => [
+            matter.title,
+            matter.responsible,
+            matter.nextDeadline,
+          ])}
         />
       </div>
     );

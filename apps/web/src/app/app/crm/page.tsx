@@ -47,7 +47,7 @@ export default function CrmOverviewPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   const empty =
     overview && overview.leads === 0 && overview.openLeads === 0 && overview.clients === 0;

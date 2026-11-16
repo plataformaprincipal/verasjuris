@@ -995,8 +995,9 @@ html[data-highlight-interactive="true"] [role="button"] {
 
 html[data-large-cursor="true"],
 html[data-large-cursor="true"] * {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24'%3E%3Cpath fill='%2306062b' stroke='%23fff' stroke-width='1.5' d='M4.5 3.5l15 9.2-7.1 1.1 4.5 8.6-2.8 1.5-4.5-8.7-5.2 1.2z'/%3E%3C/svg%3E")
-      2 2,
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24'%3E%3Cpath fill='%2306062b' stroke='%23fff' stroke-width='1.5' d='M4.5 3.5l15 9.2-7.1 1.1 4.5 8.6-2.8 1.5-4.5-8.7-5.2 1.2z'/%3E%3C/svg%3E")
+    2 2,
     auto !important;
 }
 
@@ -1009,8 +1010,9 @@ html[data-large-cursor="true"] [contenteditable="true"] {
 html[data-large-cursor="true"] a,
 html[data-large-cursor="true"] button,
 html[data-large-cursor="true"] [role="button"] {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24'%3E%3Cpath fill='%230b56f0' stroke='%23fff' stroke-width='1.5' d='M4.5 3.5l15 9.2-7.1 1.1 4.5 8.6-2.8 1.5-4.5-8.7-5.2 1.2z'/%3E%3C/svg%3E")
-      2 2,
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 24 24'%3E%3Cpath fill='%230b56f0' stroke='%23fff' stroke-width='1.5' d='M4.5 3.5l15 9.2-7.1 1.1 4.5 8.6-2.8 1.5-4.5-8.7-5.2 1.2z'/%3E%3C/svg%3E")
+    2 2,
     pointer !important;
 }
 
@@ -1434,6 +1436,10 @@ html[data-simplified-language="true"] .vj-prose {
   display: inline-flex;
   flex-direction: column;
   gap: var(--vj-space-1);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
 }
 
 .vj-language-switcher-options {
@@ -1639,7 +1645,9 @@ html[data-simplified-language="true"] .vj-prose {
 .vj-card-link {
   color: inherit;
   text-decoration: none;
-  transition: border-color var(--vj-motion), transform var(--vj-motion);
+  transition:
+    border-color var(--vj-motion),
+    transform var(--vj-motion);
 }
 
 .vj-card-link:hover {
@@ -2138,8 +2146,6 @@ html[data-simplified-language="true"] .vj-prose {
   }
 }
 
-
-
 /* ——— Public 4-tab redesign ——— */
 
 :root {
@@ -2419,7 +2425,6 @@ html[data-theme="black"] {
   }
 }
 
-
 .vj-spin {
   animation: vj-spin 0.9s linear infinite;
 }
@@ -2494,7 +2499,10 @@ html[data-theme="black"] {
   border-radius: var(--vj-radius-md);
   background: color-mix(in srgb, var(--vj-white) 92%, var(--vj-surface-muted, #f3f4f6));
   box-shadow: 0 1px 0 color-mix(in srgb, var(--vj-ink) 6%, transparent);
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
 }
 
 .vj-legal-card:hover,

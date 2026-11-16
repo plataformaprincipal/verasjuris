@@ -21,7 +21,10 @@ export function createDatabase(
   };
 }
 
-function walkErrorChain(error: unknown, visit: (current: Record<string, unknown>) => boolean): boolean {
+function walkErrorChain(
+  error: unknown,
+  visit: (current: Record<string, unknown>) => boolean,
+): boolean {
   const seen = new Set<unknown>();
   let current: unknown = error;
   while (current && typeof current === "object" && !seen.has(current)) {
@@ -37,7 +40,9 @@ export function isUniqueViolation(error: unknown): boolean {
 }
 
 /** Nome da constraint ou detalhe da violação de unicidade, quando disponível. */
-export function uniqueViolationInfo(error: unknown): { constraint?: string; detail?: string } | null {
+export function uniqueViolationInfo(
+  error: unknown,
+): { constraint?: string; detail?: string } | null {
   if (!isUniqueViolation(error)) return null;
 
   let constraint: string | undefined;

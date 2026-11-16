@@ -68,7 +68,7 @@ export default function CasosListPage() {
       setOffset(nextOffset);
       setLoading(false);
     },
-    [q, status, priority],
+    [q, status, priority, t],
   );
 
   useEffect(() => {
@@ -94,7 +94,7 @@ export default function CasosListPage() {
     return () => {
       cancelled = true;
     };
-  }, [load]);
+  }, [load, t]);
 
   function applyFilters(event: React.FormEvent) {
     event.preventDefault();
@@ -107,17 +107,19 @@ export default function CasosListPage() {
   if (!canRead) {
     return (
       <div className="vj-stack">
-        <Breadcrumb items={[{ label: t("dashboard.title"), href: "/app" }, { label: t("matters.title") }]} />
-        <ErrorState title={t("nav.noPermission")}>
-          {t("matters.noPermissionBody")}
-        </ErrorState>
+        <Breadcrumb
+          items={[{ label: t("dashboard.title"), href: "/app" }, { label: t("matters.title") }]}
+        />
+        <ErrorState title={t("nav.noPermission")}>{t("matters.noPermissionBody")}</ErrorState>
       </div>
     );
   }
 
   return (
     <div className="vj-stack">
-      <Breadcrumb items={[{ label: t("dashboard.title"), href: "/app" }, { label: t("matters.title") }]} />
+      <Breadcrumb
+        items={[{ label: t("dashboard.title"), href: "/app" }, { label: t("matters.title") }]}
+      />
       <PageHeader
         title={t("matters.title")}
         description={t("matters.pageDescription")}
@@ -129,7 +131,11 @@ export default function CasosListPage() {
           ) : null
         }
       />
-      <form className="vj-card vj-stack vj-filters" onSubmit={applyFilters} aria-label={t("common.filters")}>
+      <form
+        className="vj-card vj-stack vj-filters"
+        onSubmit={applyFilters}
+        aria-label={t("common.filters")}
+      >
         <div className="vj-split">
           <FormField id="q" label={t("common.searchLabel")}>
             <Input

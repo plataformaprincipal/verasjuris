@@ -25,9 +25,7 @@ export default async function SolutionPage({ params }: { params: Promise<{ slug:
   const solution = getSolution(slug);
   if (!solution) notFound();
 
-  const features = solution.features
-    .map((featureSlug) => getFeature(featureSlug))
-    .filter(Boolean);
+  const features = solution.features.map((featureSlug) => getFeature(featureSlug)).filter(Boolean);
 
   return (
     <PublicPageShell>

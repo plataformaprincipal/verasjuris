@@ -2,7 +2,7 @@
 
 import { LocalizedGlobalError } from "../components/i18n-states";
 
-export default function GlobalError({
+export default function AppError({
   error,
   reset,
 }: {

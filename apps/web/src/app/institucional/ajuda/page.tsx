@@ -60,8 +60,8 @@ export default function AjudaPage() {
         <section className="vj-card">
           <h2 className="vj-section-title">Canais</h2>
           <p>
-            Para contato institucional, use a página de{" "}
-            <a href="/institucional/contato">contato</a>. Para segurança e privacidade, consulte as{" "}
+            Para contato institucional, use a página de <a href="/institucional/contato">contato</a>
+            . Para segurança e privacidade, consulte as{" "}
             <a href="/politicas/seguranca">políticas de segurança</a> e de{" "}
             <a href="/politicas/privacidade">privacidade</a>.
           </p>

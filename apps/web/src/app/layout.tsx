@@ -33,6 +33,9 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/** Evita falhas de prerender SSG (React dispatcher null) no monorepo Next 16. */
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="pt-BR">

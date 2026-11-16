@@ -46,7 +46,11 @@ export default function AppMarketplaceEngagementsPage() {
         items={[{ label: "Marketplace", href: "/app/marketplace" }, { label: "Contratações" }]}
       />
       <PageHeader title="Contratações" />
-      <SectionTabs label={t("common.sections")} items={translateMarketplaceTabs(t, MARKETPLACE_APP_TABS)} current="" />
+      <SectionTabs
+        label={t("common.sections")}
+        items={translateMarketplaceTabs(t, MARKETPLACE_APP_TABS)}
+        current=""
+      />
       {loading ? <LoadingState label="Carregando…" /> : null}
       {error ? <p role="alert">{error}</p> : null}
       {!loading ? (

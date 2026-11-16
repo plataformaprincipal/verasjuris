@@ -5,6 +5,7 @@ import { Button, FormField, Input } from "@verasjuris/ui";
 import { useRouter } from "next/navigation";
 import { useId, useState, type ReactNode } from "react";
 import { translateApiFailure, translateFieldError } from "../lib/i18n/api-errors";
+import { CURRENT_PRIVACY_VERSION, CURRENT_TERMS_VERSION } from "../lib/legal";
 import { resolvePostAuthRedirect } from "../lib/safe-redirect";
 import type { ApiFailure } from "../lib/types";
 import { useLocale } from "./locale-provider";
@@ -161,12 +162,12 @@ export function LoginForm({ redirectTo }: { redirectTo?: string | null } = {}) {
   );
 }
 
-export function RegisterForm() {
+export function RegisterForm({ redirectTo }: { redirectTo?: string | null } = {}) {
+  const router = useRouter();
   const { t } = useLocale();
   const termsId = useId();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [fields, setFields] = useState<ApiFailure>({});
   const [termsAccepted, setTermsAccepted] = useState(false);
 
@@ -177,11 +178,14 @@ export function RegisterForm() {
     }
     setPending(true);
     setError(null);
-    setSuccess(null);
     const result = await submit("/api/v1/auth/register", {
       displayName: String(formData.get("displayName") ?? ""),
       email: String(formData.get("email") ?? ""),
       password: String(formData.get("password") ?? ""),
+      // Legado: a API grava versões fixas; enviamos as versões atuais do pacote jurídico
+      // para manter o contrato alinhado ao wizard quando o schema evoluir.
+      termsVersion: CURRENT_TERMS_VERSION,
+      privacyVersion: CURRENT_PRIVACY_VERSION,
     });
     setPending(false);
     if (!result.response.ok) {
@@ -195,23 +199,15 @@ export function RegisterForm() {
       );
       return;
     }
-    setSuccess(
-      result.data.message ??
-        t(
-          "auth.signupSuccess",
-          "Se existir uma conta elegível para este e-mail, enviaremos as próximas instruções.",
-        ),
-    );
+    // Cadastro legado também emite sessão + cookie (201); redireciona como o wizard.
+    const body = result.data as { redirectTo?: string };
+    router.push(resolvePostAuthRedirect(redirectTo ?? body.redirectTo ?? null));
+    router.refresh();
   }
 
   return (
     <form className="vj-stack" action={onSubmit} noValidate>
       {error ? <AuthAlert>{error}</AuthAlert> : null}
-      {success ? (
-        <p role="status">
-          {success} <a href="/verificar-email">{t("auth.verifyEmail", "Verificar e-mail")}</a>
-        </p>
-      ) : null}
       <FormField
         id="displayName"
         label={t("auth.displayName")}
@@ -321,11 +317,17 @@ export function ConfirmResetForm({ token }: { token: string }) {
   const [fields, setFields] = useState<ApiFailure>({});
 
   async function onSubmit(formData: FormData) {
+    const password = String(formData.get("password") ?? "");
+    const passwordConfirm = String(formData.get("passwordConfirm") ?? "");
+    if (password !== passwordConfirm) {
+      setError(t("register.validation.password.mismatch", "As senhas não coincidem."));
+      return;
+    }
     setPending(true);
     setError(null);
     const result = await submit("/api/v1/auth/password-reset/confirm", {
       token,
-      password: String(formData.get("password") ?? ""),
+      password,
     });
     setPending(false);
     if (!result.response.ok) {
@@ -360,6 +362,13 @@ export function ConfirmResetForm({ token }: { token: string }) {
         label={t("auth.newPassword", "Nova senha")}
         hint={t("auth.passwordHint")}
         error={fieldError(fields, "password", t)}
+        autoComplete="new-password"
+        minLength={8}
+      />
+      <PasswordField
+        id="passwordConfirm"
+        name="passwordConfirm"
+        label={t("register.field.passwordConfirm", "Confirmar senha")}
         autoComplete="new-password"
         minLength={8}
       />

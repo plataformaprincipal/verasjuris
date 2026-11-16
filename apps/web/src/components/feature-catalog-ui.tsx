@@ -39,53 +39,50 @@ export function FeatureCatalogBrowser({
 
   return (
     <div className="vj-stack">
-      <form
-        className="vj-card vj-catalog-filters"
-        onSubmit={(event) => event.preventDefault()}
-        role="search"
-        aria-label={t("catalog.searchAria")}
-      >
-        <label className="vj-field">
-          <span className="vj-label">{t("catalog.search")}</span>
-          <input
-            className="vj-input"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t("catalog.searchPlaceholder")}
-            type="search"
-          />
-        </label>
-        <label className="vj-field">
-          <span className="vj-label">{t("catalog.category")}</span>
-          <select
-            className="vj-select"
-            value={category}
-            onChange={(event) => setCategory(event.target.value as CatalogCategory | "all")}
-          >
-            <option value="all">{t("catalog.all")}</option>
-            {listCategories().map((item) => (
-              <option key={item} value={item}>
-                {CATEGORY_META[item].label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="vj-field">
-          <span className="vj-label">{t("catalog.availability")}</span>
-          <select
-            className="vj-select"
-            value={availability}
-            onChange={(event) => setAvailability(event.target.value as Availability | "all")}
-          >
-            <option value="all">{t("catalog.all")}</option>
-            {(Object.keys(AVAILABILITY_META) as Availability[]).map((item) => (
-              <option key={item} value={item}>
-                {t(`common.availability.${item}`, AVAILABILITY_META[item].label)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </form>
+      <search className="vj-card vj-catalog-filters" aria-label={t("catalog.searchAria")}>
+        <form onSubmit={(event) => event.preventDefault()}>
+          <label className="vj-field">
+            <span className="vj-label">{t("catalog.search")}</span>
+            <input
+              className="vj-input"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t("catalog.searchPlaceholder")}
+              type="search"
+            />
+          </label>
+          <label className="vj-field">
+            <span className="vj-label">{t("catalog.category")}</span>
+            <select
+              className="vj-select"
+              value={category}
+              onChange={(event) => setCategory(event.target.value as CatalogCategory | "all")}
+            >
+              <option value="all">{t("catalog.all")}</option>
+              {listCategories().map((item) => (
+                <option key={item} value={item}>
+                  {CATEGORY_META[item].label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="vj-field">
+            <span className="vj-label">{t("catalog.availability")}</span>
+            <select
+              className="vj-select"
+              value={availability}
+              onChange={(event) => setAvailability(event.target.value as Availability | "all")}
+            >
+              <option value="all">{t("catalog.all")}</option>
+              {(Object.keys(AVAILABILITY_META) as Availability[]).map((item) => (
+                <option key={item} value={item}>
+                  {t(`common.availability.${item}`, AVAILABILITY_META[item].label)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </form>
+      </search>
 
       <p className="vj-meta" role="status">
         {results.length === 1

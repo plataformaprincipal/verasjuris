@@ -16,7 +16,7 @@ export function HomeProductPreview() {
   const [view, setView] = useState<DemoView>("painel");
 
   return (
-    <div className="vj-product-preview" aria-label="Prévia visual do ambiente VerasJuris">
+    <section className="vj-product-preview" aria-label="Prévia visual do ambiente VerasJuris">
       <p className="vj-demo-banner" role="status">
         {DEMO_BANNER}
       </p>
@@ -84,6 +84,6 @@ export function HomeProductPreview() {
           </a>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

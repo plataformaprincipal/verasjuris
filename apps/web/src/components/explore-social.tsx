@@ -115,7 +115,11 @@ export function ExploreSocial() {
                       {post.persona} · {post.publishedAt} · {post.topic}
                     </span>
                   </div>
-                  <button type="button" className="vj-button vj-button-ghost" aria-label="Mais opções">
+                  <button
+                    type="button"
+                    className="vj-button vj-button-ghost"
+                    aria-label="Mais opções"
+                  >
                     <Ellipsis size={18} aria-hidden="true" />
                   </button>
                 </header>
@@ -184,7 +188,8 @@ export function ExploreSocial() {
               redirectTo="/explorar"
             />
             <p className="vj-meta">
-              <UserRoundPlus size={14} aria-hidden="true" /> Rede profissional — sem métricas inventadas.
+              <UserRoundPlus size={14} aria-hidden="true" /> Rede profissional — sem métricas
+              inventadas.
             </p>
           </div>
           <div className="vj-card vj-stack">

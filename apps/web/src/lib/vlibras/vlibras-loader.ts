@@ -58,14 +58,17 @@ function hideInteractOverlays(): void {
 
   document
     .querySelectorAll<HTMLElement>("#gameContainer, #unity-container, #unity-footer, [vw] canvas")
-    .forEach((el) => neutralizeElement(el));
+    .forEach((el) => {
+      neutralizeElement(el);
+    });
 
   document.querySelectorAll<HTMLElement>("div, span, button, p, label, a").forEach((el) => {
     const text = el.textContent?.trim();
     if (!text || text.length > 24 || !/^interagir$/i.test(text)) return;
     const host =
-      (el.closest("#gameContainer, [vw], [vw-plugin-wrapper], [vw-access-button]") as HTMLElement | null) ??
-      el;
+      (el.closest(
+        "#gameContainer, [vw], [vw-plugin-wrapper], [vw-access-button]",
+      ) as HTMLElement | null) ?? el;
     neutralizeElement(host);
   });
 }
@@ -150,7 +153,11 @@ function isVLibrasPanelOpen(): boolean {
 
 export function openVLibrasPanel(): void {
   const root = getVLibrasRoot();
-  if (!root || root.classList.contains(VW_HIDDEN_CLASS) || root.classList.contains(VW_DISABLED_CLASS)) {
+  if (
+    !root ||
+    root.classList.contains(VW_HIDDEN_CLASS) ||
+    root.classList.contains(VW_DISABLED_CLASS)
+  ) {
     return;
   }
   if (isVLibrasPanelOpen()) return;

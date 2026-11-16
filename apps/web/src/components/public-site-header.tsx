@@ -13,6 +13,8 @@ export function PublicSiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const panelId = useId();
 
+  // Fecha o menu mobile em navegação — pathname é o gatilho intencional.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-run on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
@@ -29,7 +31,11 @@ export function PublicSiteHeader() {
   return (
     <>
       <header className="vj-public-header vj-public-header-rich">
-        <a href="/" aria-label={t("nav.homeBrand", "VerasJuris, início")} className="vj-public-brand">
+        <a
+          href="/"
+          aria-label={t("nav.homeBrand", "VerasJuris, início")}
+          className="vj-public-brand"
+        >
           <BrandMark />
         </a>
 

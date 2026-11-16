@@ -75,9 +75,7 @@ export const profiles = pgTable(
     timeZone: text("time_zone").notNull().default("America/Sao_Paulo"),
     ...timestamps,
   },
-  (table) => [
-    uniqueIndex("profiles_cpf_normalized_unique").on(table.cpfNormalized),
-  ],
+  (table) => [uniqueIndex("profiles_cpf_normalized_unique").on(table.cpfNormalized)],
 );
 
 export const professionalProfiles = pgTable("professional_profiles", {

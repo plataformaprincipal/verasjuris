@@ -78,9 +78,7 @@ export function InstitutionalFooter() {
           <LanguageSwitcher />
         </section>
       </div>
-      <p className="vj-meta">
-        {t("footer.disclaimer", undefined, { draft: t("common.draft") })}
-      </p>
+      <p className="vj-meta">{t("footer.disclaimer", undefined, { draft: t("common.draft") })}</p>
     </footer>
   );
 }

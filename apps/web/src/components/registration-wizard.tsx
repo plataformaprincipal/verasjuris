@@ -272,6 +272,7 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
   );
 
   // Move o foco ao mudar de etapa (ou ao primeiro campo inválido após tentar avançar).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: stepId/focusTick are intentional triggers
   useEffect(() => {
     if (!mountedRef.current) {
       mountedRef.current = true;
@@ -463,10 +464,10 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
     const collaboratorId = fid("collaborator");
     return (
       <div className="vj-stack">
-        <div role="group" aria-labelledby={fid("persona-legend")}>
-          <p id={fid("persona-legend")} className="vj-label">
+        <fieldset className="vj-stack" aria-labelledby={fid("persona-legend")}>
+          <legend id={fid("persona-legend")} className="vj-label">
             {t("register.persona.question")} *
-          </p>
+          </legend>
           <div className="vj-persona-grid">
             {PUBLIC_PERSONAS.map((persona: WizardPersona) => (
               <button
@@ -487,7 +488,7 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
               {te(errors.persona)}
             </p>
           ) : null}
-        </div>
+        </fieldset>
         <p className="vj-hint" id={collaboratorId}>
           {t("register.persona.inviteFull")}{" "}
           <a href="/convite">{t("register.persona.inviteLink")}</a>.
@@ -1051,11 +1052,11 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
 
     return (
       <div className="vj-stack">
-        <div className="vj-stack" role="list" aria-label={t("register.review.summary")}>
+        <ul className="vj-stack" aria-label={t("register.review.summary")}>
           {rows.map((row) => {
             const title = t(row.titleKey);
             return (
-              <section key={row.step} className="vj-wizard-review" role="listitem">
+              <li key={row.step} className="vj-wizard-review">
                 <div className="vj-wizard-review-head">
                   <h3 className="vj-wizard-review-title">{title}</h3>
                   <button
@@ -1072,10 +1073,10 @@ export function RegistrationWizard({ redirectTo }: { redirectTo?: string | null 
                     <ReviewRow key={label} label={label} value={value} />
                   ))}
                 </dl>
-              </section>
+              </li>
             );
           })}
-        </div>
+        </ul>
 
         <LegalPreviewCards />
 

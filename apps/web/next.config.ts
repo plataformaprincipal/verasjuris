@@ -29,6 +29,8 @@ const nextConfig: NextConfig = {
     "@verasjuris/types",
   ],
   // Workspace packages use TypeScript ESM (import './x.js' → x.ts).
+  // Não aliasar react/react-dom: Next 16 usa react vendored em dist/compiled;
+  // forçar o pacote do app quebra o prerender de /_global-error (dispatcher null).
   webpack: (config) => {
     config.resolve.extensionAlias = {
       ".js": [".ts", ".tsx", ".js"],

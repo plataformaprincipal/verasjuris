@@ -3,7 +3,10 @@
 import { Breadcrumb, ErrorState, PageHeader } from "@verasjuris/ui";
 import { useState } from "react";
 import { NoPermission, SectionTabs } from "../../../../components/ai-ui";
-import { MARKETPLACE_APP_TABS, translateMarketplaceTabs } from "../../../../components/marketplace-ui";
+import {
+  MARKETPLACE_APP_TABS,
+  translateMarketplaceTabs,
+} from "../../../../components/marketplace-ui";
 import {
   hasMarketplacePermission,
   isApiFailure,
@@ -47,7 +50,11 @@ export default function AppMarketplaceProfilePage() {
         items={[{ label: "Marketplace", href: "/app/marketplace" }, { label: "Perfil" }]}
       />
       <PageHeader title="Perfil no marketplace" />
-      <SectionTabs label={t("common.sections")} items={translateMarketplaceTabs(t, MARKETPLACE_APP_TABS)} current="" />
+      <SectionTabs
+        label={t("common.sections")}
+        items={translateMarketplaceTabs(t, MARKETPLACE_APP_TABS)}
+        current=""
+      />
       {error ? <ErrorState title="Erro">{error}</ErrorState> : null}
       {saved ? <p role="status">Perfil atualizado.</p> : null}
       <form className="vj-stack vj-form" onSubmit={(e) => void onSubmit(e)}>

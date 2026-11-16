@@ -149,8 +149,7 @@ describe("API da fundação", () => {
     // Cadastro cria org pessoal (owner); o convite à Alfa adiciona membership member.
     expect(
       caioMemberships.some(
-        (membership) =>
-          membership.organizationId === alfaId && membership.roles.includes("member"),
+        (membership) => membership.organizationId === alfaId && membership.roles.includes("member"),
       ),
     ).toBe(true);
 

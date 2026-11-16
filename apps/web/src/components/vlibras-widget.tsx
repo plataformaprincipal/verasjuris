@@ -7,10 +7,7 @@ import {
   loadLocalAccessibility,
   type AccessibilityPreferences,
 } from "../lib/accessibility";
-import {
-  VLIBRAS_SCRIPT_LOAD_TIMEOUT_MS,
-  VLIBRAS_SCRIPT_URLS,
-} from "../lib/vlibras/constants";
+import { VLIBRAS_SCRIPT_LOAD_TIMEOUT_MS, VLIBRAS_SCRIPT_URLS } from "../lib/vlibras/constants";
 import {
   activateVLibras,
   deactivateVLibras,
@@ -58,7 +55,9 @@ function loadVLibrasScript(urls: readonly string[]): Promise<"ready" | "error" |
     attempted.push(url);
 
     return new Promise((resolve) => {
-      const existing = document.querySelector<HTMLScriptElement>(`script[data-vj-vlibras-src="${url}"]`);
+      const existing = document.querySelector<HTMLScriptElement>(
+        `script[data-vj-vlibras-src="${url}"]`,
+      );
       if (existing) {
         if (window.VLibras) {
           resolve("ready");

@@ -85,19 +85,27 @@ export default function AppMarketplacePage() {
 
   return (
     <div className="vj-stack">
-      <Breadcrumb items={[{ label: t("dashboard.title"), href: "/app" }, { label: t("marketplace.title") }]} />
+      <Breadcrumb
+        items={[{ label: t("dashboard.title"), href: "/app" }, { label: t("marketplace.title") }]}
+      />
       <PageHeader
         title={t("marketplace.publicTitle")}
         description={t("marketplace.appDescription")}
       />
-      <SectionTabs label={t("common.sections")} items={translateMarketplaceTabs(t, MARKETPLACE_APP_TABS)} current="" />
+      <SectionTabs
+        label={t("common.sections")}
+        items={translateMarketplaceTabs(t, MARKETPLACE_APP_TABS)}
+        current=""
+      />
       <MarketplacePaymentBanner status={paymentStatus} />
       {loading ? <LoadingState label={t("common.loading")} /> : null}
       {!loading ? (
         <>
           {opportunities.length > 0 ? (
             <section>
-              <h2 className="vj-subtitle">{t("marketplace.openOpportunities", undefined, { count: opportunities.length })}</h2>
+              <h2 className="vj-subtitle">
+                {t("marketplace.openOpportunities", undefined, { count: opportunities.length })}
+              </h2>
             </section>
           ) : null}
           <section>

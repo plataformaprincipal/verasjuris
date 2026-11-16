@@ -4,7 +4,8 @@ import { SOLUTIONS } from "../../lib/solutions";
 
 export const metadata: Metadata = {
   title: "Soluções",
-  description: "Soluções VerasJuris para advogados, escritórios, empresas, departamentos jurídicos e clientes.",
+  description:
+    "Soluções VerasJuris para advogados, escritórios, empresas, departamentos jurídicos e clientes.",
 };
 
 export default function SolucoesPage() {
@@ -20,7 +21,11 @@ export default function SolucoesPage() {
         </div>
         <div className="vj-feature-grid">
           {SOLUTIONS.map((solution) => (
-            <a key={solution.slug} className="vj-card vj-card-link" href={`/solucoes/${solution.slug}`}>
+            <a
+              key={solution.slug}
+              className="vj-card vj-card-link"
+              href={`/solucoes/${solution.slug}`}
+            >
               <h2 className="vj-section-title">{solution.title}</h2>
               <p>{solution.summary}</p>
             </a>

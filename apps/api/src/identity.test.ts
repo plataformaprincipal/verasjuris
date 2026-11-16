@@ -77,7 +77,13 @@ describe("Etapa 1 — identidade", () => {
     });
     expect(login.statusCode).toBe(200);
 
-    const session = await call(app, "GET", "/v1/auth/session", undefined, sessionFrom(first.headers));
+    const session = await call(
+      app,
+      "GET",
+      "/v1/auth/session",
+      undefined,
+      sessionFrom(first.headers),
+    );
     expect(session.statusCode).toBe(200);
 
     const audits = await database.db

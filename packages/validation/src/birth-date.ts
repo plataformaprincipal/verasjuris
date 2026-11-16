@@ -15,7 +15,9 @@ export const BIRTH_DATE_UNDERAGE_MESSAGE =
 export const BIRTH_DATE_REQUIRED_MESSAGE = "Informe a data de nascimento.";
 
 /** Parseia AAAA-MM-DD como data de calendário real (rejeita 2024-02-31 etc.). */
-export function parseCalendarDate(value: string): { year: number; month: number; day: number } | null {
+export function parseCalendarDate(
+  value: string,
+): { year: number; month: number; day: number } | null {
   const trimmed = value.trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
   const [yearRaw, monthRaw, dayRaw] = trimmed.split("-");
@@ -51,10 +53,7 @@ export function ageInFullYears(
   return age;
 }
 
-export function validateBirthDateValue(
-  value: string,
-  now: Date = new Date(),
-): string | undefined {
+export function validateBirthDateValue(value: string, now: Date = new Date()): string | undefined {
   const trimmed = value.trim();
   if (!trimmed) return BIRTH_DATE_REQUIRED_MESSAGE;
 
