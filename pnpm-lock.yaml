@@ -105,7 +105,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.2
-        version: 5.0.2(@types/node@26.6.3)(vite@8.3.1(@types/node@26.6.3)(esbuild@0.27.7)(tsx@4.23.15))
+        version: 5.0.2(@types/node@26.6.3)(vite@8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(tsx@4.23.15))
 
   apps/web:
     dependencies:
@@ -146,9 +146,15 @@ importers:
 
   apps/worker:
     dependencies:
+      '@verasjuris/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@verasjuris/api':
         specifier: workspace:*
         version: link:../api
+      '@verasjuris/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@verasjuris/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -164,6 +170,9 @@ importers:
       '@verasjuris/storage':
         specifier: workspace:*
         version: link:../../packages/storage
+      '@verasjuris/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       drizzle-orm:
         specifier: 0.45.3
         version: 0.45.3(@electric-sql/pglite@0.5.8)(postgres@3.4.9)
@@ -191,7 +200,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: 5.0.2
-        version: 5.0.2(@types/node@26.6.3)(vite@8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(tsx@4.23.15))
+        version: 5.0.2(@types/node@26.6.3)(vite@8.3.1(@types/node@26.6.3)(esbuild@0.27.7)(tsx@4.23.15))
 
   packages/ai:
     dependencies:

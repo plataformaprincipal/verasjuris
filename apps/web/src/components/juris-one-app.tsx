@@ -34,6 +34,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { fetchAiStatus, isApiFailure, type AiStatus } from "../lib/ai";
 import {
   createConversation,
+  createWorkTask,
   deleteConversation,
   ensureInitialWorkCredits,
   getMessages,
@@ -272,6 +273,28 @@ export function JurisOneApp() {
     setActiveId(res.conversation.id);
     setMessages([]);
     setLastProviderKey(null);
+  }
+
+  async function handleCreateWorkFromChat() {
+    if (!org.orgId || pending) return;
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    const objective =
+      lastUser?.content?.trim() ||
+      "Organizar contexto da conversa Juris One, extrair próximos passos e gerar relatório interno para revisão humana.";
+    setPending(true);
+    setError(null);
+    const created = await createWorkTask(org.orgId, {
+      title: "Work a partir do Chat",
+      objective: objective.slice(0, 4000),
+    });
+    setPending(false);
+    if (isApiFailure(created)) {
+      setError(jurisOneApiErrorMessage(created, "Não foi possível criar a tarefa Work."));
+      return;
+    }
+    if (created.credits) setCredits(created.credits);
+    setPendingWorkCount((n) => n + 1);
+    window.location.href = `/app/juris-one/work`;
   }
 
   async function handleSend(textOverride?: string) {
@@ -783,6 +806,14 @@ export function JurisOneApp() {
             <ButtonLink href="/app/juris-one/work" variant="secondary">
               Abrir Work
             </ButtonLink>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={pending || !org.orgId}
+              onClick={() => void handleCreateWorkFromChat()}
+            >
+              Criar tarefa Work desta conversa
+            </Button>
             <p className="vj-hint">{JURIS_WORK_STATUS.detail}</p>
           </div>
           <div className="vj-stack">
@@ -791,7 +822,7 @@ export function JurisOneApp() {
             <p className="vj-hint">
               {aiStatus?.provider.configured
                 ? (aiStatus.provider.message ?? "Provedor marcado como configurado neste ambiente.")
-                : "OpenAI não está configurado (FEATURE_AI=0). O chat autenticado usa FAQ/fallback — sem streaming e sem alegar modelo ao vivo."}
+                : "OpenAI não está configurado. O chat autenticado falha de forma explícita (não inventa FAQ como IA). Streaming HTTP ainda não homologado."}
             </p>
             <Link href="/app/ia" className="vj-juris-app-nav-link">
               Administração de IA
@@ -805,7 +836,7 @@ export function JurisOneApp() {
             <p className="vj-meta">Segurança</p>
             <p className="vj-hint" role="note">
               IA pode errar. Confirme fatos críticos. Ações externas (protocolo, pagamento, envio)
-              permanecem bloqueadas no scaffold Work.
+              permanecem bloqueadas até homologação. Work compartilha o mesmo núcleo do Assistente.
             </p>
           </div>
         </aside>

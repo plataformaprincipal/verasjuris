@@ -6,10 +6,25 @@ import type { MemoryRateLimiter } from "@verasjuris/security";
 import { AppError } from "@verasjuris/types";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { requireOrganizationPermission } from "../auth/routes.js";
+import type { RequestMeta } from "../auth/service.js";
+import {
+  createJurisWorkTask,
+  getJurisWorkTask,
+  listJurisWorkTasks,
+} from "../juris-work/service.js";
+import {
+  gatherVerifiedOrgContext,
+  listOrgCrmClients,
+  listOrgDeadlines,
+  listOrgDocuments,
+  listOrgMatters,
+  listOrgTasks,
+} from "./org-tools.js";
 import {
   assertNoCriticalAutonomousAction,
   assertToolAllowed,
   FAQ_FALLBACK,
+  resolveNavigation,
   systemPromptForLocale,
   type AssistantToolName,
 } from "./tool-registry.js";
@@ -20,6 +35,20 @@ const LEGACY_CHAT_FEATURE = "education.question_answering";
 export type AssistantServiceDeps = {
   rateLimiter?: MemoryRateLimiter;
 };
+
+const ALL_TOOLS: AssistantToolName[] = [
+  "searchHelp",
+  "navigateTo",
+  "createSupportRequest",
+  "listMatters",
+  "listDeadlines",
+  "listDocuments",
+  "listTasks",
+  "listCrmClients",
+  "createWorkTask",
+  "getWorkTask",
+  "prepareCommunicationDraft",
+];
 
 export class AssistantService {
   constructor(
@@ -215,10 +244,25 @@ export class AssistantService {
     const contextLines = chronological
       .filter((m) => m.role === "user" || m.role === "assistant")
       .map((m) => `${m.role}: ${m.content.slice(0, 1_500)}`);
-    const modelInput =
-      contextLines.length > 0
-        ? `${contextLines.join("\n")}\nuser: ${input.content}`
-        : input.content;
+
+    const faqHint = this.faqReply(locale, input.content);
+    const verified = await gatherVerifiedOrgContext(
+      this.db,
+      account,
+      conversation.organizationId,
+      input.content,
+    );
+
+    const modelInput = [
+      contextLines.length > 0 ? contextLines.join("\n") : "",
+      verified || null,
+      faqHint
+        ? `FAQ COMPLEMENTAR (fonte institucional; use só se pertinente, não como se fosse geração livre): ${faqHint}`
+        : null,
+      `user: ${input.content}`,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
 
     const result = await this.generateChatText(
       account,
@@ -235,7 +279,14 @@ export class AssistantService {
         role: "assistant",
         content: result.data,
         providerKey,
-        metadata: { model: result.model, feature: result.feature },
+        metadata: {
+          model: result.model,
+          feature: result.feature,
+          faqComplementary: Boolean(faqHint),
+          verifiedOrgContext: Boolean(verified),
+          streaming: false,
+          streamingStatus: "not_compatible_openai_provider",
+        },
       })
       .returning();
 
@@ -248,15 +299,9 @@ export class AssistantService {
       message: assistantMsg,
       providerKey,
       model: result.model,
-      faqHint: this.faqReply(locale, input.content),
-      tools: [
-        "searchHelp",
-        "navigateTo",
-        "createSupportRequest",
-        "listMatters",
-        "listDeadlines",
-        "listDocuments",
-      ],
+      faqHint,
+      processing: { streamed: false, reason: "OpenAIProvider sem streamText homologado" },
+      tools: ALL_TOOLS,
     };
   }
 
@@ -265,33 +310,101 @@ export class AssistantService {
     conversationId: string,
     tool: AssistantToolName,
     params: Record<string, unknown> = {},
+    meta: RequestMeta = { requestId: "assistant-tool", ip: null, userAgent: null },
   ) {
     const conversation = await this.requireOwnedConversation(account, conversationId);
     assertToolAllowed(account, conversation.organizationId, tool);
-    if (tool === "createSupportRequest") {
-      const ticket = {
-        id: cryptoRandom(),
-        subject: String(params.subject ?? "Suporte assistente"),
-        status: "open",
-        organizationId: conversation.organizationId,
-      };
-      await this.db.insert(assistantMessages).values({
-        conversationId,
-        role: "tool",
-        content: JSON.stringify({ tool, ticket }),
-        providerKey: "tool",
-      });
-      return { result: ticket };
+    const organizationId = conversation.organizationId;
+    if (!organizationId && tool !== "searchHelp" && tool !== "navigateTo") {
+      throw new AppError("AUTHORIZATION_ERROR", "Ferramenta requer organização ativa.");
     }
-    if (tool === "searchHelp") {
-      return { result: this.faqReply(conversation.locale, String(params.q ?? "")) };
+
+    let result: unknown;
+    switch (tool) {
+      case "createSupportRequest": {
+        const ticket = {
+          id: cryptoRandom(),
+          subject: String(params.subject ?? "Suporte assistente"),
+          status: "open",
+          organizationId,
+          note: "Solicitação registrada na conversa. Não abre ticket externo homologado.",
+        };
+        result = ticket;
+        break;
+      }
+      case "searchHelp":
+        result = {
+          faq: this.faqReply(conversation.locale, String(params.q ?? "")),
+          complementaryOnly: true,
+        };
+        break;
+      case "navigateTo":
+        result = resolveNavigation(String(params.path ?? params.q ?? "/app"));
+        break;
+      case "listMatters":
+        result = await listOrgMatters(this.db, account, organizationId!);
+        break;
+      case "listDeadlines":
+        result = await listOrgDeadlines(this.db, account, organizationId!);
+        break;
+      case "listDocuments":
+        result = await listOrgDocuments(this.db, account, organizationId!);
+        break;
+      case "listTasks":
+        result = await listOrgTasks(this.db, account, organizationId!);
+        break;
+      case "listCrmClients":
+        result = await listOrgCrmClients(this.db, account, organizationId!);
+        break;
+      case "createWorkTask": {
+        const title = String(params.title ?? "Tarefa Work pelo Assistente").slice(0, 180);
+        const objective = String(params.objective ?? params.description ?? "").trim();
+        if (objective.length < 10) {
+          throw new AppError(
+            "VALIDATION_ERROR",
+            "Informe um objetivo com pelo menos 10 caracteres para criar a tarefa Work.",
+          );
+        }
+        result = await createJurisWorkTask(
+          this.db,
+          account,
+          organizationId!,
+          { title, objective },
+          meta,
+          { gateway: this.aiGateway },
+        );
+        break;
+      }
+      case "getWorkTask": {
+        const taskId = String(params.taskId ?? "");
+        if (!taskId) {
+          result = await listJurisWorkTasks(this.db, account, organizationId!);
+        } else {
+          result = await getJurisWorkTask(this.db, account, organizationId!, taskId);
+        }
+        break;
+      }
+      case "prepareCommunicationDraft": {
+        result = {
+          status: "draft_only",
+          subject: String(params.subject ?? "Comunicação interna").slice(0, 180),
+          body: String(params.body ?? "").slice(0, 4000),
+          sendStatus: "NOT_CONFIGURED",
+          note: "Rascunho preparado. Envio via Resend permanece bloqueado até aprovação humana e homologação do fluxo de comunicação externa.",
+        };
+        break;
+      }
+      default:
+        throw new AppError("VALIDATION_ERROR", "Ferramenta do assistente desconhecida.");
     }
-    if (tool === "navigateTo") {
-      return { result: { path: String(params.path ?? "/app"), allowed: true } };
-    }
-    return {
-      result: { tool, items: [], note: "Lista filtrada por permissão; dados via domínio fonte." },
-    };
+
+    await this.db.insert(assistantMessages).values({
+      conversationId,
+      role: "tool",
+      content: JSON.stringify({ tool, result }),
+      providerKey: "tool",
+    });
+    return { result };
   }
 
   async feedback(
@@ -316,7 +429,6 @@ export class AssistantService {
     return { feedback: row };
   }
 
-  /** Prefere juris_one.chat; se o gateway customizado não permitir, usa o feature legado. */
   private async generateChatText(
     account: SessionAccount,
     organizationId: string,
@@ -327,7 +439,7 @@ export class AssistantService {
     const base = {
       userId: account.user.id,
       organizationId,
-      promptVersion: "assistant-v1" as const,
+      promptVersion: "assistant-v2" as const,
       instructions: systemPromptForLocale(locale),
       input: content,
     };

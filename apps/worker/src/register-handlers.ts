@@ -14,6 +14,7 @@ import {
   createStorageReconciliationHandler,
   STORAGE_RECONCILIATION_JOB,
 } from "./jobs/storage-reconciliation.js";
+import { registerJurisWorkHandlers } from "./jobs/juris-work-handlers.js";
 
 export type WorkerHandlerRegistry = Map<string, JobHandler>;
 
@@ -48,6 +49,7 @@ export function registerWorkerHandlers(queue: JobQueue, db: AppDatabase): Worker
     db,
   );
   registerLocalPlatformHardeningHandlers(collect as unknown as LocalInProcessQueueProvider, db);
+  registerJurisWorkHandlers(collect, db);
 
   const storageHandler = createStorageReconciliationHandler({
     db,

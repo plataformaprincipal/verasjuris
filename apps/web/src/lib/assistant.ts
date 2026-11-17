@@ -1,22 +1,16 @@
 import { CSRF_HEADER } from "@verasjuris/security/constants";
 import type { AiApiFailure } from "./ai";
 import { isApiFailure } from "./ai";
+import { getActiveOrgId } from "./crm";
 import type { Locale } from "./i18n";
 
-export type AssistantMode = "support" | "product" | "legal";
+export type AssistantMode = "support" | "product" | "legal" | "work";
 
 export type AssistantMessage = {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
   createdAt?: string;
-};
-
-export type AssistantConversation = {
-  id: string;
-  mode: AssistantMode;
-  messages: AssistantMessage[];
-  aiAvailable?: boolean;
 };
 
 type FaqEntry = { q: string; a: string; mode?: AssistantMode };
@@ -48,6 +42,11 @@ const FAQ: Partial<Record<Locale, FaqEntry[]>> & {
       mode: "support",
     },
     {
+      q: "O que é Work?",
+      a: "Work planeja e executa tarefas internas com aprovação humana em /app/juris-one/work. Ações externas ficam bloqueadas até homologação.",
+      mode: "work",
+    },
+    {
       q: "Onde estão as políticas?",
       a: "No rodapé institucional e em /politicas/* (conteúdo DRAFT até aprovação).",
       mode: "product",
@@ -57,12 +56,10 @@ const FAQ: Partial<Record<Locale, FaqEntry[]>> & {
     {
       q: "How do I sign in?",
       a: "Use Sign in with email and password. Use account recovery if needed.",
-      mode: "support",
     },
     {
       q: "Where is accessibility?",
       a: "Open the floating accessibility button or /acessibilidade.",
-      mode: "product",
     },
     {
       q: "Are you a law firm?",
@@ -70,21 +67,15 @@ const FAQ: Partial<Record<Locale, FaqEntry[]>> & {
       mode: "legal",
     },
     {
-      q: "System status?",
-      a: "See the public /status page.",
-      mode: "support",
+      q: "What is Work?",
+      a: "Work plans internal tasks with human approval at /app/juris-one/work. External actions stay blocked until homologated.",
+      mode: "work",
     },
   ],
   "es-ES": [
     {
       q: "¿Cómo inicio sesión?",
       a: "Use Entrar con correo y contraseña. Si olvidó la contraseña, recupere la cuenta.",
-      mode: "support",
-    },
-    {
-      q: "¿Dónde está la accesibilidad?",
-      a: "Abra el botón flotante de accesibilidad o /acessibilidade.",
-      mode: "product",
     },
     {
       q: "¿Son un bufete?",
@@ -131,6 +122,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T | AiApiFa
   try {
     response = await fetch(path, {
       ...init,
+      credentials: "include",
       headers: {
         ...(init?.body ? { "content-type": "application/json" } : {}),
         ...(init?.method && init.method !== "GET" ? { [CSRF_HEADER]: "1" } : {}),
@@ -161,37 +153,78 @@ export async function sendAssistantMessage(input: {
       reply: string;
       aiAvailable: boolean;
       messages?: AssistantMessage[];
+      processing?: { streamed: boolean; reason?: string };
     }
   | AiApiFailure
 > {
+  const orgId = await getActiveOrgId();
+  if (!orgId) {
+    return {
+      httpStatus: 401,
+      error: {
+        code: "AUTHENTICATION_ERROR",
+        message: "Entre na conta e selecione uma organização para usar o Assistente com IA real.",
+      },
+    };
+  }
+
+  let conversationId = input.conversationId ?? null;
+  if (!conversationId) {
+    const created = await request<{ conversation: { id: string } }>(
+      `/api/v1/organizations/${orgId}/assistant/conversations`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title: `Assistente (${input.mode})`,
+          locale: input.locale,
+        }),
+      },
+    );
+    if (isApiFailure(created)) return created;
+    conversationId = created.conversation.id;
+  }
+
+  const content =
+    input.mode === "work"
+      ? `[modo=work] ${input.message}`
+      : input.path
+        ? `${input.message}\n(contexto de página: ${input.path})`
+        : input.message;
+
   const res = await request<{
-    conversationId: string;
-    reply: string;
-    aiAvailable: boolean;
-    messages?: AssistantMessage[];
-  }>("/api/v1/assistant/messages", {
+    message: { id: string; content: string };
+    providerKey?: string;
+    model?: string;
+    processing?: { streamed: boolean; reason?: string };
+  }>(`/api/v1/organizations/${orgId}/assistant/messages`, {
     method: "POST",
     body: JSON.stringify({
-      mode: input.mode,
-      message: input.message,
-      conversationId: input.conversationId ?? undefined,
-      locale: input.locale,
-      path: input.path,
+      sessionId: conversationId,
+      content,
     }),
   });
   if (isApiFailure(res)) return res;
-  return res;
+
+  return {
+    conversationId,
+    reply: res.message.content,
+    aiAvailable: true,
+    processing: res.processing ?? { streamed: false },
+  };
 }
 
 export function localFallbackReply(locale: Locale, mode: AssistantMode, question: string): string {
   const faq = matchFaq(locale, mode, question);
-  if (faq) return faq;
+  if (faq) {
+    return `${faq} (FAQ complementar — a IA não está disponível neste momento.)`;
+  }
   const disclaimers: Partial<Record<Locale, string>> = {
     "pt-BR":
-      "Não encontrei uma resposta no FAQ. Consulte a Central de Ajuda ou o suporte. Lembrete: não sou advogado.",
-    "en-US": "No FAQ match. Check Help Center or support. Reminder: I am not a lawyer.",
+      "A inteligência artificial está indisponível. Não inventei uma resposta. Entre, selecione organização e tente novamente, ou consulte a Central de Ajuda.",
+    "en-US":
+      "AI is unavailable. No fabricated reply. Sign in, select an organization, and retry — or use Help Center.",
     "es-ES":
-      "No hay coincidencia en el FAQ. Consulte Ayuda o soporte. Recordatorio: no soy abogado.",
+      "La IA no está disponible. No inventé una respuesta. Inicie sesión, seleccione organización e intente de nuevo.",
   };
   if (disclaimers[locale]) return disclaimers[locale]!;
   if (locale.startsWith("es")) return disclaimers["es-ES"]!;

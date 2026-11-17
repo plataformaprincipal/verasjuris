@@ -7,8 +7,9 @@ import {
 } from "@verasjuris/validation";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { requireAccount, type ApiDeps } from "../auth/routes.js";
+import { meta, requireAccount, type ApiDeps } from "../auth/routes.js";
 import { AssistantService } from "./service.js";
+import type { AssistantToolName } from "./tool-registry.js";
 
 export async function registerAssistantRoutes(app: FastifyInstance, deps: ApiDeps): Promise<void> {
   const svc = () =>
@@ -88,14 +89,9 @@ export async function registerAssistantRoutes(app: FastifyInstance, deps: ApiDep
       await svc().invokeTool(
         account,
         body.conversationId,
-        params.tool as
-          | "searchHelp"
-          | "navigateTo"
-          | "createSupportRequest"
-          | "listMatters"
-          | "listDeadlines"
-          | "listDocuments",
+        params.tool as AssistantToolName,
         body.params,
+        meta(request),
       ),
     );
   });

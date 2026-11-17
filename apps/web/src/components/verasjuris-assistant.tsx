@@ -105,12 +105,18 @@ export function VerasJurisAssistant() {
               {t("assistant.fallback")}
             </p>
           ) : null}
+          {pending ? (
+            <p className="vj-meta" role="status" aria-live="polite">
+              {t("assistant.processing", "Gerando resposta com IA…")}
+            </p>
+          ) : null}
           <div className="vj-view-toggle" role="tablist" aria-label="Modo do assistente">
             {(
               [
                 ["support", "assistant.mode.support"],
                 ["product", "assistant.mode.product"],
                 ["legal", "assistant.mode.legal"],
+                ["work", "assistant.mode.work"],
               ] as const
             ).map(([id, labelKey]) => (
               <button
@@ -120,10 +126,15 @@ export function VerasJurisAssistant() {
                 aria-selected={mode === id}
                 onClick={() => setMode(id)}
               >
-                {t(labelKey)}
+                {t(labelKey, id === "work" ? "Work" : undefined)}
               </button>
             ))}
           </div>
+          <p className="vj-hint">
+            <a href="/app/juris-one/work">Abrir painel Work</a>
+            {" · "}
+            <a href="/app/juris-one">Juris One Chat</a>
+          </p>
           <div className="vj-assistant-messages" aria-live="polite">
             {messages.map((message) => (
               <p
