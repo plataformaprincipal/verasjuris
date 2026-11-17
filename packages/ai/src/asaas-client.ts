@@ -277,6 +277,25 @@ export class AsaasClient {
     return this.request<AsaasCustomer>("POST", "/customers", input, signal);
   }
 
+  /** Busca clientes existentes (evita duplicar vínculo Asaas quando já há cadastro válido). */
+  listCustomers(
+    query: { email?: string; cpfCnpj?: string; externalReference?: string; limit?: number },
+    signal?: AbortSignal,
+  ): Promise<{ data?: AsaasCustomer[]; totalCount?: number }> {
+    const params = new URLSearchParams();
+    if (query.email) params.set("email", query.email);
+    if (query.cpfCnpj) params.set("cpfCnpj", query.cpfCnpj.replace(/\D/g, ""));
+    if (query.externalReference) params.set("externalReference", query.externalReference);
+    params.set("limit", String(query.limit ?? 1));
+    const qs = params.toString();
+    return this.request<{ data?: AsaasCustomer[]; totalCount?: number }>(
+      "GET",
+      `/customers?${qs}`,
+      undefined,
+      signal,
+    );
+  }
+
   createPayment(
     input: Record<string, unknown>,
     signal?: AbortSignal,

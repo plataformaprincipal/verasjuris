@@ -52,24 +52,21 @@ export default function CarrinhoPage() {
     if (!org.orgId || !acceptTerms) return;
     setCheckingOut(true);
     setCheckoutError(null);
+    const idempotencyKey =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? `cart_${crypto.randomUUID()}`
+        : `cart_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
     const result = await checkoutMarketplaceCart(org.orgId, {
       paymentMethod: "pix",
       acceptTerms: true,
+      idempotencyKey,
     });
     setCheckingOut(false);
     if (isApiFailure(result)) {
       setCheckoutError(marketplaceErrorMessage(result));
       return;
     }
-    const firstUrl = result.items.find((i) => i.checkoutUrl)?.checkoutUrl;
-    if (firstUrl) {
-      window.location.assign(firstUrl);
-      return;
-    }
-    const firstEngagement = result.items[0]?.engagementId;
-    if (firstEngagement) {
-      window.location.assign(`/marketplace/contratacoes/${firstEngagement}`);
-    }
+    window.location.assign(`/marketplace/checkout/${result.checkoutId}`);
   }
 
   return (
