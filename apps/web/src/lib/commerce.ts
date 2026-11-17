@@ -124,7 +124,10 @@ export function purchaseGateBadge(item: {
 }): PurchaseGateBadge {
   if (item.purchaseReady || item.purchaseStatus === "PURCHASE_READY") return "PURCHASE_READY";
   if (item.homologationStatus === "not_implemented") return "NOT_HOMOLOGATED";
-  if (item.purchaseStatus === "CATALOG_SEEDED" || item.purchaseStatus === "NOT_READY_FOR_PURCHASE") {
+  if (
+    item.purchaseStatus === "CATALOG_SEEDED" ||
+    item.purchaseStatus === "NOT_READY_FOR_PURCHASE"
+  ) {
     return "PENDING_EVIDENCE";
   }
   return "NOT_HOMOLOGATED";

@@ -21,9 +21,9 @@ function moduleGatesEnabled(): boolean {
 }
 
 function creditBillingEnabled(): boolean {
-  // Default on: purchased credits / franchise must be respected when present.
-  // Set FEATURE_AI_CREDIT_BILLING=0 only for emergency bypass (still NOT live payments).
-  return process.env.FEATURE_AI_CREDIT_BILLING !== "0";
+  // Opt-in: cobrança de créditos só com FEATURE_AI_CREDIT_BILLING=1.
+  // Alinha aos demais gates comerciais (default off até ops/homologação).
+  return process.env.FEATURE_AI_CREDIT_BILLING === "1";
 }
 
 function monthStartUtc(now = new Date()): Date {

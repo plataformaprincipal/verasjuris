@@ -133,7 +133,7 @@ describe("Commerce phases 5–6", () => {
       }),
     ).rejects.toMatchObject({ code: "AUTHORIZATION_ERROR" });
     process.env.FEATURE_AI_MODULE_GATES = "0";
-    process.env.FEATURE_AI_CREDIT_BILLING = "1";
+    delete process.env.FEATURE_AI_CREDIT_BILLING;
   });
 
   it("cria proposta SRV com marcos 30/70 e aceita", async () => {

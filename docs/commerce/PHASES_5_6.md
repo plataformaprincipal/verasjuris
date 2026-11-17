@@ -6,7 +6,7 @@
 - Franquia do plano (`ai.credits_monthly` / `ai.light_ops_monthly`) antes da carteira
 - Env:
   - `FEATURE_AI_MODULE_GATES=1` — exige grant `module.AI_*` (default off no rollout)
-  - `FEATURE_AI_CREDIT_BILLING=0` — bypass de débito (emergência)
+  - `FEATURE_AI_CREDIT_BILLING=1` — habilita débito de créditos/franquia (default off)
   - `FEATURE_AI_CREDIT_UNMAPPED=1` — cobra features sem binding
 
 ## Fase 6 — Serviços SRV_* 30/70

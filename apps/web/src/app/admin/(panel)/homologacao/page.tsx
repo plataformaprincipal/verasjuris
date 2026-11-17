@@ -237,7 +237,12 @@ export default function AdminHomologacaoPage() {
                 placeholder="Descreva o teste sandbox / entregabilidade (sem segredos)."
               />
             </label>
-            <button type="button" className="vj-button" disabled={busy} onClick={() => void onRecordEvidence()}>
+            <button
+              type="button"
+              className="vj-button"
+              disabled={busy}
+              onClick={() => void onRecordEvidence()}
+            >
               Registrar PASS
             </button>
           </section>

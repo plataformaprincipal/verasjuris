@@ -3,15 +3,7 @@
  * Nunca escreve PAYMENTS_LIVE; aprovação DB é pré-requisito, não o adapter PSP.
  */
 import { relations } from "drizzle-orm";
-import {
-  index,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { monetizationProducts } from "./monetization.js";
 import { users } from "./identity.js";

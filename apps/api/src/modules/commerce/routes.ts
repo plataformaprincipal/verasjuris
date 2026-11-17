@@ -196,8 +196,7 @@ export async function registerCommerceRoutes(app: FastifyInstance, deps: ApiDeps
         pendingVerificationCount: checklist.pendingVerification.length,
         passedRequired: checklist.passedRequired,
         requiredTotal: checklist.requiredTotal,
-        paymentsLiveInsufficientWithoutApproval:
-          checklist.paymentsLiveInsufficientWithoutApproval,
+        paymentsLiveInsufficientWithoutApproval: checklist.paymentsLiveInsufficientWithoutApproval,
       },
     };
   });

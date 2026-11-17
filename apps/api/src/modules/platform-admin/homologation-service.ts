@@ -181,8 +181,7 @@ function autoSkuChecks(skuCode: string): SkuCheckView[] {
       result = defCheck.key === "not_not_implemented" ? "FAIL" : "NOT_VERIFIED";
       evidence = "sku_unknown";
     } else if (defCheck.key === "price_defined") {
-      const ok =
-        def.requiresProposal || def.priceMode === "proposal" || def.amountCents > 0;
+      const ok = def.requiresProposal || def.priceMode === "proposal" || def.amountCents > 0;
       result = ok ? "PASS" : "FAIL";
       evidence = `amountCents=${def.amountCents}; priceMode=${def.priceMode}`;
     } else if (defCheck.key === "not_not_implemented") {
@@ -204,8 +203,7 @@ function autoSkuChecks(skuCode: string): SkuCheckView[] {
         evidence = bound ? "bound" : "missing_binding";
       }
     } else if (defCheck.key === "cart_or_service_flow") {
-      const ok =
-        PURCHASABLE.has(def.commercialType) || def.commercialType === "service";
+      const ok = PURCHASABLE.has(def.commercialType) || def.commercialType === "service";
       result = ok ? "PASS" : "FAIL";
       evidence = `commercialType=${def.commercialType}`;
     }
@@ -273,9 +271,7 @@ export async function computeSkuPurchaseReady(
 
   const required = checks.filter((c) => c.required);
   const blocking = required.filter((c) => c.result === "FAIL").map((c) => c.key);
-  const pendingVerification = required
-    .filter((c) => c.result === "NOT_VERIFIED")
-    .map((c) => c.key);
+  const pendingVerification = required.filter((c) => c.result === "NOT_VERIFIED").map((c) => c.key);
   const skuOk = blocking.length === 0 && pendingVerification.length === 0;
   const purchaseReady = checklist.readyForLive && skuOk;
 
@@ -290,10 +286,7 @@ export async function computeSkuPurchaseReady(
     purchaseReady,
     platformReadyForLive: checklist.readyForLive,
     status,
-    blocking: [
-      ...(checklist.readyForLive ? [] : ["platform_not_ready"]),
-      ...blocking,
-    ],
+    blocking: [...(checklist.readyForLive ? [] : ["platform_not_ready"]), ...blocking],
     pendingVerification: [
       ...(checklist.pendingVerification.length && !checklist.readyForLive
         ? ["platform_pending"]
@@ -304,9 +297,7 @@ export async function computeSkuPurchaseReady(
   };
 }
 
-export async function listSkuHomologationMatrix(
-  deps: HomologationServiceDeps,
-): Promise<{
+export async function listSkuHomologationMatrix(deps: HomologationServiceDeps): Promise<{
   checklist: PaymentsHomologationChecklist;
   skus: SkuPurchaseReadyResult[];
 }> {
@@ -318,10 +309,7 @@ export async function listSkuHomologationMatrix(
   return { checklist, skus };
 }
 
-export async function getEvidenceReport(
-  deps: HomologationServiceDeps,
-  account: SessionAccount,
-) {
+export async function getEvidenceReport(deps: HomologationServiceDeps, account: SessionAccount) {
   requirePlatformPermission(account, "platform.integrations.read");
   const { checklist, skus } = await listSkuHomologationMatrix(deps);
   return {
@@ -535,9 +523,7 @@ export async function revokeHomologationApproval(
       isNull(paymentsHomologationApprovals.supersededAt),
     ),
   });
-  const targets = input.approvalId
-    ? active.filter((a) => a.id === input.approvalId)
-    : active;
+  const targets = input.approvalId ? active.filter((a) => a.id === input.approvalId) : active;
   if (targets.length === 0) {
     throw new AppError("NOT_FOUND", "Nenhuma aprovação ativa para revogar.");
   }

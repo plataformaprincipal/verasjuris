@@ -101,8 +101,7 @@ export function buildPaymentsHomologationChecklist(
 
   const asaasEnv = input.asaasEnvironment ?? "sandbox";
   const sandboxOk =
-    asaasEnv !== "production" ||
-    (input.paymentHealthStatus === "ok" && approvalActive);
+    asaasEnv !== "production" || (input.paymentHealthStatus === "ok" && approvalActive);
 
   const checks: HomologationCheck[] = [
     check(
@@ -129,9 +128,7 @@ export function buildPaymentsHomologationChecklist(
     check(
       "payment_health",
       "PaymentProvider healthCheck",
-      passFail(
-        input.paymentHealthStatus === "ok" || input.paymentHealthStatus === "degraded",
-      ),
+      passFail(input.paymentHealthStatus === "ok" || input.paymentHealthStatus === "degraded"),
       true,
       `${input.paymentHealthStatus}${input.paymentHealthDetail ? `: ${input.paymentHealthDetail}` : ""}`,
     ),
@@ -204,12 +201,9 @@ export function buildPaymentsHomologationChecklist(
 
   const required = checks.filter((c) => c.required);
   const blocking = required.filter((c) => c.result === "FAIL").map((c) => c.key);
-  const pendingVerification = required
-    .filter((c) => c.result === "NOT_VERIFIED")
-    .map((c) => c.key);
+  const pendingVerification = required.filter((c) => c.result === "NOT_VERIFIED").map((c) => c.key);
   const passedRequired = required.filter((c) => c.result === "PASS").length;
-  const readyForLive =
-    blocking.length === 0 && pendingVerification.length === 0 && approvalActive;
+  const readyForLive = blocking.length === 0 && pendingVerification.length === 0 && approvalActive;
 
   let status: PaymentsHomologationChecklist["status"] = "NOT_HOMOLOGATED";
   if (readyForLive) status = "READY_FOR_LIVE";
