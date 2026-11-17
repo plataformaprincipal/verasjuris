@@ -8,6 +8,8 @@
 | 4 | Splits/comissões OAB-safe (0% / 10% / 15%) | Implementado (seed + auto-allocate no webhook) |
 | 5 | 24 módulos IA + cobrança/franquia no gateway | Implementado (gates env; sem PAYMENTS_LIVE) |
 | 6 | Serviços SRV_* marcos 30/70 + proposta/aceite | Implementado (sandbox checkout) |
-| 7+ | Design system, NF, homologação live | Pendente |
+| 7 | Design system comercial (offer surface) | Implementado |
+| 8 | Documentos fiscais NFS-e/NF-e (registro) | Implementado (`not_configured`) |
+| 9 | Checklist homologação Asaas live | Implementado (somente leitura) |
 
 Nunca habilitar produção via catálogo. Gates: `PAYMENTS_LIVE`, `FEATURE_PUBLIC_CHECKOUT`.

@@ -42,6 +42,7 @@ export * from "./email.js";
 export * from "./finance.js";
 export * from "./monetization.js";
 export * from "./commerce.js";
+export * from "./fiscal.js";
 export * from "./control.js";
 export * from "./analytics.js";
 export * from "./workflows.js";
@@ -987,6 +988,7 @@ import {
   commerceServiceProjectsRelations,
   commerceServiceMilestonesRelations,
 } from "./commerce.js";
+import { fiscalDocuments, fiscalDocumentsRelations } from "./fiscal.js";
 
 import {
   controlGoals,
@@ -1963,6 +1965,7 @@ export const schema = {
   organizationCommercialGrants,
   commerceServiceProjects,
   commerceServiceMilestones,
+  fiscalDocuments,
   usageMeters,
   usageRecords,
   aiCreditWallets,
@@ -2003,6 +2006,7 @@ export const schema = {
   organizationCommercialGrantsRelations,
   commerceServiceProjectsRelations,
   commerceServiceMilestonesRelations,
+  fiscalDocumentsRelations,
   usageMetersRelations,
   usageRecordsRelations,
   aiCreditWalletsRelations,

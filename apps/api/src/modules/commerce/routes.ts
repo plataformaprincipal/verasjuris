@@ -161,19 +161,48 @@ export async function registerCommerceRoutes(app: FastifyInstance, deps: ApiDeps
   });
 
   app.get("/commerce/catalog/purchase-status", async () => {
+    const { buildPaymentsHomologationChecklist } = await import(
+      "../platform-admin/homologation-checklist.js"
+    );
     const paymentsLive = process.env.PAYMENTS_LIVE === "1";
     const publicCheckout = process.env.FEATURE_PUBLIC_CHECKOUT === "1";
+    const paymentHealth = deps.paymentProvider
+      ? await deps.paymentProvider.healthCheck()
+      : { status: "not_configured", detail: "ausente", checkedAt: new Date().toISOString() };
+    const checklist = buildPaymentsHomologationChecklist({
+      paymentProviderMode: process.env.PAYMENT_PROVIDER ?? "not_configured",
+      asaasEnvironment: process.env.ASAAS_ENVIRONMENT ?? null,
+      asaasApiKeyPresent: Boolean(process.env.ASAAS_API_KEY?.trim()),
+      asaasWebhookTokenPresent: Boolean(process.env.ASAAS_WEBHOOK_TOKEN?.trim()),
+      paymentsLive,
+      publicCheckout,
+      paymentHealthStatus: paymentHealth.status,
+      paymentHealthDetail: "detail" in paymentHealth ? paymentHealth.detail : null,
+      catalogPurchaseReady: false,
+      isProduction: process.env.NODE_ENV === "production",
+    });
     return {
-      purchaseReady: false,
+      purchaseReady: false as const,
       paymentsLive,
       publicCheckout,
       status: "NOT_HOMOLOGATED" as const,
-      note: "Fases 2–4 implementam carrinho/Asaas sandbox + entitlements + splits OAB. Homologação comercial ≠ pronta para produção.",
+      note: "Homologação comercial ≠ pronta para produção. Checklist apenas reporta evidências.",
       phases: {
         catalog: "seeded",
         universalCart: "implemented_sandbox",
         entitlementEngine: "implemented_post_payment",
         oabSplits: "seeded_0_10_15",
+        aiModulesBilling: "implemented_gated",
+        serviceMilestones: "implemented_30_70",
+        offerSurface: "implemented",
+        fiscalDocuments: "not_configured_records",
+        liveHomologation: "checklist_only",
+      },
+      homologationChecklistSummary: {
+        readyForLive: false as const,
+        blockingCount: checklist.blocking.length,
+        passedRequired: checklist.passedRequired,
+        requiredTotal: checklist.requiredTotal,
       },
     };
   });

@@ -42,11 +42,14 @@ Bases oficiais: `https://api-sandbox.asaas.com/v3` e `https://api.asaas.com/v3`.
 
 ## Homologação
 
+Checklist operacional (somente leitura): `GET /v1/platform/payments/homologation-checklist` — ver `docs/PAYMENTS_HOMOLOGATION_CHECKLIST.md`. A API **nunca** escreve `PAYMENTS_LIVE`.
+
 1. Conta sandbox + chave + webhook apontando à API pública
 2. `PAYMENT_PROVIDER=asaas` `ASAAS_ENVIRONMENT=sandbox` `ASAAS_WEBHOOK_TOKEN=…`
 3. Testar Pix/boleto/cartão (fatura), estorno, cancelamento, webhook duplicado
-4. Só então: produção + `PAYMENTS_LIVE=1` + autorização explícita de deploy
+4. Sign-off humano + evidências verdes no checklist
+5. Só então: produção + `PAYMENTS_LIVE=1` + autorização explícita de deploy
 
 ## Relacionado
 
-`docs/PAYMENT_PROVIDER.md`, `docs/PAYMENT_WEBHOOKS.md`, `docs/PAYMENTS.md`, `docs/PRODUCTION_PAYMENTS_REPORT.md`
+`docs/PAYMENT_PROVIDER.md`, `docs/PAYMENT_WEBHOOKS.md`, `docs/PAYMENTS.md`, `docs/PRODUCTION_PAYMENTS_REPORT.md`, `docs/PAYMENTS_HOMOLOGATION_CHECKLIST.md`, `docs/FISCAL_DOCUMENTS.md`

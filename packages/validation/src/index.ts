@@ -819,6 +819,7 @@ export * from "./diligence.js";
 export * from "./extrajudicial.js";
 export * from "./education.js";
 export * from "./finance.js";
+export * from "./fiscal.js";
 export * from "./monetization.js";
 export * from "./commercial-catalog.js";
 export * from "./commerce.js";

@@ -10,6 +10,7 @@ import {
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { meta, requireAccount, type ApiDeps } from "../auth/routes.js";
+import { buildPaymentsHomologationChecklist } from "./homologation-checklist.js";
 import {
   activatePlatformInvite,
   createPlatformInvite,
@@ -23,6 +24,7 @@ import {
   updatePlatformUserStatus,
   type PlatformAdminDeps,
 } from "./service.js";
+import { requirePlatformPermission } from "./authorize.js";
 
 function platformDeps(deps: ApiDeps): PlatformAdminDeps {
   return {
@@ -78,6 +80,32 @@ export async function registerPlatformAdminRoutes(
   app.get(`${root}/integrations/health`, async (request) => {
     const account = await requireAccount(deps, request);
     return getPlatformIntegrationsHealth(platformDeps(deps), account);
+  });
+
+  /** Fase 9 — evidências de homologação live (somente leitura; nunca escreve PAYMENTS_LIVE). */
+  app.get(`${root}/payments/homologation-checklist`, async (request) => {
+    const account = await requireAccount(deps, request);
+    requirePlatformPermission(account, "platform.integrations.read");
+    const paymentHealth = deps.paymentProvider
+      ? await deps.paymentProvider.healthCheck()
+      : {
+          status: "not_configured",
+          detail: "Provider não injetado.",
+          checkedAt: new Date().toISOString(),
+        };
+    return buildPaymentsHomologationChecklist({
+      paymentProviderMode: process.env.PAYMENT_PROVIDER ?? "not_configured",
+      billingProviderMode: process.env.BILLING_PROVIDER ?? "not_configured",
+      asaasEnvironment: process.env.ASAAS_ENVIRONMENT ?? null,
+      asaasApiKeyPresent: Boolean(process.env.ASAAS_API_KEY?.trim()),
+      asaasWebhookTokenPresent: Boolean(process.env.ASAAS_WEBHOOK_TOKEN?.trim()),
+      paymentsLive: process.env.PAYMENTS_LIVE === "1",
+      publicCheckout: process.env.FEATURE_PUBLIC_CHECKOUT === "1",
+      paymentHealthStatus: paymentHealth.status,
+      paymentHealthDetail: "detail" in paymentHealth ? (paymentHealth.detail ?? null) : null,
+      catalogPurchaseReady: false,
+      isProduction: process.env.NODE_ENV === "production",
+    });
   });
 
   app.get(`${root}/users`, async (request) => {

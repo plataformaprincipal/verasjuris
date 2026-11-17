@@ -113,6 +113,27 @@ export const HOMOLOGATION_LABELS: Record<string, string> = {
   not_implemented: "Não implementado",
 };
 
+/** Gate comercial transversal (Fases 2–9) — nunca confundir com homologationStatus do SKU. */
+export const PURCHASE_GATE_LABEL = "NOT_HOMOLOGATED" as const;
+export const PURCHASE_READY_LABEL = "NOT_READY_FOR_PURCHASE" as const;
+
+export type CommercePurchaseStatusResponse = {
+  purchaseReady: false;
+  paymentsLive: boolean;
+  publicCheckout: boolean;
+  status: "NOT_HOMOLOGATED";
+  note: string;
+  phases?: Record<string, string>;
+  homologationChecklistSummary?: {
+    readyForLive: false;
+    blockingCount: number;
+  };
+};
+
+export async function fetchCommercePurchaseStatus() {
+  return request<CommercePurchaseStatusResponse>("/api/v1/commerce/catalog/purchase-status");
+}
+
 export function formatCatalogPrice(item: CommercialCatalogItem): string {
   if (item.requiresProposal && (item.priceMode === "proposal" || item.amountCents == null)) {
     return "Sob consulta";

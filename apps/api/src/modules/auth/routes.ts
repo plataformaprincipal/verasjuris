@@ -21,6 +21,7 @@ import type {
   DocumentVerificationProvider,
   BiometricVerificationProvider,
   FeeTableProvider,
+  FiscalDocumentProvider,
   BillingProvider,
   PaymentProvider,
   PayoutProvider,
@@ -160,6 +161,8 @@ export type ApiDeps = {
   environmentalDataProvider?: EnvironmentalDataProvider;
   registryProvider?: RegistryProvider;
   paymentProvider?: PaymentProvider;
+  /** NFS-e/NF-e; ausente = NOT_CONFIGURED (nunca inventa autorização). */
+  fiscalDocumentProvider?: FiscalDocumentProvider;
   /** Assinaturas externas (Asaas etc.); ausente = NOT_CONFIGURED. */
   billingProvider?: BillingProvider;
   /** Repasses externos; ausente = NOT_CONFIGURED (nunca marca PAID). */
