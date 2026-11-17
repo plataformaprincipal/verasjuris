@@ -125,6 +125,30 @@ export class AsaasPaymentProvider implements PaymentProvider {
     const email = input.metadata?.customerEmail?.trim();
     const cpfCnpj = input.metadata?.customerCpfCnpj?.trim()?.replace(/\D/g, "");
 
+    // Reutiliza cliente Asaas existente (email / CPF / externalReference) antes de criar outro.
+    try {
+      if (email) {
+        const byEmail = await this.client.listCustomers({ email, limit: 1 }, signal);
+        const found = byEmail.data?.[0]?.id;
+        if (found) return found;
+      }
+      if (cpfCnpj) {
+        const byDoc = await this.client.listCustomers({ cpfCnpj, limit: 1 }, signal);
+        const found = byDoc.data?.[0]?.id;
+        if (found) return found;
+      }
+      if (input.customerReference) {
+        const byRef = await this.client.listCustomers(
+          { externalReference: input.customerReference.slice(0, 100), limit: 1 },
+          signal,
+        );
+        const found = byRef.data?.[0]?.id;
+        if (found) return found;
+      }
+    } catch {
+      // Falha na listagem não bloqueia cobrança — segue criação.
+    }
+
     const customer = await this.client.createCustomer(
       {
         name,

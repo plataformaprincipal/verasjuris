@@ -29,6 +29,7 @@ import {
   addMarketplaceCartItem,
   checkoutMarketplaceCart,
   getMarketplaceCart,
+  getMarketplaceCheckoutAttempt,
   removeMarketplaceCartItem,
   updateMarketplaceCartItem,
 } from "./cart.js";
@@ -515,6 +516,17 @@ export async function registerMarketplaceRoutes(app: FastifyInstance, deps: ApiD
       input,
       moduleDeps(),
       meta(request),
+    );
+  });
+
+  app.get(`${root}/marketplace/checkouts/:checkoutId`, async (request) => {
+    const account = await requireAccount(deps, request);
+    const params = request.params as Params & { checkoutId?: string };
+    return getMarketplaceCheckoutAttempt(
+      deps.db,
+      account,
+      org(params),
+      parseInput(uuidSchema, params.checkoutId),
     );
   });
 

@@ -1474,11 +1474,49 @@ export class PaymentService {
       const failed = parsed.type === "payment.failed" || parsed.status === "failed";
 
       if (paid && intent?.organizationId) {
+        const webhookAmount =
+          typeof parsed.amountCents === "number" ? parsed.amountCents : intent.amountCents;
+        if (
+          Number.isInteger(webhookAmount) &&
+          webhookAmount > 0 &&
+          webhookAmount !== intent.amountCents
+        ) {
+          await this.db
+            .update(paymentWebhookEvents)
+            .set({
+              status: "failed",
+              errorCode: "AMOUNT_MISMATCH",
+              paymentIntentId: intent.id,
+              processedAt: new Date(),
+            })
+            .where(eq(paymentWebhookEvents.id, eventRow.id));
+          await recordAudit(this.db, {
+            actorUserId: null,
+            organizationId: intent.organizationId,
+            action: "payment.webhook_amount_mismatch",
+            resourceType: "payment_webhook_event",
+            resourceId: eventRow.id,
+            source: "system",
+            requestId: null,
+            ip: null,
+            after: {
+              intentAmountCents: intent.amountCents,
+              webhookAmountCents: webhookAmount,
+              externalEventId,
+            },
+          });
+          return {
+            status: "reconciliation_required" as const,
+            eventId: eventRow.id,
+            payment: null,
+          };
+        }
+
         const creditReceivable = Boolean(intent.invoiceId);
         const confirmed = await this.confirmPayment({
           paymentIntentId: intent.id,
           organizationId: intent.organizationId,
-          amountCents: parsed.amountCents ?? intent.amountCents,
+          amountCents: intent.amountCents,
           currency: intent.currency,
           providerKey,
           externalPaymentId: parsed.externalPaymentId ?? null,

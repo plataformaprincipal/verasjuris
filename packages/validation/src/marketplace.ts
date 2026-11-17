@@ -219,6 +219,13 @@ export const checkoutMarketplaceCartSchema = z.object({
     errorMap: () => ({ message: "Aceite os termos para continuar." }),
   }),
   clientId: optionalUuid,
+  /** Chave de idempotência persistente (obrigatória para evitar cobranças duplicadas). */
+  idempotencyKey: z
+    .string()
+    .trim()
+    .min(8, "Informe uma chave de idempotência.")
+    .max(128)
+    .regex(/^[A-Za-z0-9._:-]+$/, "Chave de idempotência inválida."),
 });
 
 export const marketplaceListQuerySchema = z.object({

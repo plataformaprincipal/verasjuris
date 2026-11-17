@@ -144,6 +144,44 @@ export type MarketplaceCart = {
   checkoutReady: boolean;
   currency: string;
   itemCount: number;
+  activeCheckoutId?: string | null;
+};
+
+export type MarketplacePaymentInstructions = {
+  checkoutUrl: string | null;
+  invoiceUrl: string | null;
+  bankSlipUrl: string | null;
+  pixCopyPaste: string | null;
+  pixQrCodeBase64: string | null;
+  pixExpiresAt: string | null;
+  boletoDigitableLine: string | null;
+  billingType: string | null;
+};
+
+export type MarketplaceCheckoutAttempt = {
+  checkoutId: string;
+  cartId: string;
+  status: string;
+  paymentMethod: string;
+  totalCents: number;
+  currency: string;
+  idempotencyKey: string;
+  lastError?: string | null;
+  replayed?: boolean;
+  items: Array<{
+    id: string;
+    serviceTitle: string;
+    quantity: number;
+    amountCents: number;
+    status: string;
+    engagementId: string | null;
+    paymentIntentId: string | null;
+    paymentStatus: string | null;
+    checkoutUrl: string | null;
+    paymentInstructions: MarketplacePaymentInstructions;
+    errorCode?: string | null;
+    errorMessage?: string | null;
+  }>;
 };
 
 export type MarketplaceDelivery = {
@@ -337,6 +375,16 @@ export async function fetchMarketplaceEngagement(orgId: string, engagementId: st
     deliveries: MarketplaceDelivery[];
     disputes: MarketplaceDispute[];
     events: MarketplaceEngagementEvent[];
+    payment: {
+      paymentIntentId: string;
+      status: string;
+      amountCents: number;
+      currency: string;
+      paymentMethod?: string | null;
+      expiresAt?: string | null;
+      externalIntentId?: string | null;
+      paymentInstructions: MarketplacePaymentInstructions;
+    } | null;
   }>(orgPath(orgId, `/marketplace/engagements/${engagementId}`));
 }
 
@@ -471,22 +519,23 @@ export async function removeMarketplaceCartItem(orgId: string, itemId: string) {
 
 export async function checkoutMarketplaceCart(
   orgId: string,
-  body: { paymentMethod?: string; acceptTerms: true; clientId?: string },
+  body: {
+    paymentMethod?: string;
+    acceptTerms: true;
+    clientId?: string;
+    idempotencyKey: string;
+  },
 ) {
-  return request<{
-    cartId: string;
-    status: string;
-    totalCents: number;
-    items: Array<{
-      engagementId: string;
-      paymentIntentId: string;
-      checkoutUrl: string | null;
-      amountCents: number;
-    }>;
-  }>(orgPath(orgId, "/marketplace/cart/checkout"), {
+  return request<MarketplaceCheckoutAttempt>(orgPath(orgId, "/marketplace/cart/checkout"), {
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+export async function fetchMarketplaceCheckout(orgId: string, checkoutId: string) {
+  return request<MarketplaceCheckoutAttempt>(
+    orgPath(orgId, `/marketplace/checkouts/${checkoutId}`),
+  );
 }
 
 export async function initiateMarketplaceProviderPayment(
@@ -498,9 +547,12 @@ export async function initiateMarketplaceProviderPayment(
     paymentIntentId: string;
     status: string;
     checkoutUrl: string | null;
+    paymentInstructions?: MarketplacePaymentInstructions;
     amountCents: number;
     currency: string;
     alreadyExists: boolean;
+    paymentMethod?: string | null;
+    expiresAt?: string | null;
   }>(orgPath(orgId, `/marketplace/engagements/${engagementId}/payment/provider`), {
     method: "POST",
     body: JSON.stringify(body),

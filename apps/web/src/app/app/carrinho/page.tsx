@@ -9,7 +9,7 @@ import {
   PageHeader,
 } from "@verasjuris/ui";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useLocale } from "../../../components/locale-provider";
 import {
   checkoutMarketplaceCart,
@@ -24,9 +24,19 @@ import {
 } from "../../../lib/marketplace";
 import { useOrgContext } from "../../../lib/use-org-context";
 
+type PaymentMethod = "pix" | "boleto" | "credit_card";
+
+function newIdempotencyKey() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return `cart_${crypto.randomUUID()}`;
+  }
+  return `cart_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export default function AppCarrinhoPage() {
   const { t } = useLocale();
   const org = useOrgContext();
+  const methodName = useId();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -35,6 +45,8 @@ export default function AppCarrinhoPage() {
   const [items, setItems] = useState<MarketplaceCartItem[]>([]);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [mutatingId, setMutatingId] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pix");
+  const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
 
   useEffect(() => {
     if (!org.ready || !org.orgId) return;
@@ -87,23 +99,17 @@ export default function AppCarrinhoPage() {
     setCheckingOut(true);
     setCheckoutError(null);
     const result = await checkoutMarketplaceCart(org.orgId, {
-      paymentMethod: "pix",
+      paymentMethod,
       acceptTerms: true,
+      idempotencyKey,
     });
     setCheckingOut(false);
     if (isApiFailure(result)) {
       setCheckoutError(marketplaceErrorMessage(result));
+      setIdempotencyKey(newIdempotencyKey());
       return;
     }
-    const firstUrl = result.items.find((i) => i.checkoutUrl)?.checkoutUrl;
-    if (firstUrl) {
-      window.location.assign(firstUrl);
-      return;
-    }
-    const firstEngagement = result.items[0]?.engagementId;
-    if (firstEngagement) {
-      window.location.assign(`/app/marketplace/contratacoes/${firstEngagement}`);
-    }
+    window.location.assign(`/app/marketplace/checkout/${result.checkoutId}`);
   }
 
   return (
@@ -123,6 +129,14 @@ export default function AppCarrinhoPage() {
       />
       {loading ? <LoadingState label={t("common.loading")} /> : null}
       {error ? <ErrorState title={t("common.error", "Erro")}>{error}</ErrorState> : null}
+      {!loading && !error && cart?.activeCheckoutId ? (
+        <p className="vj-hint">
+          {t("inicio.cart.activeCheckout", "Há um checkout em andamento.")}{" "}
+          <Link href={`/app/marketplace/checkout/${cart.activeCheckoutId}`}>
+            {t("inicio.cart.viewCheckout", "Ver pagamento")}
+          </Link>
+        </p>
+      ) : null}
       {!loading && !error && items.length === 0 ? (
         <EmptyState
           title={t("inicio.cart.empty", "Carrinho vazio")}
@@ -147,6 +161,13 @@ export default function AppCarrinhoPage() {
                     : item.lineTotalCents != null
                       ? formatMoneyCents(item.lineTotalCents)
                       : "—"}
+                  {item.service?.unitPriceCents != null && item.quantity > 1
+                    ? ` · ${formatMoneyCents(item.service.unitPriceCents)} × ${item.quantity}`
+                    : null}
+                </p>
+                <p className="vj-meta">
+                  {t("inicio.cart.provider", "Prestador")}:{" "}
+                  {item.service?.professionalProfileId?.slice(0, 8) ?? "—"}
                 </p>
                 <div className="vj-inline-actions">
                   <label className="vj-field">
@@ -157,7 +178,7 @@ export default function AppCarrinhoPage() {
                       min={1}
                       max={20}
                       value={item.quantity}
-                      disabled={mutatingId === item.id}
+                      disabled={mutatingId === item.id || cart?.status !== "open"}
                       onChange={(e) => void onQty(item.id, Number(e.target.value))}
                       style={{ width: "4.5rem" }}
                     />
@@ -165,7 +186,7 @@ export default function AppCarrinhoPage() {
                   <Button
                     type="button"
                     className="vj-button-secondary"
-                    disabled={mutatingId === item.id}
+                    disabled={mutatingId === item.id || cart?.status !== "open"}
                     onClick={() => void onRemove(item.id)}
                   >
                     {t("inicio.cart.remove", "Remover")}
@@ -180,6 +201,37 @@ export default function AppCarrinhoPage() {
               {cart?.totalCents != null ? formatMoneyCents(cart.totalCents) : "—"}
             </strong>
           </p>
+
+          <fieldset className="vj-stack" disabled={cart?.status !== "open"}>
+            <legend className="vj-label">{t("inicio.cart.method", "Forma de pagamento")}</legend>
+            {(
+              [
+                ["pix", t("inicio.pay.pix", "Pix")],
+                ["boleto", t("inicio.pay.boleto", "Boleto")],
+                ["credit_card", t("inicio.pay.card", "Cartão (fatura hospedada Asaas)")],
+              ] as const
+            ).map(([value, label]) => (
+              <label key={value} className="vj-field">
+                <input
+                  type="radio"
+                  name={methodName}
+                  value={value}
+                  checked={paymentMethod === value}
+                  onChange={() => setPaymentMethod(value)}
+                />{" "}
+                {label}
+              </label>
+            ))}
+            {paymentMethod === "credit_card" ? (
+              <p className="vj-hint">
+                {t(
+                  "inicio.pay.cardHint",
+                  "Dados do cartão são coletados apenas na página segura do Asaas. O VerasJuris não armazena PAN/CVV. Parcelamento só se o provedor disponibilizar na fatura.",
+                )}
+              </p>
+            ) : null}
+          </fieldset>
+
           <label className="vj-field">
             <input
               type="checkbox"
@@ -201,13 +253,13 @@ export default function AppCarrinhoPage() {
           >
             {checkingOut
               ? t("inicio.checkout.running", "Processando…")
-              : t("inicio.checkout.cta", "Finalizar com Pix (sandbox)")}
+              : t("inicio.checkout.cta", "Finalizar pedido")}
           </Button>
           {!cart?.checkoutReady ? (
             <p className="vj-hint">
               {t(
                 "inicio.cart.notReady",
-                "Há itens sob consulta ou indisponíveis. Remova-os ou solicite proposta antes do checkout.",
+                "Há itens sob consulta, indisponíveis ou checkout em andamento. Remova-os ou consulte a tentativa existente.",
               )}
             </p>
           ) : null}
