@@ -37,9 +37,16 @@ import { authorize, iso } from "../ai/shared.js";
 import type { RequestMeta } from "../auth/service.js";
 import { requireDocumentInOrg } from "../documents/service.js";
 import { dispatchTransactionalEmail } from "../email/dispatch.js";
+import { fulfillCommerceOrderOnPayment } from "../commerce/fulfillment-service.js";
+import {
+  ensureOabMarketplaceSplitRules,
+  MARKETPLACE_SPLIT_PRODUCT_TYPE,
+  resolveMarketplaceOabServiceType,
+} from "../commerce/oab-split-seed.js";
 import { activateMarketplaceEngagementOnPayment } from "../marketplace/service.js";
 import { BillingService } from "./billing-service.js";
 import { LedgerPostingService } from "./ledger-posting-service.js";
+import { SplitAllocationService } from "./split-allocation-service.js";
 
 type RefundType = "full" | "partial" | "credit";
 type AllocationReversalPolicy = "proportional";
@@ -625,6 +632,42 @@ export class PaymentService {
           } catch {
             // Notificação best-effort; não reverte confirmação financeira.
           }
+        }
+
+        // Fase 4: split OAB-safe (0/10/15%) — best-effort, não reverte pagamento.
+        try {
+          await ensureOabMarketplaceSplitRules(this.db);
+          const oab = await resolveMarketplaceOabServiceType(this.db, intent.referenceId);
+          const beneficiaryIds: Record<string, string> = {};
+          if (oab.professionalBeneficiaryId) {
+            beneficiaryIds[`oab_${oab.serviceType}_professional`] = oab.professionalBeneficiaryId;
+          }
+          const split = new SplitAllocationService(this.db);
+          await split.allocatePaymentSystem(intent.organizationId, {
+            paymentId: result.payment.id,
+            productType: MARKETPLACE_SPLIT_PRODUCT_TYPE,
+            serviceType: oab.serviceType,
+            beneficiaryIds,
+            postLedger: false,
+          });
+        } catch {
+          // Split opcional até regras/beneficiário estarem completos.
+        }
+      }
+
+      if (
+        intent?.referenceType === "commerce_order" &&
+        intent.referenceId &&
+        intent.organizationId
+      ) {
+        try {
+          await fulfillCommerceOrderOnPayment(this.db, {
+            organizationId: intent.organizationId,
+            orderId: intent.referenceId,
+            paymentIntentId: intent.id,
+          });
+        } catch {
+          // Fulfillment falhou — pagamento permanece confirmado; retry via reprocessamento.
         }
       }
     }

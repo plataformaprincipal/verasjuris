@@ -35,51 +35,7 @@ import { randomBytes } from "node:crypto";
 import { and, asc, count, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { authorize, iso } from "../ai/shared.js";
 import type { RequestMeta } from "../auth/service.js";
-
-const DEFAULT_PLAN_TIERS = [
-  {
-    key: "plan_individual",
-    name: "Individual",
-    planTier: "individual" as const,
-    planTarget: "user" as const,
-    amountCents: 0,
-  },
-  {
-    key: "plan_professional",
-    name: "Profissional",
-    planTier: "professional" as const,
-    planTarget: "professional" as const,
-    amountCents: 9900,
-  },
-  {
-    key: "plan_office",
-    name: "Escritório",
-    planTier: "office" as const,
-    planTarget: "organization" as const,
-    amountCents: 29900,
-  },
-  {
-    key: "plan_business",
-    name: "Empresarial",
-    planTier: "business" as const,
-    planTarget: "organization" as const,
-    amountCents: 79900,
-  },
-  {
-    key: "plan_enterprise",
-    name: "Enterprise",
-    planTier: "enterprise" as const,
-    planTarget: "enterprise" as const,
-    amountCents: 0,
-  },
-  {
-    key: "plan_white_label",
-    name: "White-label",
-    planTier: "white_label" as const,
-    planTarget: "partner" as const,
-    amountCents: 0,
-  },
-] as const;
+import { ensureCommercialCatalogSeeded } from "../commerce/catalog-sync.js";
 
 /**
  * Monetização configurável: produtos/preços versionados, usage, AI credits,
@@ -94,43 +50,20 @@ export class MonetizationService {
 
   /* ─── Seed configurable plan tier products ─── */
 
-  async ensureDefaultPlanProducts(organizationId?: string | null) {
-    const existing = await this.db.query.monetizationProducts.findMany({
-      where: eq(monetizationProducts.productType, "subscription"),
-      limit: 1,
-    });
-    if (existing.length > 0) return { seeded: false, count: 0 };
-
-    let seeded = 0;
-    for (const tier of DEFAULT_PLAN_TIERS) {
-      const [product] = await this.db
-        .insert(monetizationProducts)
-        .values({
-          organizationId: organizationId ?? null,
-          key: tier.key,
-          name: tier.name,
-          description: `Plano configurável ${tier.name} (seed). Preços/limites editáveis — não hardcode de features.`,
-          productType: "subscription",
-          planTier: tier.planTier,
-          planTarget: tier.planTarget,
-          active: true,
-          public: true,
-        })
-        .onConflictDoNothing()
-        .returning();
-      if (!product) continue;
-      await this.db.insert(productPrices).values({
-        productId: product.id,
-        amountCents: tier.amountCents,
-        currency: "BRL",
-        interval: "monthly",
-        usageBased: false,
-        active: true,
-        version: 1,
-      });
-      seeded += 1;
+  /**
+   * Seeds the canonical commercial catalog (2026-09) instead of legacy plan_* tiers.
+   * Idempotent; deactivates superseded legacy keys. organizationId kept for API compat.
+   */
+  async ensureDefaultPlanProducts(_organizationId?: string | null) {
+    const result = await ensureCommercialCatalogSeeded(this.db);
+    if ("seeded" in result && result.seeded === false) {
+      return { seeded: false as const, count: 0 };
     }
-    return { seeded: true, count: seeded };
+    return {
+      seeded: true as const,
+      count: "upserted" in result ? result.upserted : 0,
+      commercialVersion: "commercialVersion" in result ? result.commercialVersion : undefined,
+    };
   }
 
   /* ─── Products / prices ─── */
@@ -194,11 +127,11 @@ export class MonetizationService {
     const where = and(
       eq(monetizationProducts.public, true),
       eq(monetizationProducts.active, true),
-      eq(monetizationProducts.productType, "subscription"),
+      eq(monetizationProducts.commercialType, "plan"),
     );
     const items = await this.db.query.monetizationProducts.findMany({
       where,
-      orderBy: [asc(monetizationProducts.planTier)],
+      orderBy: [asc(monetizationProducts.name)],
       limit,
       offset,
       with: { prices: true },
@@ -206,6 +139,7 @@ export class MonetizationService {
     return {
       items: items.map((p) => {
         const activePrices = (p.prices ?? []).filter((price) => price.active);
+        const meta = (p.metadataJson ?? {}) as Record<string, unknown>;
         return {
           id: p.id,
           key: p.key,
@@ -213,8 +147,16 @@ export class MonetizationService {
           description: p.description,
           planTier: p.planTier,
           planTarget: p.planTarget,
+          skuCode: p.skuCode,
+          commercialType: p.commercialType,
+          commercialVersion: p.commercialVersion,
+          homologationStatus: p.homologationStatus,
+          requiresProposal: Boolean(meta.requiresProposal),
+          priceMode: typeof meta.priceMode === "string" ? meta.priceMode : null,
+          franchises: meta.franchises ?? null,
+          purchaseReady: false as const,
           prices: activePrices.map(serializePrice),
-          /** Features come from billing_plan_features via EntitlementService — not invented here. */
+          /** Features come from billing_plan_features / commercial_entitlements — not invented here. */
           features: null as null,
           featureSource: "entitlement_service" as const,
         };
@@ -222,6 +164,8 @@ export class MonetizationService {
       total: items.length,
       limit,
       offset,
+      commercialVersion: items[0]?.commercialVersion ?? null,
+      purchaseReady: false as const,
     };
   }
 
@@ -1432,6 +1376,12 @@ function serializeProduct(
     planTier: row.planTier,
     planTarget: row.planTarget,
     billingPlanId: row.billingPlanId,
+    skuCode: row.skuCode,
+    commercialType: row.commercialType,
+    commercialVersion: row.commercialVersion,
+    homologationStatus: row.homologationStatus,
+    metadataJson: row.metadataJson,
+    placementJson: row.placementJson,
     active: row.active,
     public: row.public,
     prices: prices.map(serializePrice),

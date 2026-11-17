@@ -41,6 +41,7 @@ export * from "./education.js";
 export * from "./email.js";
 export * from "./finance.js";
 export * from "./monetization.js";
+export * from "./commerce.js";
 export * from "./control.js";
 export * from "./analytics.js";
 export * from "./workflows.js";
@@ -923,6 +924,7 @@ import {
   treasuryForecastVersions,
   monetizationProducts,
   productPrices,
+  commercialEntitlements,
   usageMeters,
   usageRecords,
   aiCreditWallets,
@@ -955,6 +957,7 @@ import {
   treasuryForecastVersionsRelations,
   monetizationProductsRelations,
   productPricesRelations,
+  commercialEntitlementsRelations,
   usageMetersRelations,
   usageRecordsRelations,
   aiCreditWalletsRelations,
@@ -968,6 +971,18 @@ import {
   softwareLicensesRelations,
   whiteLabelConfigsRelations,
 } from "./monetization.js";
+import {
+  commerceCarts,
+  commerceCartItems,
+  commerceOrders,
+  commerceOrderItems,
+  organizationCommercialGrants,
+  commerceCartsRelations,
+  commerceCartItemsRelations,
+  commerceOrdersRelations,
+  commerceOrderItemsRelations,
+  organizationCommercialGrantsRelations,
+} from "./commerce.js";
 
 import {
   controlGoals,
@@ -1936,6 +1951,12 @@ export const schema = {
   treasuryForecastVersions,
   monetizationProducts,
   productPrices,
+  commercialEntitlements,
+  commerceCarts,
+  commerceCartItems,
+  commerceOrders,
+  commerceOrderItems,
+  organizationCommercialGrants,
   usageMeters,
   usageRecords,
   aiCreditWallets,
@@ -1968,6 +1989,12 @@ export const schema = {
   treasuryForecastVersionsRelations,
   monetizationProductsRelations,
   productPricesRelations,
+  commercialEntitlementsRelations,
+  commerceCartsRelations,
+  commerceCartItemsRelations,
+  commerceOrdersRelations,
+  commerceOrderItemsRelations,
+  organizationCommercialGrantsRelations,
   usageMetersRelations,
   usageRecordsRelations,
   aiCreditWalletsRelations,

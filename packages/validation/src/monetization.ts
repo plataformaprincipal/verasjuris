@@ -238,6 +238,8 @@ export const MONETIZATION_PRODUCT_TYPES = [
   "license",
   "white_label_setup",
   "technology_fee",
+  "addon",
+  "ai_module",
   "other",
 ] as const;
 

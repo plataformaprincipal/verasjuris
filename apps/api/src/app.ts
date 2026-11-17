@@ -182,6 +182,7 @@ import { registerExtrajudicialRoutes } from "./modules/extrajudicial/routes.js";
 import { registerCommunicationRoutes } from "./modules/communication/routes.js";
 import { registerEducationRoutes } from "./modules/education/routes.js";
 import { registerFinanceRoutes } from "./modules/finance/routes.js";
+import { registerCommerceRoutes } from "./modules/commerce/routes.js";
 import { registerEmailRoutes } from "./modules/email/routes.js";
 import { registerTaskRoutes } from "./modules/tasks/routes.js";
 import { registerControlRoutes } from "./modules/control/routes.js";
@@ -556,6 +557,7 @@ export async function buildApp(options: BuildAppOptions) {
       await registerCommunicationRoutes(v1, deps);
       await registerEducationRoutes(v1, deps);
       await registerFinanceRoutes(v1, deps);
+      await registerCommerceRoutes(v1, deps);
       await registerEmailRoutes(v1, deps);
       await registerControlRoutes(v1, deps);
       await registerAnalyticsRoutes(v1, deps);

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { FeatureCatalogBrowser } from "../../components/feature-catalog-ui";
+import { CommerceAiModulesTeaser } from "../../components/commerce-ai-modules-teaser";
 import { ToolsRouteChrome } from "../../components/public-route-chrome";
 import { PublicPageShell } from "../../components/public-page-shell";
 import type { CatalogCategory } from "../../lib/public-catalog";
@@ -25,7 +26,10 @@ export default async function FerramentasPage({
   return (
     <PublicPageShell>
       <ToolsRouteChrome categories={categories}>
-        <FeatureCatalogBrowser initialCategory={initialCategory} initialQuery={params.q ?? ""} />
+        <div className="vj-stack">
+          <FeatureCatalogBrowser initialCategory={initialCategory} initialQuery={params.q ?? ""} />
+          <CommerceAiModulesTeaser />
+        </div>
       </ToolsRouteChrome>
     </PublicPageShell>
   );
