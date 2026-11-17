@@ -20,7 +20,9 @@ import {
   createRefundSchema,
   createSubscriptionSchema,
   creditListQuerySchema,
+  fiscalDocumentListQuerySchema,
   invoiceListQuerySchema,
+  requestFiscalDocumentSchema,
   ledgerAccountListQuerySchema,
   ledgerBalanceQuerySchema,
   ledgerTransactionListQuerySchema,
@@ -42,6 +44,7 @@ import { meta, requireAccount, type ApiDeps } from "../auth/routes.js";
 import { BillingService } from "./billing-service.js";
 import { CheckoutService } from "./checkout-service.js";
 import { EntitlementService } from "./entitlement-service.js";
+import { FiscalDocumentService } from "./fiscal-document-service.js";
 import { LedgerOps } from "./ledger-ops.js";
 import { PaymentService } from "./payment-service.js";
 import { registerSplitFinanceRoutes } from "./split-routes.js";
@@ -675,6 +678,42 @@ export async function registerFinanceRoutes(app: FastifyInstance, deps: ApiDeps)
     const account = await requireAccount(deps, request);
     const params = request.params as PaymentParams;
     return services().payments.getPayment(account, null, parseInput(uuidSchema, params.paymentId));
+  });
+
+  /* ─── Fase 8: documentos fiscais (NFS-e/NF-e) ─── */
+
+  app.get(`${root}/fiscal-documents`, async (request) => {
+    const account = await requireAccount(deps, request);
+    const query = parseInput(fiscalDocumentListQuerySchema, request.query ?? {});
+    const fiscal = new FiscalDocumentService(deps.db, deps.fiscalDocumentProvider);
+    return fiscal.list(account, org(request.params as OrgParams), query);
+  });
+
+  app.get(`${root}/fiscal-documents/health`, async (request) => {
+    await requireAccount(deps, request);
+    org(request.params as OrgParams);
+    const fiscal = new FiscalDocumentService(deps.db, deps.fiscalDocumentProvider);
+    return fiscal.providerHealth();
+  });
+
+  app.get(`${root}/fiscal-documents/:documentId`, async (request) => {
+    const account = await requireAccount(deps, request);
+    const params = request.params as OrgParams & { documentId?: string };
+    const fiscal = new FiscalDocumentService(deps.db, deps.fiscalDocumentProvider);
+    return fiscal.get(account, org(params), parseInput(uuidSchema, params.documentId));
+  });
+
+  app.post(`${root}/fiscal-documents`, async (request, reply) => {
+    const account = await requireAccount(deps, request);
+    const body = parseInput(requestFiscalDocumentSchema, request.body ?? {});
+    const fiscal = new FiscalDocumentService(deps.db, deps.fiscalDocumentProvider);
+    const result = await fiscal.requestIssue(
+      account,
+      org(request.params as OrgParams),
+      body,
+      meta(request),
+    );
+    return reply.status(result.alreadyExists ? 200 : 201).send(result);
   });
 
   /* ─── Webhooks (raw body, CSRF skipped via path) ─── */

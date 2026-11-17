@@ -174,4 +174,102 @@ export async function updateUserStatus(
   });
 }
 
+export type HomologationCheckRow = {
+  key: string;
+  label: string;
+  result: "PASS" | "FAIL" | "NOT_VERIFIED";
+  ok: boolean;
+  required: boolean;
+  evidence: string;
+};
+
+export type HomologationChecklist = {
+  generatedAt: string;
+  readyForLive: boolean;
+  paymentsLive: boolean;
+  publicCheckout: boolean;
+  purchaseReady: boolean;
+  status: "READY_FOR_LIVE" | "NOT_HOMOLOGATED" | "PENDING_EVIDENCE";
+  note: string;
+  checks: HomologationCheckRow[];
+  blocking: string[];
+  pendingVerification: string[];
+  passedRequired: number;
+  requiredTotal: number;
+  activeApproval: {
+    id: string;
+    decision: "approved";
+    approverUserId: string;
+    validFrom: string;
+    validUntil: string | null;
+    reason: string;
+  } | null;
+  paymentsLiveInsufficientWithoutApproval: boolean;
+};
+
+export type HomologationReport = {
+  generatedAt: string;
+  checklist: HomologationChecklist;
+  skuSummary: {
+    total: number;
+    purchaseReady: number;
+    pendingEvidence: number;
+    notHomologated: number;
+  };
+  skus: Array<{
+    sku: string;
+    purchaseReady: boolean;
+    status: string;
+    blocking: string[];
+    pendingVerification: string[];
+  }>;
+};
+
+export async function fetchHomologationChecklist() {
+  return request<HomologationChecklist>("/api/v1/platform/payments/homologation-checklist");
+}
+
+export async function fetchHomologationReport() {
+  return request<HomologationReport>("/api/v1/platform/payments/homologation-report");
+}
+
+export async function createHomologationApproval(input: { reason: string; validUntil?: string }) {
+  return request<{
+    approval: { id: string; decision: string; reason: string };
+    checklist: HomologationChecklist;
+    envNote: string;
+  }>("/api/v1/platform/payments/homologation-approvals", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function revokeHomologationApproval(input: { reason: string; approvalId?: string }) {
+  return request<{
+    revocation: { id: string; decision: string; reason: string };
+    checklist: HomologationChecklist;
+  }>("/api/v1/platform/payments/homologation-approvals/revoke", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function recordSkuHomologationEvidence(
+  sku: string,
+  input: {
+    checkKey: string;
+    result: "pass" | "fail" | "not_verified";
+    notes?: string;
+    evidenceJson?: Record<string, unknown>;
+  },
+) {
+  return request<{
+    evidence: { id: string; skuCode: string; checkKey: string; result: string };
+    readiness: { purchaseReady: boolean; status: string };
+  }>(`/api/v1/platform/commerce/sku-homologation/${encodeURIComponent(sku)}/evidence`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 export { isApiFailure };

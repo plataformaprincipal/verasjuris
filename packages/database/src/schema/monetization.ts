@@ -297,7 +297,15 @@ export const monetizationProductTypeEnum = pgEnum("monetization_product_type", [
   "license",
   "white_label_setup",
   "technology_fee",
+  "addon",
+  "ai_module",
   "other",
+]);
+
+export const commercialHomologationStatusEnum = pgEnum("commercial_homologation_status", [
+  "catalog_only",
+  "partial",
+  "not_implemented",
 ]);
 
 export const apiClientStatusEnum = pgEnum("api_client_status", ["active", "suspended", "revoked"]);
@@ -848,6 +856,13 @@ export const monetizationProducts = pgTable(
     billingPlanId: uuid("billing_plan_id").references(() => billingPlans.id, {
       onDelete: "set null",
     }),
+    /** Canonical commercial SKU code (usually equals key for catalog 2026-09). */
+    skuCode: text("sku_code"),
+    commercialType: text("commercial_type"),
+    commercialVersion: text("commercial_version"),
+    homologationStatus: commercialHomologationStatusEnum("homologation_status"),
+    metadataJson: jsonb("metadata_json").$type<Record<string, unknown>>().notNull().default({}),
+    placementJson: jsonb("placement_json").$type<string[]>().notNull().default([]),
     active: boolean("active").notNull().default(true),
     public: boolean("public").notNull().default(false),
     ...timestamps,
@@ -855,6 +870,30 @@ export const monetizationProducts = pgTable(
   (table) => [
     uniqueIndex("monetization_products_key_unique").on(table.key),
     index("monetization_products_type_idx").on(table.productType),
+    index("monetization_products_sku_idx").on(table.skuCode),
+    index("monetization_products_commercial_type_idx").on(table.commercialType),
+  ],
+);
+
+/** SKU → feature entitlements (additive; does not replace billing_plan_features). */
+export const commercialEntitlements = pgTable(
+  "commercial_entitlements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => monetizationProducts.id, { onDelete: "cascade" }),
+    skuCode: text("sku_code").notNull(),
+    featureKey: text("feature_key").notNull(),
+    limitType: text("limit_type").notNull(),
+    limitValue: bigint("limit_value", { mode: "number" }),
+    commercialVersion: text("commercial_version").notNull(),
+    active: boolean("active").notNull().default(true),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("commercial_entitlements_sku_feature_unique").on(table.skuCode, table.featureKey),
+    index("commercial_entitlements_product_idx").on(table.productId),
   ],
 );
 
@@ -1251,11 +1290,19 @@ export const treasuryForecastVersionsRelations = relations(treasuryForecastVersi
 
 export const monetizationProductsRelations = relations(monetizationProducts, ({ many }) => ({
   prices: many(productPrices),
+  commercialEntitlements: many(commercialEntitlements),
 }));
 
 export const productPricesRelations = relations(productPrices, ({ one }) => ({
   product: one(monetizationProducts, {
     fields: [productPrices.productId],
+    references: [monetizationProducts.id],
+  }),
+}));
+
+export const commercialEntitlementsRelations = relations(commercialEntitlements, ({ one }) => ({
+  product: one(monetizationProducts, {
+    fields: [commercialEntitlements.productId],
     references: [monetizationProducts.id],
   }),
 }));

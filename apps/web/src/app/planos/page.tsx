@@ -2,27 +2,31 @@
 
 import { Breadcrumb, ErrorState, LoadingState, PageHeader } from "@verasjuris/ui";
 import { useEffect, useState } from "react";
-import { PublicPlansComparison } from "../../components/finance-ui";
+import { CommercialPlansGrid } from "../../components/commerce-catalog-ui";
 import {
-  fetchPublicPlans,
-  financeErrorMessage,
+  commerceErrorMessage,
+  fetchCommercialCatalog,
   isApiFailure,
-  type MonetizationProduct,
-} from "../../lib/finance";
+  type CommercialCatalogItem,
+} from "../../lib/commerce";
 import { useLocale } from "../../components/locale-provider";
 
 export default function PublicPlanosPage() {
   const { t } = useLocale();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [items, setItems] = useState<MonetizationProduct[]>([]);
+  const [items, setItems] = useState<CommercialCatalogItem[]>([]);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const res = await fetchPublicPlans({ limit: 50 });
+      const res = await fetchCommercialCatalog({
+        commercialType: "plan",
+        publicOnly: true,
+        limit: 50,
+      });
       if (cancelled) return;
-      if (isApiFailure(res)) setError(financeErrorMessage(res));
+      if (isApiFailure(res)) setError(commerceErrorMessage(res));
       else setItems(res.items);
       setLoading(false);
     })();
@@ -40,7 +44,7 @@ export default function PublicPlanosPage() {
         <PageHeader title={t("plans.title")} description={t("plans.description")} />
         {loading ? <LoadingState label={t("plans.loading")} /> : null}
         {error ? <ErrorState title={t("plans.error")}>{error}</ErrorState> : null}
-        {!loading && !error ? <PublicPlansComparison items={items} /> : null}
+        {!loading && !error ? <CommercialPlansGrid items={items} /> : null}
       </div>
     </main>
   );

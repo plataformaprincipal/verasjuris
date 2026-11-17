@@ -41,6 +41,9 @@ export * from "./education.js";
 export * from "./email.js";
 export * from "./finance.js";
 export * from "./monetization.js";
+export * from "./commerce.js";
+export * from "./fiscal.js";
+export * from "./homologation.js";
 export * from "./control.js";
 export * from "./analytics.js";
 export * from "./workflows.js";
@@ -923,6 +926,7 @@ import {
   treasuryForecastVersions,
   monetizationProducts,
   productPrices,
+  commercialEntitlements,
   usageMeters,
   usageRecords,
   aiCreditWallets,
@@ -955,6 +959,7 @@ import {
   treasuryForecastVersionsRelations,
   monetizationProductsRelations,
   productPricesRelations,
+  commercialEntitlementsRelations,
   usageMetersRelations,
   usageRecordsRelations,
   aiCreditWalletsRelations,
@@ -968,6 +973,29 @@ import {
   softwareLicensesRelations,
   whiteLabelConfigsRelations,
 } from "./monetization.js";
+import {
+  commerceCarts,
+  commerceCartItems,
+  commerceOrders,
+  commerceOrderItems,
+  organizationCommercialGrants,
+  commerceServiceProjects,
+  commerceServiceMilestones,
+  commerceCartsRelations,
+  commerceCartItemsRelations,
+  commerceOrdersRelations,
+  commerceOrderItemsRelations,
+  organizationCommercialGrantsRelations,
+  commerceServiceProjectsRelations,
+  commerceServiceMilestonesRelations,
+} from "./commerce.js";
+import { fiscalDocuments, fiscalDocumentsRelations } from "./fiscal.js";
+import {
+  skuHomologationEvidence,
+  paymentsHomologationApprovals,
+  skuHomologationEvidenceRelations,
+  paymentsHomologationApprovalsRelations,
+} from "./homologation.js";
 
 import {
   controlGoals,
@@ -1936,6 +1964,17 @@ export const schema = {
   treasuryForecastVersions,
   monetizationProducts,
   productPrices,
+  commercialEntitlements,
+  commerceCarts,
+  commerceCartItems,
+  commerceOrders,
+  commerceOrderItems,
+  organizationCommercialGrants,
+  commerceServiceProjects,
+  commerceServiceMilestones,
+  fiscalDocuments,
+  skuHomologationEvidence,
+  paymentsHomologationApprovals,
   usageMeters,
   usageRecords,
   aiCreditWallets,
@@ -1968,6 +2007,17 @@ export const schema = {
   treasuryForecastVersionsRelations,
   monetizationProductsRelations,
   productPricesRelations,
+  commercialEntitlementsRelations,
+  commerceCartsRelations,
+  commerceCartItemsRelations,
+  commerceOrdersRelations,
+  commerceOrderItemsRelations,
+  organizationCommercialGrantsRelations,
+  commerceServiceProjectsRelations,
+  commerceServiceMilestonesRelations,
+  fiscalDocumentsRelations,
+  skuHomologationEvidenceRelations,
+  paymentsHomologationApprovalsRelations,
   usageMetersRelations,
   usageRecordsRelations,
   aiCreditWalletsRelations,

@@ -39,6 +39,10 @@ export default function AdminIntegrationsPage() {
         title="Integrações e saúde"
         description="Classificação honesta: presença de variável de ambiente não implica homologação."
       />
+      <p className="vj-meta">
+        Homologação comercial auditável (checklist + aprovação DB):{" "}
+        <a href="/admin/homologacao">/admin/homologacao</a>
+      </p>
       {generatedAt ? (
         <p className="vj-meta">
           Última verificação: {new Date(generatedAt).toLocaleString("pt-BR")}

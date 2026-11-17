@@ -43,6 +43,8 @@ export const PLATFORM_PERMISSIONS = [
   "platform.staff.manage",
   "platform.audit.read",
   "platform.commercial.read",
+  "platform.commercial.homologate",
+  "platform.payments.approve",
   "platform.security.admin",
 ] as const;
 
@@ -66,6 +68,8 @@ export const PLATFORM_PERMISSION_DESCRIPTIONS: Record<PlatformPermissionKey, str
   "platform.staff.manage": "Convidar e revogar equipe administrativa.",
   "platform.audit.read": "Consultar auditoria da plataforma.",
   "platform.commercial.read": "Consultar planos, assinaturas e indicadores comerciais.",
+  "platform.commercial.homologate": "Registrar evidências de homologação por SKU.",
+  "platform.payments.approve": "Aprovar ou revogar liberação comercial live (não altera env).",
   "platform.security.admin": "Configurações de segurança administrativa.",
 };
 
@@ -93,6 +97,8 @@ export const PLATFORM_ROLE_PERMISSIONS: Record<PlatformRoleKey, readonly Platfor
       "platform.finance.read",
       "platform.finance.refund",
       "platform.commercial.read",
+      "platform.commercial.homologate",
+      "platform.payments.approve",
       "platform.audit.read",
       "platform.integrations.read",
     ],
@@ -114,9 +120,11 @@ export const PLATFORM_ROLE_PERMISSIONS: Record<PlatformRoleKey, readonly Platfor
     ADMIN_COMERCIAL: [
       "platform.dashboard.read",
       "platform.commercial.read",
+      "platform.commercial.homologate",
       "platform.marketplace.moderate",
       "platform.finance.read",
       "platform.orgs.read",
+      "platform.integrations.read",
     ],
     AUDITOR: [
       "platform.dashboard.read",

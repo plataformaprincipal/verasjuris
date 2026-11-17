@@ -435,6 +435,30 @@ export class SplitAllocationService {
    * Carrega regras ativas por productType (e versão opcional) e aloca o pagamento.
    * INTERNAL: funciona sem PSP split.
    */
+  /**
+   * Alocação system/webhook sem SessionAccount (pós-confirmação Asaas).
+   * Não substitui authorize em rotas humanas — só side-effect financeiro.
+   */
+  async allocatePaymentSystem(
+    organizationId: string,
+    input: {
+      paymentId: string;
+      productType: string;
+      serviceType?: string;
+      ruleVersion?: number;
+      beneficiaryIds?: Record<string, string>;
+      postLedger?: boolean;
+      availableAt?: string;
+      actorUserId?: string | null;
+    },
+    meta?: RequestMeta,
+  ) {
+    return this.runAllocatePayment(organizationId, input, {
+      actorUserId: input.actorUserId ?? null,
+      meta,
+    });
+  }
+
   async allocatePayment(
     account: SessionAccount,
     organizationId: string,
@@ -458,7 +482,33 @@ export class SplitAllocationService {
     meta: RequestMeta,
   ) {
     authorize(account, organizationId, (m) => policyPaymentAllocation(m, "finance.split.manage"));
+    return this.runAllocatePayment(organizationId, input, {
+      actorUserId: account.user.id,
+      meta,
+    });
+  }
 
+  private async runAllocatePayment(
+    organizationId: string,
+    input: {
+      paymentId: string;
+      productType: string;
+      serviceType?: string;
+      ruleVersion?: number;
+      beneficiaryIds?: Record<string, string>;
+      retentions?: Array<{
+        ruleKey?: string;
+        type: (typeof financialRetentions.$inferInsert)["type"];
+        amountCents: number;
+        source: (typeof financialRetentions.$inferInsert)["source"];
+        ruleSetId?: string;
+        metadata?: Record<string, unknown>;
+      }>;
+      postLedger?: boolean;
+      availableAt?: string;
+    },
+    ctx: { actorUserId: string | null; meta?: RequestMeta },
+  ) {
     const payment = await this.db.query.payments.findFirst({
       where: and(eq(payments.id, input.paymentId), eq(payments.organizationId, organizationId)),
     });
@@ -611,14 +661,14 @@ export class SplitAllocationService {
     });
 
     await recordAudit(this.db, {
-      actorUserId: account.user.id,
+      actorUserId: ctx.actorUserId,
       organizationId,
       action: "finance.payment_allocated",
       resourceType: "payment",
       resourceId: payment.id,
-      source: "api",
-      requestId: meta.requestId,
-      ip: meta.ip,
+      source: ctx.actorUserId ? "api" : "system",
+      requestId: ctx.meta?.requestId,
+      ip: ctx.meta?.ip,
       after: {
         allocationCount: result.allocations.length,
         payableCount: result.payables.length,

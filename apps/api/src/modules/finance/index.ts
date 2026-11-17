@@ -2,6 +2,7 @@ export { AccountsReceivableService } from "./accounts-receivable.js";
 export { BillingService } from "./billing-service.js";
 export { CheckoutService } from "./checkout-service.js";
 export { EntitlementService } from "./entitlement-service.js";
+export { FiscalDocumentService } from "./fiscal-document-service.js";
 export { LedgerBalanceService } from "./ledger-balance-service.js";
 export {
   LedgerPostingService,

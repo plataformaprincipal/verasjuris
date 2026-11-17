@@ -1,5 +1,10 @@
-import { billingPlanFeatures, subscriptions, type AppDatabase } from "@verasjuris/database";
-import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
+import {
+  billingPlanFeatures,
+  organizationCommercialGrants,
+  subscriptions,
+  type AppDatabase,
+} from "@verasjuris/database";
+import { and, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 const ACTIVE_SUBSCRIPTION_STATUSES = ["trialing", "active"] as const;
 
@@ -54,23 +59,44 @@ export class EntitlementService {
     featureKey: string;
   }): Promise<EntitlementCheck> {
     const subscription = await this.getActiveSubscription(input);
-    if (!subscription) {
-      return {
-        featureKey: input.featureKey,
-        allowed: false,
-        limitType: null,
-        limitValue: null,
-        subscriptionId: null,
-        planId: null,
-        planVersionId: null,
-        reason: "no_active_subscription",
-      };
-    }
+    const planCheck = subscription
+      ? await this.checkPlanFeature(subscription, input.featureKey)
+      : null;
 
+    const grantCheck = input.organizationId
+      ? await this.checkCommercialGrant(input.organizationId, input.featureKey)
+      : null;
+
+    // Additive: commercial grants after payment can unlock features beyond (or without) plan.
+    if (planCheck?.allowed && grantCheck?.allowed) {
+      return mergeEntitlementChecks(input.featureKey, planCheck, grantCheck);
+    }
+    if (planCheck?.allowed) return planCheck;
+    if (grantCheck?.allowed) return grantCheck;
+
+    if (planCheck) return planCheck;
+    if (grantCheck) return grantCheck;
+
+    return {
+      featureKey: input.featureKey,
+      allowed: false,
+      limitType: null,
+      limitValue: null,
+      subscriptionId: null,
+      planId: null,
+      planVersionId: null,
+      reason: "no_active_subscription",
+    };
+  }
+
+  private async checkPlanFeature(
+    subscription: typeof subscriptions.$inferSelect,
+    featureKey: string,
+  ): Promise<EntitlementCheck> {
     const feature = await this.db.query.billingPlanFeatures.findFirst({
       where: and(
         eq(billingPlanFeatures.planId, subscription.planId),
-        eq(billingPlanFeatures.featureKey, input.featureKey),
+        eq(billingPlanFeatures.featureKey, featureKey),
         or(
           eq(billingPlanFeatures.planVersionId, subscription.planVersionId),
           isNull(billingPlanFeatures.planVersionId),
@@ -81,7 +107,7 @@ export class EntitlementService {
 
     if (!feature) {
       return {
-        featureKey: input.featureKey,
+        featureKey,
         allowed: false,
         limitType: null,
         limitValue: null,
@@ -97,7 +123,7 @@ export class EntitlementService {
     if (limitType === "boolean") {
       const allowed = feature.limitValue === null || feature.limitValue > 0;
       return {
-        featureKey: input.featureKey,
+        featureKey,
         allowed,
         limitType,
         limitValue: feature.limitValue,
@@ -110,7 +136,7 @@ export class EntitlementService {
 
     if (limitType === "unlimited") {
       return {
-        featureKey: input.featureKey,
+        featureKey,
         allowed: true,
         limitType,
         limitValue: null,
@@ -121,10 +147,8 @@ export class EntitlementService {
       };
     }
 
-    // count | amount_cents | storage | rate | credit | currency
-    // Callers compare usage against limitValue; presence in plan ⇒ allowed with limit.
     return {
-      featureKey: input.featureKey,
+      featureKey,
       allowed: true,
       limitType,
       limitValue: feature.limitValue,
@@ -132,6 +156,64 @@ export class EntitlementService {
       planId: subscription.planId,
       planVersionId: subscription.planVersionId,
       reason: "ok_with_limit",
+    };
+  }
+
+  private async checkCommercialGrant(
+    organizationId: string,
+    featureKey: string,
+  ): Promise<EntitlementCheck | null> {
+    const now = new Date();
+    const grant = await this.db.query.organizationCommercialGrants.findFirst({
+      where: and(
+        eq(organizationCommercialGrants.organizationId, organizationId),
+        eq(organizationCommercialGrants.featureKey, featureKey),
+        eq(organizationCommercialGrants.status, "active"),
+        eq(organizationCommercialGrants.active, true),
+        or(
+          isNull(organizationCommercialGrants.expiresAt),
+          sql`${organizationCommercialGrants.expiresAt} > ${now}`,
+        ),
+      ),
+      orderBy: [desc(organizationCommercialGrants.createdAt)],
+    });
+    if (!grant) return null;
+
+    const limitType = grant.limitType as EntitlementLimitType;
+    if (limitType === "boolean") {
+      const allowed = grant.limitValue === null || grant.limitValue > 0;
+      return {
+        featureKey,
+        allowed,
+        limitType,
+        limitValue: grant.limitValue,
+        subscriptionId: null,
+        planId: null,
+        planVersionId: null,
+        reason: allowed ? "commercial_grant_ok" : "commercial_grant_disabled",
+      };
+    }
+    if (limitType === "unlimited") {
+      return {
+        featureKey,
+        allowed: true,
+        limitType,
+        limitValue: null,
+        subscriptionId: null,
+        planId: null,
+        planVersionId: null,
+        reason: "commercial_grant_ok",
+      };
+    }
+    return {
+      featureKey,
+      allowed: true,
+      limitType,
+      limitValue: grant.limitValue,
+      subscriptionId: null,
+      planId: null,
+      planVersionId: null,
+      reason: "commercial_grant_ok_with_limit",
     };
   }
 
@@ -189,4 +271,34 @@ export class EntitlementService {
       ),
     });
   }
+}
+
+/** Prefer unlimited / higher numeric limit when plan + commercial grant both apply. */
+function mergeEntitlementChecks(
+  featureKey: string,
+  plan: EntitlementCheck,
+  grant: EntitlementCheck,
+): EntitlementCheck {
+  if (plan.limitType === "unlimited" || grant.limitType === "unlimited") {
+    return {
+      ...plan,
+      featureKey,
+      allowed: true,
+      limitType: "unlimited",
+      limitValue: null,
+      reason: "ok_merged_unlimited",
+    };
+  }
+  const planVal = plan.limitValue ?? 0;
+  const grantVal = grant.limitValue ?? 0;
+  const useGrant = grantVal > planVal;
+  return {
+    ...(useGrant ? grant : plan),
+    featureKey,
+    allowed: true,
+    subscriptionId: plan.subscriptionId,
+    planId: plan.planId,
+    planVersionId: plan.planVersionId,
+    reason: "ok_merged_max_limit",
+  };
 }
