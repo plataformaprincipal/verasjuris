@@ -74,12 +74,7 @@ export default function CarrinhoPage() {
 
   return (
     <div className="vj-stack">
-      <Breadcrumb
-        items={[
-          { label: "Marketplace", href: "/marketplace" },
-          { label: "Carrinho" },
-        ]}
-      />
+      <Breadcrumb items={[{ label: "Marketplace", href: "/marketplace" }, { label: "Carrinho" }]} />
       <PageHeader
         title="Carrinho"
         description="Preços e totais são recalculados no servidor. Serviços sob consulta não seguem para checkout imediato."

@@ -54,9 +54,7 @@ export function formatBRL(value: number): string {
 export function parseDecimal(raw: string): number | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  const normalized = trimmed.includes(",")
-    ? trimmed.replace(/\./g, "").replace(",", ".")
-    : trimmed;
+  const normalized = trimmed.includes(",") ? trimmed.replace(/\./g, "").replace(",", ".") : trimmed;
   const value = Number(normalized);
   return Number.isFinite(value) ? value : null;
 }

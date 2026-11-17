@@ -1604,8 +1604,7 @@ export async function initiateMarketplaceProviderPayment(
     return {
       paymentIntentId: existing.id,
       status: existing.status,
-      checkoutUrl:
-        typeof existingMeta.checkoutUrl === "string" ? existingMeta.checkoutUrl : null,
+      checkoutUrl: typeof existingMeta.checkoutUrl === "string" ? existingMeta.checkoutUrl : null,
       alreadyExists: true as const,
       amountCents: existing.amountCents,
       currency: existing.currency,
@@ -1882,7 +1881,9 @@ export async function searchMarketplaceCatalog(
   const offset = Math.max(Math.trunc(filters.offset) || 0, 0);
 
   // Preço efetivo para filtro/ordenação: valor base, senão mínimo.
-  const priceExpr = sql<number | null>`coalesce(${professionalServices.basePriceCents}, ${professionalServices.minPriceCents})`;
+  const priceExpr = sql<
+    number | null
+  >`coalesce(${professionalServices.basePriceCents}, ${professionalServices.minPriceCents})`;
   const ratingExpr = sql<number | null>`(
     select avg(${serviceReviews.rating})::float8 from ${serviceReviews}
     where ${serviceReviews.professionalProfileId} = ${lawyerProfiles.userId}
@@ -1943,7 +1944,10 @@ export async function searchMarketplaceCatalog(
   const [countRow] = await db
     .select({ total: sql<number>`count(*)::int` })
     .from(professionalServices)
-    .innerJoin(lawyerProfiles, eq(lawyerProfiles.userId, professionalServices.professionalProfileId))
+    .innerJoin(
+      lawyerProfiles,
+      eq(lawyerProfiles.userId, professionalServices.professionalProfileId),
+    )
     .innerJoin(
       marketplaceServiceCategories,
       eq(marketplaceServiceCategories.id, professionalServices.categoryId),
@@ -1966,7 +1970,10 @@ export async function searchMarketplaceCatalog(
       reviewCount: reviewCountExpr,
     })
     .from(professionalServices)
-    .innerJoin(lawyerProfiles, eq(lawyerProfiles.userId, professionalServices.professionalProfileId))
+    .innerJoin(
+      lawyerProfiles,
+      eq(lawyerProfiles.userId, professionalServices.professionalProfileId),
+    )
     .innerJoin(
       marketplaceServiceCategories,
       eq(marketplaceServiceCategories.id, professionalServices.categoryId),
@@ -2121,7 +2128,8 @@ export async function cancelMarketplaceEngagement(
         ),
       )
       .returning();
-    if (!row) throw new AppError("CONFLICT", "A contratação foi alterada. Atualize e tente de novo.");
+    if (!row)
+      throw new AppError("CONFLICT", "A contratação foi alterada. Atualize e tente de novo.");
 
     if (request) {
       await tx
@@ -2221,10 +2229,17 @@ export async function requestMarketplaceRefund(
   }
   const evidence = await resolvePaidEvidence(db, organizationId, engagement);
   if (!evidence.hasPayment) {
-    throw new AppError("CONFLICT", "Não há pagamento confirmado para reembolsar nesta contratação.");
+    throw new AppError(
+      "CONFLICT",
+      "Não há pagamento confirmado para reembolsar nesta contratação.",
+    );
   }
   const amountCents = input.amountCents ?? null;
-  if (amountCents !== null && evidence.paidAmountCents !== null && amountCents > evidence.paidAmountCents) {
+  if (
+    amountCents !== null &&
+    evidence.paidAmountCents !== null &&
+    amountCents > evidence.paidAmountCents
+  ) {
     throw new AppError("VALIDATION_ERROR", "O valor excede o total pago.", [
       { path: "amountCents", message: "Valor superior ao pago." },
     ]);

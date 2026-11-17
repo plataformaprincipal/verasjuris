@@ -43,10 +43,7 @@ import {
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useState } from "react";
-import {
-  PLATFORM_HOME_HREF,
-  shouldShowBackToPlatform,
-} from "../lib/platform-nav";
+import { PLATFORM_HOME_HREF, shouldShowBackToPlatform } from "../lib/platform-nav";
 import type { Membership } from "../lib/types";
 import { roleLabel } from "../lib/types";
 import { LanguageSwitcher, useLocale } from "./locale-provider";
@@ -208,10 +205,7 @@ export function AppShell({
         <a href="/app" className="vj-brand-text vj-brand-text-inverse">
           {brand}
         </a>
-        <a
-          href={PLATFORM_HOME_HREF}
-          className="vj-button vj-button-secondary vj-back-platform"
-        >
+        <a href={PLATFORM_HOME_HREF} className="vj-button vj-button-secondary vj-back-platform">
           <ArrowLeft size={16} aria-hidden="true" />
           {t("nav.backToPlatform", "Voltar à plataforma")}
         </a>
@@ -305,9 +299,9 @@ export function AppShell({
             </Menu>
           </div>
         </header>
-        <div className="vj-platform-strip-wrap" aria-label={t("public.nav.aria", "Principal")}>
+        <nav className="vj-platform-strip-wrap" aria-label={t("public.nav.aria", "Principal")}>
           <PublicMainNav variant="app-strip" authenticated />
-        </div>
+        </nav>
         <div className="vj-content" id="conteudo">
           {organization ? (
             <p className="vj-meta">

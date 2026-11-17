@@ -281,7 +281,10 @@ export const cancelMarketplaceEngagementSchema = z.object({
 export const requestMarketplaceRefundSchema = z.object({
   reason: safeText(10, 2000),
   /** null/ausente = reembolso integral do valor pago. */
-  amountCents: cents.refine((v) => v > 0, "Informe um valor positivo em centavos.").nullable().optional(),
+  amountCents: cents
+    .refine((v) => v > 0, "Informe um valor positivo em centavos.")
+    .nullable()
+    .optional(),
   evidenceDocumentId: optionalUuid,
 });
 

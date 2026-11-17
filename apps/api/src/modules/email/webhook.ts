@@ -80,9 +80,9 @@ export async function handleResendEmailWebhook(
   const eventType = (body.type ?? "unknown").trim();
   const providerMessageId = body.data?.email_id?.trim() || null;
   const svixIdHeader = input.headers["svix-id"] ?? input.headers["Svix-Id"];
-  const externalEventId = (
-    Array.isArray(svixIdHeader) ? svixIdHeader[0] : svixIdHeader
-  )?.trim() || createHash("sha256").update(raw).digest("hex");
+  const externalEventId =
+    (Array.isArray(svixIdHeader) ? svixIdHeader[0] : svixIdHeader)?.trim() ||
+    createHash("sha256").update(raw).digest("hex");
   const payloadHash = createHash("sha256").update(raw).digest("hex");
 
   const duplicate = await db.query.emailProviderEvents.findFirst({
@@ -145,8 +145,7 @@ export async function handleResendEmailWebhook(
     }
   }
 
-  const eventStatus =
-    lifecycle != null || eventType.startsWith("email.") ? "processed" : "ignored";
+  const eventStatus = lifecycle != null || eventType.startsWith("email.") ? "processed" : "ignored";
 
   await db
     .update(emailProviderEvents)

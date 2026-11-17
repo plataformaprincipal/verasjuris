@@ -16,7 +16,10 @@ export function renderTransactionalEmailHtml(input: EmailTemplateRenderInput): s
   const preheader = escapeHtml(input.preheader ?? input.subject);
   const bodyParagraphs = escapeHtml(input.text)
     .split(/\n{2,}/)
-    .map((block) => `<p style="margin:0 0 16px;line-height:1.55;color:#1c2430;">${block.replace(/\n/g, "<br/>")}</p>`)
+    .map(
+      (block) =>
+        `<p style="margin:0 0 16px;line-height:1.55;color:#1c2430;">${block.replace(/\n/g, "<br/>")}</p>`,
+    )
     .join("");
   const cta =
     input.actionUrl && isSafeHttpUrl(input.actionUrl)

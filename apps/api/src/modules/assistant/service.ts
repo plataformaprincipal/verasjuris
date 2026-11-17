@@ -102,11 +102,7 @@ export class AssistantService {
     return { conversation: updated };
   }
 
-  async favoriteConversation(
-    account: SessionAccount,
-    conversationId: string,
-    favorite: boolean,
-  ) {
+  async favoriteConversation(account: SessionAccount, conversationId: string, favorite: boolean) {
     const conversation = await this.requireOwnedConversation(account, conversationId);
     const metadata = {
       ...(conversation.metadata ?? {}),
@@ -144,9 +140,8 @@ export class AssistantService {
       conversation = updated!;
     }
     if (input.favorite !== undefined) {
-      conversation = (
-        await this.favoriteConversation(account, conversationId, input.favorite)
-      ).conversation!;
+      conversation = (await this.favoriteConversation(account, conversationId, input.favorite))
+        .conversation!;
     }
     return { conversation };
   }

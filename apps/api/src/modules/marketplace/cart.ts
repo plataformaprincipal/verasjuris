@@ -20,10 +20,7 @@ import { AppError } from "@verasjuris/types";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { authorize, iso } from "../ai/shared.js";
 import type { RequestMeta } from "../auth/service.js";
-import {
-  initiateMarketplaceProviderPayment,
-  type MarketplaceModuleDeps,
-} from "./service.js";
+import { initiateMarketplaceProviderPayment, type MarketplaceModuleDeps } from "./service.js";
 
 function sanitizeText(value: string): string {
   return Array.from(value)
@@ -58,7 +55,11 @@ async function ensureOpenCart(
 }
 
 function serverUnitPriceCents(service: typeof professionalServices.$inferSelect): number | null {
-  if (service.pricingModel === "fixed" && service.basePriceCents != null && service.basePriceCents > 0) {
+  if (
+    service.pricingModel === "fixed" &&
+    service.basePriceCents != null &&
+    service.basePriceCents > 0
+  ) {
     return service.basePriceCents;
   }
   if (

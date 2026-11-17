@@ -196,9 +196,7 @@ export function DemoContratos() {
             <select
               className="vj-input"
               value={demo.state.templateId}
-              onChange={(e) =>
-                demo.setState((s) => ({ ...s, templateId: e.target.value }))
-              }
+              onChange={(e) => demo.setState((s) => ({ ...s, templateId: e.target.value }))}
             >
               {TEMPLATES.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -406,9 +404,7 @@ export function DemoFinanceiro() {
               type="number"
               min={0}
               value={demo.state.hours}
-              onChange={(e) =>
-                demo.setState((s) => ({ ...s, hours: Number(e.target.value) || 0 }))
-              }
+              onChange={(e) => demo.setState((s) => ({ ...s, hours: Number(e.target.value) || 0 }))}
             />
           </label>
           <label className="vj-field">
@@ -418,9 +414,7 @@ export function DemoFinanceiro() {
               type="number"
               min={0}
               value={demo.state.rate}
-              onChange={(e) =>
-                demo.setState((s) => ({ ...s, rate: Number(e.target.value) || 0 }))
-              }
+              onChange={(e) => demo.setState((s) => ({ ...s, rate: Number(e.target.value) || 0 }))}
             />
           </label>
           <p>
@@ -433,7 +427,10 @@ export function DemoFinanceiro() {
           <div className="vj-demo-bars">
             <div className="vj-demo-bar">
               <span>Receitas</span>
-              <span className="vj-demo-bar-fill" style={{ width: `${Math.min(100, receitas / 50)}%` }} />
+              <span
+                className="vj-demo-bar-fill"
+                style={{ width: `${Math.min(100, receitas / 50)}%` }}
+              />
               <strong>R$ {receitas.toFixed(2)}</strong>
             </div>
             <div className="vj-demo-bar">

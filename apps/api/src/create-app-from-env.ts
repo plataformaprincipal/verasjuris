@@ -9,7 +9,8 @@ import {
 } from "@verasjuris/ai";
 import { loadDotEnv, parseApiEnv, createLogger, type ApiEnv } from "@verasjuris/config";
 import { assertReferenceData, createDatabase } from "@verasjuris/database";
-import { createEmailProviderFromEnv } from "@verasjuris/email";import { createMalwareScanner, createStorageProvider } from "@verasjuris/storage";
+import { createEmailProviderFromEnv } from "@verasjuris/email";
+import { createMalwareScanner, createStorageProvider } from "@verasjuris/storage";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "./app.js";
 

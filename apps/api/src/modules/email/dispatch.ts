@@ -1,14 +1,5 @@
-import type {
-  EmailKind,
-  EmailProvider,
-  OutboundEmail,
-  SendEmailResult,
-} from "@verasjuris/email";
-import {
-  emailDispatches,
-  isUniqueViolation,
-  type AppDatabase,
-} from "@verasjuris/database";
+import type { EmailKind, EmailProvider, OutboundEmail, SendEmailResult } from "@verasjuris/email";
+import { emailDispatches, isUniqueViolation, type AppDatabase } from "@verasjuris/database";
 import { createHash } from "node:crypto";
 import { eq } from "drizzle-orm";
 

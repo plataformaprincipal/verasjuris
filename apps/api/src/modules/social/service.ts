@@ -88,8 +88,7 @@ export async function publicAuthorProjection(db: AppDatabase | DbTx, userId: str
     practiceAreas: social?.practiceAreas ?? lawyer?.practiceAreas ?? null,
     verificationStatus,
     oabVerificationStatus,
-    verified:
-      verificationStatus === "verified" || oabVerificationStatus === "verified",
+    verified: verificationStatus === "verified" || oabVerificationStatus === "verified",
   };
 }
 
@@ -147,16 +146,10 @@ async function serializePost(
   if (viewerUserId) {
     const [like, bookmark, repost] = await Promise.all([
       db.query.socialPostLikes.findFirst({
-        where: and(
-          eq(socialPostLikes.postId, row.id),
-          eq(socialPostLikes.userId, viewerUserId),
-        ),
+        where: and(eq(socialPostLikes.postId, row.id), eq(socialPostLikes.userId, viewerUserId)),
       }),
       db.query.socialBookmarks.findFirst({
-        where: and(
-          eq(socialBookmarks.postId, row.id),
-          eq(socialBookmarks.userId, viewerUserId),
-        ),
+        where: and(eq(socialBookmarks.postId, row.id), eq(socialBookmarks.userId, viewerUserId)),
       }),
       db.query.socialReposts.findFirst({
         where: and(eq(socialReposts.postId, row.id), eq(socialReposts.userId, viewerUserId)),
@@ -211,7 +204,11 @@ function serializeComment(
   };
 }
 
-async function requirePost(db: AppDatabase | DbTx, postId: string, opts?: { allowDeleted?: boolean }) {
+async function requirePost(
+  db: AppDatabase | DbTx,
+  postId: string,
+  opts?: { allowDeleted?: boolean },
+) {
   const row = await db.query.socialPosts.findFirst({
     where: eq(socialPosts.id, postId),
   });
@@ -475,13 +472,13 @@ export async function getFeed(
   const viewerId = account?.user.id ?? null;
 
   if ((mode === "following" || mode === "saved") && !viewerId) {
-    throw new AppError("AUTHENTICATION_ERROR", "Entre para continuar. Nenhuma alteração foi feita.");
+    throw new AppError(
+      "AUTHENTICATION_ERROR",
+      "Entre para continuar. Nenhuma alteração foi feita.",
+    );
   }
 
-  const filters: SQL[] = [
-    eq(socialPosts.status, "published"),
-    isNull(socialPosts.deletedAt),
-  ];
+  const filters: SQL[] = [eq(socialPosts.status, "published"), isNull(socialPosts.deletedAt)];
 
   if (mode === "saved") {
     // visibility filter applied after join via bookmarks
@@ -542,10 +539,7 @@ export async function getFeed(
         and(
           ...filters,
           inArray(socialPosts.authorUserId, followingIds),
-          or(
-            eq(socialPosts.visibility, "public"),
-            eq(socialPosts.visibility, "connections"),
-          ),
+          or(eq(socialPosts.visibility, "public"), eq(socialPosts.visibility, "connections")),
         ),
       )
       .orderBy(desc(socialPosts.publishedAt))
@@ -566,11 +560,13 @@ export async function getFeed(
       .limit(limit + 20);
   }
 
-  const filtered = rows.filter((row) => {
-    if (viewerId && blocked.has(row.authorUserId)) return false;
-    if (viewerId && hidden.has(row.id)) return false;
-    return true;
-  }).slice(0, limit);
+  const filtered = rows
+    .filter((row) => {
+      if (viewerId && blocked.has(row.authorUserId)) return false;
+      if (viewerId && hidden.has(row.id)) return false;
+      return true;
+    })
+    .slice(0, limit);
 
   const items = [];
   for (const row of filtered) {
@@ -583,11 +579,7 @@ export async function getFeed(
   };
 }
 
-export async function getPost(
-  db: AppDatabase,
-  account: SessionAccount | null,
-  postId: string,
-) {
+export async function getPost(db: AppDatabase, account: SessionAccount | null, postId: string) {
   const row = await requirePost(db, postId);
   const viewerId = account?.user.id ?? null;
 
@@ -1393,8 +1385,7 @@ export async function removeConnection(
     throw new AppError("NOT_FOUND", "Não encontramos esta conexão.");
   }
   const isParty =
-    existing.requesterUserId === account.user.id ||
-    existing.addresseeUserId === account.user.id;
+    existing.requesterUserId === account.user.id || existing.addresseeUserId === account.user.id;
   if (!isParty) {
     throw new AppError("AUTHORIZATION_ERROR", "Você não pode remover esta conexão.");
   }
@@ -1621,10 +1612,7 @@ export async function markAllNotificationsRead(db: AppDatabase, account: Session
     .update(socialNotifications)
     .set({ readAt: new Date() })
     .where(
-      and(
-        eq(socialNotifications.userId, account.user.id),
-        isNull(socialNotifications.readAt),
-      ),
+      and(eq(socialNotifications.userId, account.user.id), isNull(socialNotifications.readAt)),
     );
   return { read: true };
 }

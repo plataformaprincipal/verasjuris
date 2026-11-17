@@ -90,9 +90,7 @@ export function ExploreSocial() {
     }
     setAuthenticated(true);
     const display =
-      session.account?.user.displayName ??
-      session.account?.user.email ??
-      t("explore.you", "Você");
+      session.account?.user.displayName ?? session.account?.user.email ?? t("explore.you", "Você");
     setMeName(display);
     setMeId(session.account?.user.id ?? null);
     const me = await fetchSocialMe();
@@ -129,24 +127,64 @@ export function ExploreSocial() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      await refreshSession();
+      const session = await fetchAuthSession();
       if (cancelled) return;
-      await refreshFeed("recent");
+      if (isApiFailure(session) || !session.account) {
+        setAuthenticated(false);
+        setMeName(null);
+        setMeId(null);
+      } else {
+        setAuthenticated(true);
+        const display =
+          session.account.user.displayName ??
+          session.account.user.email ??
+          t("explore.you", "Você");
+        setMeName(display);
+        setMeId(session.account.user.id ?? null);
+        const me = await fetchSocialMe();
+        if (!cancelled && !isApiFailure(me)) {
+          setBioDraft(String(me.profile.bio ?? ""));
+          setHeadlineDraft(String(me.profile.headline ?? ""));
+          if (me.author?.displayName) setMeName(me.author.displayName);
+        }
+      }
       if (cancelled) return;
-      await refreshSide();
+      const feed = await fetchSocialFeed({ mode: "recent", limit: 20 });
+      if (cancelled) return;
+      if (isApiFailure(feed)) {
+        setError(socialErrorMessage(feed));
+        setPosts([]);
+      } else {
+        setError(null);
+        setPosts(feed.items);
+      }
+      const trend = await fetchSocialTrending("7d");
+      if (!cancelled && !isApiFailure(trend)) setTrending(trend.items);
       if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (loading) return;
-    void refreshFeed(mode);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+    let cancelled = false;
+    void (async () => {
+      const feed = await fetchSocialFeed({ mode, limit: 20 });
+      if (cancelled) return;
+      if (isApiFailure(feed)) {
+        setError(socialErrorMessage(feed));
+        setPosts([]);
+      } else {
+        setError(null);
+        setPosts(feed.items);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, loading]);
 
   async function onPublish() {
     if (!authenticated) return;
@@ -370,7 +408,11 @@ export function ExploreSocial() {
             {authenticated ? (
               <>
                 <strong>{meName}</strong>
-                <Button type="button" className="vj-button-secondary" onClick={() => setTab("profile")}>
+                <Button
+                  type="button"
+                  className="vj-button-secondary"
+                  onClick={() => setTab("profile")}
+                >
                   {t("explore.manageProfile", "Gerenciar perfil")}
                 </Button>
               </>
@@ -451,9 +493,7 @@ export function ExploreSocial() {
                 <div className="vj-feed-actions">
                   {authenticated ? (
                     <Button type="button" disabled={publishing} onClick={() => void onPublish()}>
-                      {publishing
-                        ? t("common.loading")
-                        : t("explore.publish", "Publicar")}
+                      {publishing ? t("common.loading") : t("explore.publish", "Publicar")}
                     </Button>
                   ) : (
                     <RequireAuthCta
@@ -475,7 +515,11 @@ export function ExploreSocial() {
               </div>
 
               {tab === "feed" ? (
-                <div className="vj-social-tabs" role="tablist" aria-label={t("explore.filters", "Filtros")}>
+                <div
+                  className="vj-social-tabs"
+                  role="tablist"
+                  aria-label={t("explore.filters", "Filtros")}
+                >
                   {(
                     [
                       ["recent", "Recentes"],
@@ -553,8 +597,8 @@ export function ExploreSocial() {
                     </a>
                   ) : null}
                   <p className="vj-meta">
-                    {post.likeCount} curtidas · {post.commentCount} comentários ·{" "}
-                    {post.repostCount} republicações
+                    {post.likeCount} curtidas · {post.commentCount} comentários · {post.repostCount}{" "}
+                    republicações
                   </p>
                   <div className="vj-feed-actions">
                     {authenticated ? (
@@ -617,8 +661,7 @@ export function ExploreSocial() {
                           className="vj-button-ghost"
                           onClick={() => void onReport(post.id)}
                         >
-                          <Flag size={16} aria-hidden="true" />{" "}
-                          {t("explore.report", "Denunciar")}
+                          <Flag size={16} aria-hidden="true" /> {t("explore.report", "Denunciar")}
                         </Button>
                         {meId === post.author.userId ? (
                           <Button
@@ -830,7 +873,10 @@ export function ExploreSocial() {
           ) : null}
         </section>
 
-        <aside className="vj-feed-column vj-social-rail" aria-label={t("explore.suggestions", "Sugestões")}>
+        <aside
+          className="vj-feed-column vj-social-rail"
+          aria-label={t("explore.suggestions", "Sugestões")}
+        >
           <div className="vj-card vj-stack">
             <h2 className="vj-section-title">{t("explore.topics", "Temas")}</h2>
             <div className="vj-feed-suggestions">
@@ -864,9 +910,7 @@ export function ExploreSocial() {
                 {p.body.length > 72 ? "…" : ""}
               </button>
             ))}
-            {trending.length === 0 ? (
-              <p className="vj-meta">{FEED_DEMO_BANNER}</p>
-            ) : null}
+            {trending.length === 0 ? <p className="vj-meta">{FEED_DEMO_BANNER}</p> : null}
           </div>
           <div className="vj-card vj-stack">
             <h2 className="vj-section-title">Marketplace</h2>

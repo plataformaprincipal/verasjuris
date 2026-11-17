@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Alert,
-  Breadcrumb,
-  Button,
-  ErrorState,
-  LoadingState,
-  PageHeader,
-} from "@verasjuris/ui";
+import { Alert, Breadcrumb, Button, ErrorState, LoadingState, PageHeader } from "@verasjuris/ui";
 import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLocale } from "../../../../components/locale-provider";
@@ -67,11 +60,24 @@ export default function MarketplaceEngagementPublicPage() {
   }
 
   useEffect(() => {
-    if (!org.ready || !org.orgId) return;
+    const orgId = org.orgId;
+    const engagementId = params.id;
+    if (!org.ready || !orgId || !engagementId) return;
     let cancelled = false;
-    void reload(org.orgId).finally(() => {
-      if (!cancelled) setLoading(false);
-    });
+    void (async () => {
+      const data = await fetchMarketplaceEngagement(orgId, engagementId);
+      if (cancelled) return;
+      if (isApiFailure(data)) {
+        setError(marketplaceErrorMessage(data));
+      } else {
+        setEngagement(data.engagement);
+        setDeliveries(data.deliveries);
+        setDisputes(data.disputes);
+        setEvents(data.events ?? []);
+        setError(null);
+      }
+      setLoading(false);
+    })();
     return () => {
       cancelled = true;
     };
@@ -176,7 +182,9 @@ export default function MarketplaceEngagementPublicPage() {
                   "A liberação do serviço ocorre somente após confirmação financeira no backend (webhook/provedor). O retorno visual do checkout não marca o pedido como pago.",
                 )}
               </p>
-              {payError ? <ErrorState title={t("inicio.pay.title", "Pagamento")}>{payError}</ErrorState> : null}
+              {payError ? (
+                <ErrorState title={t("inicio.pay.title", "Pagamento")}>{payError}</ErrorState>
+              ) : null}
               <Button type="button" onClick={() => void startProviderPayment()} disabled={paying}>
                 {paying
                   ? t("inicio.pay.running", "Gerando cobrança…")
@@ -197,7 +205,9 @@ export default function MarketplaceEngagementPublicPage() {
               {t("inicio.engagement.timeline", "Linha do tempo")}
             </h2>
             {events.length === 0 ? (
-              <p className="vj-meta">{t("inicio.engagement.noEvents", "Sem eventos registrados ainda.")}</p>
+              <p className="vj-meta">
+                {t("inicio.engagement.noEvents", "Sem eventos registrados ainda.")}
+              </p>
             ) : (
               <ol className="vj-inicio-timeline">
                 {events.map((ev) => (
@@ -302,7 +312,9 @@ export default function MarketplaceEngagementPublicPage() {
               </li>
             ))}
             {deliveries.length === 0 ? (
-              <li className="vj-meta">{t("inicio.engagement.noDeliveries", "Nenhuma entrega ainda.")}</li>
+              <li className="vj-meta">
+                {t("inicio.engagement.noDeliveries", "Nenhuma entrega ainda.")}
+              </li>
             ) : null}
           </ul>
 

@@ -108,7 +108,13 @@ export function DemoProcessos() {
                   title: title.trim(),
                   status: "Em andamento",
                   area: "Demonstração",
-                  events: [{ id: newId("ev"), text: "Processo fictício criado", at: new Date().toISOString().slice(0, 10) }],
+                  events: [
+                    {
+                      id: newId("ev"),
+                      text: "Processo fictício criado",
+                      at: new Date().toISOString().slice(0, 10),
+                    },
+                  ],
                 },
                 ...prev,
               ]);
@@ -254,7 +260,9 @@ export function DemoClientes() {
             <li key={c.id}>
               <button
                 type="button"
-                className={current?.id === c.id ? "vj-demo-list-item is-active" : "vj-demo-list-item"}
+                className={
+                  current?.id === c.id ? "vj-demo-list-item is-active" : "vj-demo-list-item"
+                }
                 onClick={() => setSelected(c.id)}
               >
                 <strong>{c.name}</strong>
@@ -294,8 +302,8 @@ export function DemoClientes() {
               <p className="vj-meta">{current.contact}</p>
               <p className="vj-meta">Casos simulados: {current.caseIds.join(", ") || "nenhum"}</p>
               <ul>
-                {current.notes.map((n, i) => (
-                  <li key={`${current.id}-n-${i}`}>{n}</li>
+                {current.notes.map((n) => (
+                  <li key={`${current.id}-n-${n}`}>{n}</li>
                 ))}
               </ul>
               <form
@@ -342,9 +350,7 @@ const AGENDA_CFG: ToolDemoConfig = {
 type Appt = { id: string; title: string; date: string; time: string };
 
 export function DemoAgenda() {
-  const demo = useToolDemoState(AGENDA_CFG, () =>
-    DEMO_APPOINTMENTS.map((a) => ({ ...a })),
-  );
+  const demo = useToolDemoState(AGENDA_CFG, () => DEMO_APPOINTMENTS.map((a) => ({ ...a })));
   const [draft, setDraft] = useState({ title: "", date: "", time: "09:00" });
 
   return (
@@ -596,9 +602,9 @@ export function DemoTarefas() {
         />
         <Button type="submit">Criar</Button>
       </form>
-      <div className="vj-demo-kanban" role="list">
+      <ul className="vj-demo-kanban">
         {COLS.map((col) => (
-          <div key={col} className="vj-demo-column" role="listitem" aria-label={col}>
+          <li key={col} className="vj-demo-column" aria-label={col}>
             <h4>{col}</h4>
             {demo.state
               .filter((t) => t.status === col)
@@ -620,9 +626,9 @@ export function DemoTarefas() {
                   </div>
                 </article>
               ))}
-          </div>
+          </li>
         ))}
-      </div>
+      </ul>
     </DemoShell>
   );
 }

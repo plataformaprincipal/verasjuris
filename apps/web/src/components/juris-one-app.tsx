@@ -31,11 +31,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import {
-  fetchAiStatus,
-  isApiFailure,
-  type AiStatus,
-} from "../lib/ai";
+import { fetchAiStatus, isApiFailure, type AiStatus } from "../lib/ai";
 import {
   createConversation,
   deleteConversation,
@@ -82,7 +78,9 @@ function readPrefs(): LocalPrefs {
           ? parsed.tone
           : "neutro",
       detail:
-        parsed.detail === "resumo" || parsed.detail === "detalhado" || parsed.detail === "equilibrado"
+        parsed.detail === "resumo" ||
+        parsed.detail === "detalhado" ||
+        parsed.detail === "equilibrado"
           ? parsed.detail
           : "equilibrado",
     };
@@ -116,9 +114,13 @@ function conversationTitle(conversation: JurisConversation): string {
   return `Conversa ${conversation.id.slice(0, 8)}`;
 }
 
-function aiStatusLabel(status: AiStatus | null): { label: string; tone: "neutral" | "warning" | "success" } {
+function aiStatusLabel(status: AiStatus | null): {
+  label: string;
+  tone: "neutral" | "warning" | "success";
+} {
   if (!status) return { label: "IA · status desconhecido", tone: "neutral" };
-  const state = status.provider.state ?? (status.provider.configured ? "configured" : "not_configured");
+  const state =
+    status.provider.state ?? (status.provider.configured ? "configured" : "not_configured");
   if (state === "not_configured" || !status.provider.configured) {
     return { label: "IA · não configurada", tone: "warning" };
   }
@@ -159,77 +161,82 @@ export function JurisOneApp() {
     setPrefs(readPrefs());
   }, []);
 
+  const messageCount = messages.length;
   useEffect(() => {
     const reduced =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (messageCount < 0 && !pending) return;
     messagesEndRef.current?.scrollIntoView({
       behavior: reduced ? "auto" : "smooth",
       block: "end",
     });
-  }, [messages, pending]);
-
-  async function bootstrap(orgId: string) {
-    setLoading(true);
-    setError(null);
-
-    const ensured = await ensureInitialWorkCredits(orgId);
-    if (isApiFailure(ensured)) {
-      setError(jurisOneApiErrorMessage(ensured, "Não foi possível preparar créditos Work."));
-    } else {
-      setCredits(ensured.credits);
-    }
-
-    const [convRes, creditsRes, aiRes, tasksRes] = await Promise.all([
-      listConversations(orgId),
-      getWorkCredits(orgId),
-      fetchAiStatus(orgId),
-      listWorkTasks(orgId),
-    ]);
-
-    if (isApiFailure(convRes)) {
-      setError(jurisOneApiErrorMessage(convRes, "Não foi possível carregar conversas."));
-      setConversations([]);
-    } else {
-      setConversations(convRes.items);
-      if (!activeId && convRes.items[0]) {
-        setActiveId(convRes.items[0].id);
-      }
-    }
-
-    if (!isApiFailure(creditsRes)) setCredits(creditsRes.credits);
-    if (!isApiFailure(aiRes)) setAiStatus(aiRes);
-    if (!isApiFailure(tasksRes)) {
-      setPendingWorkCount(
-        tasksRes.items.filter((task) =>
-          ["awaiting_approval", "running", "planned", "draft"].includes(task.status),
-        ).length,
-      );
-      if (tasksRes.credits) setCredits(tasksRes.credits);
-    }
-
-    setLoading(false);
-  }
+  }, [messageCount, pending]);
 
   useEffect(() => {
+    const orgId = org.orgId;
     if (!org.ready) return;
-    if (!org.orgId) {
+    if (!orgId) {
       setLoading(false);
       setError("Selecione uma organização ativa para usar o Juris One autenticado.");
       return;
     }
-    void bootstrap(org.orgId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount/org change only
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      setError(null);
+
+      const ensured = await ensureInitialWorkCredits(orgId);
+      if (cancelled) return;
+      if (isApiFailure(ensured)) {
+        setError(jurisOneApiErrorMessage(ensured, "Não foi possível preparar créditos Work."));
+      } else {
+        setCredits(ensured.credits);
+      }
+
+      const [convRes, creditsRes, aiRes, tasksRes] = await Promise.all([
+        listConversations(orgId),
+        getWorkCredits(orgId),
+        fetchAiStatus(orgId),
+        listWorkTasks(orgId),
+      ]);
+      if (cancelled) return;
+
+      if (isApiFailure(convRes)) {
+        setError(jurisOneApiErrorMessage(convRes, "Não foi possível carregar conversas."));
+        setConversations([]);
+      } else {
+        setConversations(convRes.items);
+        setActiveId((current) => current ?? convRes.items[0]?.id ?? null);
+      }
+
+      if (!isApiFailure(creditsRes)) setCredits(creditsRes.credits);
+      if (!isApiFailure(aiRes)) setAiStatus(aiRes);
+      if (!isApiFailure(tasksRes)) {
+        setPendingWorkCount(
+          tasksRes.items.filter((task) =>
+            ["awaiting_approval", "running", "planned", "draft"].includes(task.status),
+          ).length,
+        );
+        if (tasksRes.credits) setCredits(tasksRes.credits);
+      }
+
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [org.ready, org.orgId]);
 
   useEffect(() => {
-    if (!org.orgId || !activeId) {
+    const orgId = org.orgId;
+    if (!orgId || !activeId) {
       setMessages([]);
       return;
     }
     let cancelled = false;
     void (async () => {
-      const res = await getMessages(org.orgId!, activeId);
+      const res = await getMessages(orgId, activeId);
       if (cancelled) return;
       if (isApiFailure(res)) {
         setError(jurisOneApiErrorMessage(res, "Não foi possível carregar mensagens."));
@@ -419,7 +426,11 @@ export function JurisOneApp() {
             </button>
           </div>
 
-          <Button variant="secondary" disabled={pending} onClick={() => void handleNewConversation()}>
+          <Button
+            variant="secondary"
+            disabled={pending}
+            onClick={() => void handleNewConversation()}
+          >
             <Plus size={16} aria-hidden="true" /> Nova conversa
           </Button>
 
@@ -545,7 +556,9 @@ export function JurisOneApp() {
 
       <section
         className={
-          dragOver ? "vj-juris-chat vj-juris-app-chat is-dragover" : "vj-juris-chat vj-juris-app-chat"
+          dragOver
+            ? "vj-juris-chat vj-juris-app-chat is-dragover"
+            : "vj-juris-chat vj-juris-app-chat"
         }
         aria-label="Conversa Juris One"
         onDragOver={(event) => {
@@ -561,8 +574,8 @@ export function JurisOneApp() {
         <div className="vj-juris-app-chat-head">
           <div className="vj-stack" style={{ gap: "0.35rem" }}>
             <p className="vj-meta">
-              <Sparkles size={14} aria-hidden="true" /> Hub autenticado · FAQ/fallback quando a IA não
-              está configurada
+              <Sparkles size={14} aria-hidden="true" /> Hub autenticado · FAQ/fallback quando a IA
+              não está configurada
             </p>
             <p className="vj-hint" role="note">
               <ShieldCheck size={14} aria-hidden="true" /> IA pode errar. Não substitui advogado nem
@@ -777,7 +790,7 @@ export function JurisOneApp() {
             <Badge tone={statusPill.tone}>{statusPill.label}</Badge>
             <p className="vj-hint">
               {aiStatus?.provider.configured
-                ? aiStatus.provider.message ?? "Provedor marcado como configurado neste ambiente."
+                ? (aiStatus.provider.message ?? "Provedor marcado como configurado neste ambiente.")
                 : "OpenAI não está configurado (FEATURE_AI=0). O chat autenticado usa FAQ/fallback — sem streaming e sem alegar modelo ao vivo."}
             </p>
             <Link href="/app/ia" className="vj-juris-app-nav-link">

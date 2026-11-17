@@ -392,7 +392,11 @@ for (const locale of locales) {
     catalog[`catalog.feature.${slug}.problem`] = byLocale[locale].problem;
   }
 
-  const ordered = Object.fromEntries(Object.keys(catalog).sort().map((k) => [k, catalog[k]]));
+  const ordered = Object.fromEntries(
+    Object.keys(catalog)
+      .sort()
+      .map((k) => [k, catalog[k]]),
+  );
   fs.writeFileSync(filePath, `${JSON.stringify(ordered, null, 2)}\n`);
   console.log(locale, Object.keys(ordered).length);
 }

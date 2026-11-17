@@ -120,14 +120,7 @@ export async function registerSocialRoutes(app: FastifyInstance, deps: ApiDeps) 
     const account = await requireAccount(deps, request);
     const postId = parseInput(uuidSchema, (request.params as Params).postId);
     const body = parseInput(createSocialCommentSchema, request.body ?? {});
-    const result = await createComment(
-      deps.db,
-      account,
-      postId,
-      body,
-      meta(request),
-      moduleDeps(),
-    );
+    const result = await createComment(deps.db, account, postId, body, meta(request), moduleDeps());
     return reply.status(201).send(result);
   });
 

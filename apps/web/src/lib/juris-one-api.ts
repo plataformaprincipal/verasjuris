@@ -196,9 +196,7 @@ export async function sendFeedback(
 export async function getWorkCredits(
   orgId: string,
 ): Promise<{ credits: JurisWorkCredits; ledger?: unknown[] } | AiApiFailure> {
-  return request<{ credits: JurisWorkCredits; ledger?: unknown[] }>(
-    orgWorkPath(orgId, "/credits"),
-  );
+  return request<{ credits: JurisWorkCredits; ledger?: unknown[] }>(orgWorkPath(orgId, "/credits"));
 }
 
 export async function ensureInitialWorkCredits(

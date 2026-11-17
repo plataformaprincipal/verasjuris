@@ -405,25 +405,14 @@ export async function registerAuthRoutes(app: FastifyInstance, deps: ApiDeps): P
 
   app.post("/auth/password-reset/confirm", async (request, reply) => {
     const body = parseInput(passwordResetConfirmSchema, request.body ?? {});
-    const result = await confirmPasswordReset(
-      deps.db,
-      body,
-      meta(request),
-      emailContext(deps),
-    );
+    const result = await confirmPasswordReset(deps.db, body, meta(request), emailContext(deps));
     return reply.send(result);
   });
 
   app.post("/auth/password/change", async (request, reply) => {
     const account = await requireAccount(deps, request);
     const body = parseInput(changePasswordSchema, request.body ?? {});
-    const result = await changePassword(
-      deps.db,
-      account,
-      body,
-      meta(request),
-      emailContext(deps),
-    );
+    const result = await changePassword(deps.db, account, body, meta(request), emailContext(deps));
     return reply.send(result);
   });
 

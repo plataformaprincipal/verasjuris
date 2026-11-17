@@ -135,9 +135,7 @@ export function createEmailProvider(
 }
 
 /** Lê `EMAIL_PROVIDER` (+ credenciais Resend) do ambiente. */
-export function createEmailProviderFromEnv(
-  env: EmailProviderEnv = process.env,
-): EmailProvider {
+export function createEmailProviderFromEnv(env: EmailProviderEnv = process.env): EmailProvider {
   const modeRaw = (env.EMAIL_PROVIDER ?? "not_configured").trim().toLowerCase();
   const mode: EmailProviderMode =
     modeRaw === "memory" || modeRaw === "resend" || modeRaw === "not_configured"

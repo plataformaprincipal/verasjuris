@@ -876,12 +876,7 @@ export async function changePassword(
   });
   if (email) {
     try {
-      await sendPasswordChangedNotice(
-        db,
-        email,
-        { id: user.id, email: user.email },
-        "change",
-      );
+      await sendPasswordChangedNotice(db, email, { id: user.id, email: user.email }, "change");
     } catch {
       // Aviso de segurança é best-effort.
     }

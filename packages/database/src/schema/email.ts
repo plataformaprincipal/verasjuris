@@ -1,13 +1,5 @@
 import { relations } from "drizzle-orm";
-import {
-  index,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { organizations, users } from "./identity.js";
 
 const timestamps = {
@@ -64,7 +56,9 @@ export const emailProviderEvents = pgTable(
     status: text("status").notNull().default("received"),
     errorCode: text("error_code"),
     dispatchId: uuid("dispatch_id").references(() => emailDispatches.id, { onDelete: "set null" }),
-    receivedAt: timestamp("received_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
+    receivedAt: timestamp("received_at", { withTimezone: true, mode: "date" })
+      .notNull()
+      .defaultNow(),
     processedAt: timestamp("processed_at", { withTimezone: true, mode: "date" }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).notNull().defaultNow(),
   },

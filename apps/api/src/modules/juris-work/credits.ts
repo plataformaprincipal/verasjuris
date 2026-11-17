@@ -95,8 +95,7 @@ export async function ensureInitialWorkCredits(
 ) {
   const grantAmount = input.grantAmount ?? INITIAL_GRANT_AMOUNT;
   const idempotencyKey =
-    input.idempotencyKey ??
-    initialWorkCreditsIdempotencyKey(input.organizationId, input.userId);
+    input.idempotencyKey ?? initialWorkCreditsIdempotencyKey(input.organizationId, input.userId);
 
   return db.transaction(async (tx) => {
     const existing = await findLedgerByIdempotency(tx, idempotencyKey);
@@ -172,7 +171,13 @@ export async function getWorkCreditBalance(
     ),
   });
   if (!row) {
-    return { balance: 0, lifetimeGranted: 0, organizationId, userId, updatedAt: null as string | null };
+    return {
+      balance: 0,
+      lifetimeGranted: 0,
+      organizationId,
+      userId,
+      updatedAt: null as string | null,
+    };
   }
   return serializeBalance(row);
 }
@@ -301,8 +306,7 @@ export async function consumeReservedCredit(
     actorUserId?: string;
   },
 ) {
-  const idempotencyKey =
-    input.idempotencyKey ?? consumeWorkCreditIdempotencyKey(input.taskId);
+  const idempotencyKey = input.idempotencyKey ?? consumeWorkCreditIdempotencyKey(input.taskId);
 
   return db.transaction(async (tx) => {
     const existing = await findLedgerByIdempotency(tx, idempotencyKey);
@@ -321,10 +325,7 @@ export async function consumeReservedCredit(
       reserveWorkCreditIdempotencyKey(input.taskId),
     );
     if (!reserved || reserved.eventType !== "reserved") {
-      throw new AppError(
-        "CONFLICT",
-        "Não há crédito reservado para esta tarefa Work.",
-      );
+      throw new AppError("CONFLICT", "Não há crédito reservado para esta tarefa Work.");
     }
 
     const released = await findLedgerByIdempotency(
@@ -395,8 +396,7 @@ export async function releaseReservedCredit(
     reason?: string;
   },
 ) {
-  const idempotencyKey =
-    input.idempotencyKey ?? releaseWorkCreditIdempotencyKey(input.taskId);
+  const idempotencyKey = input.idempotencyKey ?? releaseWorkCreditIdempotencyKey(input.taskId);
 
   return db.transaction(async (tx) => {
     const existing = await findLedgerByIdempotency(tx, idempotencyKey);

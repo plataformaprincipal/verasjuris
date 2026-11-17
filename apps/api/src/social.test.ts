@@ -157,7 +157,13 @@ describe("Rede social jurídica API", () => {
     expect(follow.statusCode).toBe(200);
     expect(follow.json<{ following: boolean }>().following).toBe(true);
 
-    const followers = await call(app, "GET", `/v1/social/users/${userA}/followers`, undefined, cookieA);
+    const followers = await call(
+      app,
+      "GET",
+      `/v1/social/users/${userA}/followers`,
+      undefined,
+      cookieA,
+    );
     expect(followers.statusCode).toBe(200);
     expect(
       followers
@@ -165,7 +171,13 @@ describe("Rede social jurídica API", () => {
         .items.some((i) => i.followerUserId === userB),
     ).toBe(true);
 
-    const unfollow = await call(app, "DELETE", `/v1/social/users/${userA}/follow`, undefined, cookieB);
+    const unfollow = await call(
+      app,
+      "DELETE",
+      `/v1/social/users/${userA}/follow`,
+      undefined,
+      cookieB,
+    );
     expect(unfollow.json<{ following: boolean }>().following).toBe(false);
 
     // re-follow for following feed coverage
@@ -211,7 +223,9 @@ describe("Rede social jurídica API", () => {
       cookieB,
     );
     expect(report.statusCode).toBe(201);
-    expect(report.json<{ report: { status: string; postId: string } }>().report.status).toBe("open");
+    expect(report.json<{ report: { status: string; postId: string } }>().report.status).toBe(
+      "open",
+    );
     expect(report.json<{ report: { postId: string } }>().report.postId).toBe(postId);
   });
 
@@ -225,9 +239,9 @@ describe("Rede social jurídica API", () => {
 
     const saved = await call(app, "GET", "/v1/social/feed?mode=saved", undefined, cookieB);
     expect(saved.statusCode).toBe(200);
-    expect(
-      saved.json<{ items: Array<{ id: string }> }>().items.some((i) => i.id === postId),
-    ).toBe(true);
+    expect(saved.json<{ items: Array<{ id: string }> }>().items.some((i) => i.id === postId)).toBe(
+      true,
+    );
   });
 
   it("trending retorna itens após interações", async () => {
