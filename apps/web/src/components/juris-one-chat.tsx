@@ -193,20 +193,14 @@ export function JurisOneChat() {
             <button type="button" className="vj-button" aria-pressed="true">
               <MessageSquare size={16} aria-hidden="true" /> {t("jurisOne.chat")}
             </button>
-            <button
-              type="button"
-              className="vj-button vj-button-secondary"
-              disabled
-              title={JURIS_WORK_STATUS.detail}
+            <ButtonLink
+              href={signedIn ? JURIS_WORK_STATUS.hrefAuthenticated : JURIS_WORK_STATUS.hrefLogin}
+              variant="secondary"
             >
-              <BriefcaseBusiness size={16} aria-hidden="true" /> {JURIS_WORK_STATUS.label} —{" "}
-              {t("jurisOne.unavailable")}
-            </button>
+              <BriefcaseBusiness size={16} aria-hidden="true" /> {JURIS_WORK_STATUS.label}
+              {signedIn ? "" : ` — ${t("jurisOne.signInForWork", "entrar para usar")}`}
+            </ButtonLink>
             <p className="vj-hint">{JURIS_WORK_STATUS.detail}</p>
-            <p className="vj-hint">
-              Com conta, o hub autenticado em /app/juris-one oferece Chat e scaffold Work com
-              créditos.
-            </p>
             <ButtonLink href="/entrar?redirect=%2Fapp%2Fjuris-one" variant="secondary">
               Entrar no app
             </ButtonLink>

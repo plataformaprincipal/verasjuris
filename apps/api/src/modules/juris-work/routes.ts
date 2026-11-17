@@ -45,6 +45,7 @@ export async function registerJurisWorkRoutes(app: FastifyInstance, deps: ApiDep
       org(request.params as Params),
       input,
       meta(request),
+      { gateway: deps.aiGateway },
     );
     return reply.status(201).send(result);
   });
@@ -92,6 +93,7 @@ export async function registerJurisWorkRoutes(app: FastifyInstance, deps: ApiDep
       org(params),
       parseInput(uuidSchema, params.taskId),
       meta(request),
+      { gateway: deps.aiGateway },
     );
   });
 

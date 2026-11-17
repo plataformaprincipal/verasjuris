@@ -111,12 +111,17 @@ export function jurisOneReply(
 }
 
 export const JURIS_WORK_STATUS = {
-  /** Superfície pública: sem execução. O scaffold autenticado fica em /app/juris-one/work. */
+  /**
+   * Superfície pública: não executa Work no anônimo.
+   * O botão redireciona para `/app/juris-one/work` (login automático se necessário).
+   */
   available: false as const,
-  /** App autenticado: scaffold com saldo de créditos; ações externas ainda bloqueadas. */
+  /** App autenticado: agente Work com IA, créditos, RBAC e aprovação humana. */
   authenticatedAvailable: true as const,
-  authenticatedScaffold: true as const,
+  authenticatedScaffold: false as const,
   label: "Work",
+  hrefAuthenticated: "/app/juris-one/work",
+  hrefLogin: "/entrar?redirect=%2Fapp%2Fjuris-one%2Fwork",
   detail:
-    "Na superfície pública o Work permanece indisponível. No app autenticado há um scaffold com créditos (saldo inicial), planejamento e aprovação humana; ações externas (protocolo, pagamento, envio) continuam bloqueadas até homologação.",
+    "Work exige conta e organização. Planejamento, análise documental (metadados), relatórios e minutas assistidas usam IA com revisão humana; protocolo, pagamento, e-mail externo e exclusão permanecem bloqueados até homologação.",
 };

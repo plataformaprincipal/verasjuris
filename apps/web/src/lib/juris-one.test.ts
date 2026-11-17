@@ -7,9 +7,13 @@ import {
 } from "./juris-one";
 
 describe("juris one public stage", () => {
-  it("keeps Work mode non-operational", () => {
+  it("routes public Work to authenticated app with login redirect", () => {
     expect(JURIS_WORK_STATUS.available).toBe(false);
     expect(JURIS_WORK_STATUS.authenticatedAvailable).toBe(true);
+    expect(JURIS_WORK_STATUS.authenticatedScaffold).toBe(false);
+    expect(JURIS_WORK_STATUS.hrefAuthenticated).toBe("/app/juris-one/work");
+    expect(JURIS_WORK_STATUS.hrefLogin).toContain("/entrar");
+    expect(JURIS_WORK_STATUS.hrefLogin).toContain("juris-one%2Fwork");
   });
 
   it("limits guest stage and answers via FAQ honesty", () => {

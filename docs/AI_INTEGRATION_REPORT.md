@@ -81,6 +81,7 @@ Live OpenAI neste workspace de desenvolvimento: **não homologado** (chave/provi
 curl -sS "$API/v1/juris-one/public/status"
 curl -sS -X POST "$API/v1/juris-one/public/chat" \
   -H 'content-type: application/json' \
+  -H 'x-verasjuris-request: 1' \
   -d '{"message":"Olá Juris One","visitorId":"probe_validate_01","locale":"pt-BR"}'
 ```
 
