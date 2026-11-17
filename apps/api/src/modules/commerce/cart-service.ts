@@ -20,6 +20,11 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { authorize, iso } from "../ai/shared.js";
 import type { RequestMeta } from "../auth/service.js";
 import type { CheckoutService } from "../finance/checkout-service.js";
+import {
+  assertPlatformPurchaseReady,
+  assertSkuPurchasable,
+  resolvePurchaseGate,
+} from "../platform-admin/homologation-service.js";
 import { ensureCommercialCatalogSeeded } from "./catalog-sync.js";
 
 const PURCHASABLE = new Set<string>(PURCHASABLE_COMMERCIAL_TYPES);
@@ -39,15 +44,8 @@ function paymentsLive(): boolean {
   return process.env.PAYMENTS_LIVE === "1";
 }
 
-function purchaseGate() {
-  return {
-    purchaseReady: false as const,
-    paymentsLive: paymentsLive(),
-    homologation: "NOT_HOMOLOGATED" as const,
-    note: paymentsLive()
-      ? "PAYMENTS_LIVE=1 — cobrança real ativa; catálogo comercial ainda marcado NOT_HOMOLOGATED."
-      : "Sandbox/Asaas gated: PAYMENTS_LIVE≠1. Checkout cria intent sem liberar cobrança de produção.",
-  };
+async function purchaseGate(db: AppDatabase) {
+  return resolvePurchaseGate({ db });
 }
 
 async function ensureOpenCart(
@@ -156,6 +154,8 @@ async function resolveCartLines(
       rejectReason = "zero_or_missing_price";
     } else if (product.homologationStatus === "not_implemented") {
       rejectReason = "not_implemented";
+    } else if (def?.homologationStatus === "not_implemented") {
+      rejectReason = "not_implemented";
     }
 
     const eligible = rejectReason == null;
@@ -182,12 +182,14 @@ async function resolveCartLines(
   return { lines, totalCents, checkoutReady: checkoutReady && totalCents > 0 };
 }
 
-function serializeCart(
+async function serializeCart(
+  db: AppDatabase,
   cart: typeof commerceCarts.$inferSelect,
   lines: PricedLine[],
   totalCents: number,
   checkoutReady: boolean,
 ) {
+  const gate = await purchaseGate(db);
   return {
     cart: {
       id: cart.id,
@@ -216,9 +218,9 @@ function serializeCart(
     })),
     totalCents,
     currency: "BRL",
-    checkoutReady,
+    checkoutReady: checkoutReady && gate.purchaseReady,
     commercialVersion: COMMERCIAL_VERSION,
-    ...purchaseGate(),
+    ...gate,
   };
 }
 
@@ -230,7 +232,7 @@ export async function getCommerceCart(
   authorize(account, organizationId, (m) => policyMonetization(m, "monetization.read"));
   const cart = await ensureOpenCart(db, organizationId, account.user.id);
   const priced = await resolveCartLines(db, cart.id);
-  return serializeCart(cart, priced.lines, priced.totalCents, priced.checkoutReady);
+  return serializeCart(db, cart, priced.lines, priced.totalCents, priced.checkoutReady);
 }
 
 export async function addCommerceCartItem(
@@ -271,6 +273,7 @@ export async function addCommerceCartItem(
     );
   }
 
+  // Add permanece permitido para montar carrinho; cobrança/checkout exige homologação.
   const cart = await ensureOpenCart(db, organizationId, account.user.id);
   if (cart.status !== "open") {
     throw new AppError(
@@ -438,9 +441,12 @@ export async function checkoutCommerceCart(
     return {
       order: serializeOrder(existingOrder),
       alreadyExists: true as const,
-      ...purchaseGate(),
+      ...(await purchaseGate(db)),
     };
   }
+
+  // PAYMENTS_LIVE=1 não contorna: exige checklist PASS + aprovação DB + evidência por SKU.
+  await assertPlatformPurchaseReady({ db });
 
   const cart = await ensureOpenCart(db, organizationId, account.user.id);
   if (cart.status === "checking_out") {
@@ -460,6 +466,11 @@ export async function checkoutCommerceCart(
       `Remova itens inelegíveis: ${ineligible.map((l) => l.item.skuCode).join(", ")}`,
     );
   }
+  for (const line of priced.lines) {
+    await assertSkuPurchasable({ db }, line.item.skuCode);
+  }
+
+  const gate = await purchaseGate(db);
 
   await db
     .update(commerceCarts)
@@ -479,7 +490,7 @@ export async function checkoutCommerceCart(
         idempotencyKey: input.idempotencyKey,
         commercialVersion: COMMERCIAL_VERSION,
         metadataJson: {
-          ...purchaseGate(),
+          ...gate,
           skuCodes: priced.lines.map((l) => l.item.skuCode),
         },
       })
@@ -534,7 +545,7 @@ export async function checkoutCommerceCart(
         metadata: {
           commerceOrderId: order!.id,
           commercialVersion: COMMERCIAL_VERSION,
-          homologation: "NOT_HOMOLOGATED",
+          homologation: gate.homologation,
           paymentsLive: paymentsLive() ? "1" : "0",
         },
       },
@@ -579,7 +590,7 @@ export async function checkoutCommerceCart(
       providerStatus: checkout.providerStatus,
       unavailable: checkout.unavailable,
       alreadyExists: false as const,
-      ...purchaseGate(),
+      ...gate,
     };
   } catch (error) {
     await db
@@ -617,7 +628,7 @@ export async function getCommerceOrder(
       lineTotalCents: item.lineTotalCents,
       creditsGranted: item.creditsGranted,
     })),
-    ...purchaseGate(),
+    ...(await purchaseGate(db)),
   };
 }
 
@@ -652,5 +663,5 @@ export async function listRecentCommerceOrders(
     orderBy: [desc(commerceOrders.createdAt)],
     limit: Math.min(100, Math.max(1, limit)),
   });
-  return { orders: rows.map(serializeOrder), ...purchaseGate() };
+  return { orders: rows.map(serializeOrder), ...(await purchaseGate(db)) };
 }

@@ -11,8 +11,8 @@ export type CommercialCatalogItem = {
   productType: string;
   commercialVersion: string | null;
   homologationStatus: string | null;
-  purchaseReady: false;
-  purchaseStatus: "CATALOG_SEEDED" | "NOT_READY_FOR_PURCHASE";
+  purchaseReady: boolean;
+  purchaseStatus: "CATALOG_SEEDED" | "NOT_READY_FOR_PURCHASE" | "PURCHASE_READY";
   requiresProposal: boolean;
   priceMode: string | null;
   amountCents: number | null;
@@ -46,8 +46,10 @@ export type CommercialCatalogItem = {
 
 export type CommercialCatalogResponse = {
   commercialVersion: string;
-  purchaseReady: false;
-  paymentsLiveForbidden: true;
+  purchaseReady: boolean;
+  paymentsLiveForbidden: boolean;
+  readyForLive?: boolean;
+  homologationStatus?: string;
   commissionRules: Array<{ category: string; bps: number; note: string }>;
   items: CommercialCatalogItem[];
   total: number;
@@ -113,20 +115,39 @@ export const HOMOLOGATION_LABELS: Record<string, string> = {
   not_implemented: "Não implementado",
 };
 
-/** Gate comercial transversal (Fases 2–9) — nunca confundir com homologationStatus do SKU. */
+export type PurchaseGateBadge = "PURCHASE_READY" | "NOT_HOMOLOGATED" | "PENDING_EVIDENCE";
+
+export function purchaseGateBadge(item: {
+  purchaseReady: boolean;
+  purchaseStatus?: string;
+  homologationStatus?: string | null;
+}): PurchaseGateBadge {
+  if (item.purchaseReady || item.purchaseStatus === "PURCHASE_READY") return "PURCHASE_READY";
+  if (item.homologationStatus === "not_implemented") return "NOT_HOMOLOGATED";
+  if (item.purchaseStatus === "CATALOG_SEEDED" || item.purchaseStatus === "NOT_READY_FOR_PURCHASE") {
+    return "PENDING_EVIDENCE";
+  }
+  return "NOT_HOMOLOGATED";
+}
+
+/** @deprecated use purchaseGateBadge — mantido para imports legados */
 export const PURCHASE_GATE_LABEL = "NOT_HOMOLOGATED" as const;
 export const PURCHASE_READY_LABEL = "NOT_READY_FOR_PURCHASE" as const;
 
 export type CommercePurchaseStatusResponse = {
-  purchaseReady: false;
+  purchaseReady: boolean;
   paymentsLive: boolean;
   publicCheckout: boolean;
-  status: "NOT_HOMOLOGATED";
+  status: "READY_FOR_LIVE" | "NOT_HOMOLOGATED" | "PENDING_EVIDENCE";
   note: string;
   phases?: Record<string, string>;
   homologationChecklistSummary?: {
-    readyForLive: false;
+    readyForLive: boolean;
     blockingCount: number;
+    pendingVerificationCount?: number;
+    passedRequired?: number;
+    requiredTotal?: number;
+    paymentsLiveInsufficientWithoutApproval?: boolean;
   };
 };
 

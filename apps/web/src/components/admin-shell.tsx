@@ -5,6 +5,7 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
   CreditCard,
   HeadphonesIcon,
   LayoutDashboard,
@@ -30,6 +31,7 @@ const NAV = [
   { href: "/admin/juris-one", label: "Juris One", icon: Sparkles },
   { href: "/admin/suporte", label: "Suporte", icon: HeadphonesIcon },
   { href: "/admin/integracoes", label: "Integrações", icon: Plug },
+  { href: "/admin/homologacao", label: "Homologação", icon: ClipboardCheck },
   { href: "/admin/seguranca", label: "Segurança", icon: Shield },
 ] as const;
 

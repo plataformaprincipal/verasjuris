@@ -106,7 +106,42 @@ describe("Commerce phases 1–4", () => {
     expect(cart.items[0]?.sku).toBe("CREDITS_100");
     expect(cart.items[0]?.unitAmountCents).toBe(1990);
     expect(cart.totalCents).toBe(1990);
-    expect(cart.checkoutReady).toBe(true);
+    // Sem aprovação DB, checkout comercial permanece bloqueado mesmo com item elegível.
+    expect(cart.checkoutReady).toBe(false);
+  });
+
+  it("checkout comercial rejeita sem homologação mesmo com PAYMENTS_LIVE=1", async () => {
+    const prev = process.env.PAYMENTS_LIVE;
+    process.env.PAYMENTS_LIVE = "1";
+    try {
+      await syncCommercialCatalog(database.db);
+      await call(
+        app,
+        "POST",
+        `${root()}/commerce/cart/items`,
+        { sku: "CREDITS_100", quantity: 1 },
+        s.ownerA,
+      );
+      const checkout = await call(
+        app,
+        "POST",
+        `${root()}/commerce/cart/checkout`,
+        {
+          idempotencyKey: `blocked_live_${Date.now()}`,
+          paymentMethod: "pix",
+          successUrl: "http://127.0.0.1:3000/ok",
+          cancelUrl: "http://127.0.0.1:3000/cancel",
+        },
+        s.ownerA,
+      );
+      expect(checkout.statusCode).toBeGreaterThanOrEqual(400);
+      const body = checkout.json<{ error?: { message?: string; details?: unknown } }>();
+      const blob = `${body.error?.message ?? ""} ${JSON.stringify(body.error?.details ?? [])}`;
+      expect(blob).toMatch(/homolog|bloqueado|aprovação|platform_not_ready|admin_approval/i);
+    } finally {
+      if (prev === undefined) delete process.env.PAYMENTS_LIVE;
+      else process.env.PAYMENTS_LIVE = prev;
+    }
   });
 
   it("fulfillment concede créditos e grants de forma idempotente", async () => {

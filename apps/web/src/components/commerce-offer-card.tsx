@@ -4,8 +4,9 @@ import { Badge } from "@verasjuris/ui";
 import {
   formatCatalogPrice,
   HOMOLOGATION_LABELS,
-  PURCHASE_GATE_LABEL,
+  purchaseGateBadge,
   type CommercialCatalogItem,
+  type PurchaseGateBadge,
 } from "../lib/commerce";
 
 function statusTone(status: string | null): "neutral" | "warning" | "error" | "success" {
@@ -14,11 +15,17 @@ function statusTone(status: string | null): "neutral" | "warning" | "error" | "s
   return "neutral";
 }
 
+function gateTone(gate: PurchaseGateBadge): "neutral" | "warning" | "error" | "success" {
+  if (gate === "PURCHASE_READY") return "success";
+  if (gate === "PENDING_EVIDENCE") return "warning";
+  return "error";
+}
+
 export type CommerceOfferVariant = "card" | "row" | "compact";
 
 /**
- * Superfície canônica de oferta comercial (Fase 7).
- * Sempre exibe NOT_HOMOLOGATED / purchaseReady=false — nunca inventa compra pronta.
+ * Superfície canônica de oferta comercial.
+ * Badge dinâmico conforme purchaseReady / evidências — nunca inventa compra pronta.
  */
 export function CommerceOfferCard({
   item,
@@ -32,6 +39,7 @@ export function CommerceOfferCard({
   const price = formatCatalogPrice(item);
   const implLabel =
     HOMOLOGATION_LABELS[item.homologationStatus ?? ""] ?? item.homologationStatus ?? "catálogo";
+  const gate = purchaseGateBadge(item);
   const link =
     href ?? (item.commercialType === "ai_module" ? "/funcionalidades/modulos-ia" : "/planos");
 
@@ -40,7 +48,7 @@ export function CommerceOfferCard({
       className="vj-commerce-offer__badges"
       style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}
     >
-      <Badge tone="warning">{PURCHASE_GATE_LABEL}</Badge>
+      <Badge tone={gateTone(gate)}>{gate}</Badge>
       <Badge tone="neutral">{item.purchaseStatus}</Badge>
       <Badge tone={statusTone(item.homologationStatus)}>{implLabel}</Badge>
       <Badge tone="neutral">{item.sku}</Badge>
@@ -68,7 +76,7 @@ export function CommerceOfferCard({
           <Badge tone={statusTone(item.homologationStatus)}>{implLabel}</Badge>
         </td>
         <td>
-          <Badge tone="warning">{PURCHASE_GATE_LABEL}</Badge>
+          <Badge tone={gateTone(gate)}>{gate}</Badge>
         </td>
       </tr>
     );

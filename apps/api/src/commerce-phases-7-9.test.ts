@@ -94,8 +94,8 @@ describe("Commerce phases 7–9", () => {
     expect(rows.every((r) => r.number == null)).toBe(true);
   });
 
-  it("checklist never reports readyForLive", () => {
-    const checklist = buildPaymentsHomologationChecklist({
+  it("checklist sem aprovação permanece bloqueado; com aprovação + probes PASS libera", () => {
+    const blocked = buildPaymentsHomologationChecklist({
       paymentProviderMode: "asaas",
       asaasEnvironment: "sandbox",
       asaasApiKeyPresent: true,
@@ -103,12 +103,66 @@ describe("Commerce phases 7–9", () => {
       paymentsLive: false,
       publicCheckout: false,
       paymentHealthStatus: "ok",
-      catalogPurchaseReady: false,
       isProduction: false,
+      probes: {
+        webhookEventsPersisted: "PASS",
+        paymentIntentsIdempotency: "PASS",
+        refundPathExists: "PASS",
+        cancelPathExists: "PASS",
+        reconciliationModulePresent: "PASS",
+      },
     });
-    expect(checklist.readyForLive).toBe(false);
-    expect(checklist.purchaseReady).toBe(false);
-    expect(checklist.status).toBe("NOT_HOMOLOGATED");
-    expect(checklist.blocking).toContain("human_signoff");
+    expect(blocked.readyForLive).toBe(false);
+    expect(blocked.purchaseReady).toBe(false);
+    expect(blocked.blocking).toContain("admin_approval");
+
+    const unlocked = buildPaymentsHomologationChecklist({
+      paymentProviderMode: "asaas",
+      asaasEnvironment: "sandbox",
+      asaasApiKeyPresent: true,
+      asaasWebhookTokenPresent: true,
+      paymentsLive: true,
+      publicCheckout: false,
+      paymentHealthStatus: "ok",
+      isProduction: false,
+      probes: {
+        webhookEventsPersisted: "PASS",
+        paymentIntentsIdempotency: "PASS",
+        refundPathExists: "PASS",
+        cancelPathExists: "PASS",
+        reconciliationModulePresent: "PASS",
+      },
+      activeApproval: {
+        id: "00000000-0000-4000-8000-000000000001",
+        decision: "approved",
+        approverUserId: "00000000-0000-4000-8000-000000000002",
+        validFrom: new Date().toISOString(),
+        validUntil: null,
+        reason: "Homologação sintética de teste",
+      },
+    });
+    expect(unlocked.readyForLive).toBe(true);
+    expect(unlocked.purchaseReady).toBe(true);
+    expect(unlocked.status).toBe("READY_FOR_LIVE");
+
+    const liveWithoutApproval = buildPaymentsHomologationChecklist({
+      paymentProviderMode: "asaas",
+      asaasEnvironment: "sandbox",
+      asaasApiKeyPresent: true,
+      asaasWebhookTokenPresent: true,
+      paymentsLive: true,
+      publicCheckout: true,
+      paymentHealthStatus: "ok",
+      isProduction: true,
+      probes: {
+        webhookEventsPersisted: "PASS",
+        paymentIntentsIdempotency: "PASS",
+        refundPathExists: "PASS",
+        cancelPathExists: "PASS",
+        reconciliationModulePresent: "PASS",
+      },
+    });
+    expect(liveWithoutApproval.readyForLive).toBe(false);
+    expect(liveWithoutApproval.paymentsLiveInsufficientWithoutApproval).toBe(true);
   });
 });

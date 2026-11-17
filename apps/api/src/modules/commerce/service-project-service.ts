@@ -16,7 +16,20 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { authorize, iso } from "../ai/shared.js";
 import type { RequestMeta } from "../auth/service.js";
 import type { CheckoutService } from "../finance/checkout-service.js";
+import {
+  assertPlatformPurchaseReady,
+  assertSkuPurchasable,
+  resolvePurchaseGate,
+} from "../platform-admin/homologation-service.js";
 import { ensureCommercialCatalogSeeded } from "./catalog-sync.js";
+
+async function serviceGate(db: AppDatabase) {
+  const gate = await resolvePurchaseGate({ db });
+  return {
+    purchaseReady: gate.purchaseReady,
+    homologation: gate.homologation,
+  };
+}
 
 function serializeProject(row: typeof commerceServiceProjects.$inferSelect) {
   return {
@@ -224,8 +237,7 @@ export async function acceptServiceProposal(
     milestones: (await loadProjectBundle(db, organizationId, projectId)).milestones.map(
       serializeMilestone,
     ),
-    purchaseReady: false as const,
-    homologation: "NOT_HOMOLOGATED" as const,
+    ...(await serviceGate(db)),
   };
 }
 
@@ -240,8 +252,7 @@ export async function getServiceProject(
   return {
     project: serializeProject(project),
     milestones: milestones.map(serializeMilestone),
-    purchaseReady: false as const,
-    homologation: "NOT_HOMOLOGATED" as const,
+    ...(await serviceGate(db)),
   };
 }
 
@@ -259,8 +270,7 @@ export async function listServiceProjects(
   });
   return {
     projects: rows.map(serializeProject),
-    purchaseReady: false as const,
-    homologation: "NOT_HOMOLOGATED" as const,
+    ...(await serviceGate(db)),
   };
 }
 
@@ -275,7 +285,9 @@ export async function checkoutServiceMilestone(
   checkoutService: CheckoutService,
 ) {
   authorize(account, organizationId, (m) => policyPaymentIntent(m, "finance.payment.read"));
+  await assertPlatformPurchaseReady({ db });
   const { project, milestones } = await loadProjectBundle(db, organizationId, projectId);
+  await assertSkuPurchasable({ db }, project.skuCode);
   const milestone = milestones.find((m) => m.id === milestoneId);
   if (!milestone) throw new AppError("NOT_FOUND", "Marco não encontrado.");
 
@@ -384,8 +396,7 @@ export async function checkoutServiceMilestone(
     checkout: checkout.checkout,
     providerStatus: checkout.providerStatus,
     unavailable: checkout.unavailable,
-    purchaseReady: false as const,
-    homologation: "NOT_HOMOLOGATED" as const,
+    ...(await serviceGate(db)),
   };
 }
 
@@ -428,8 +439,7 @@ export async function submitServiceDelivery(
 
   return {
     project: serializeProject(updated!),
-    purchaseReady: false as const,
-    homologation: "NOT_HOMOLOGATED" as const,
+    ...(await serviceGate(db)),
   };
 }
 
@@ -471,8 +481,7 @@ export async function acceptServiceDelivery(
     return {
       project: serializeProject(updated!),
       milestones: milestones.map(serializeMilestone),
-      purchaseReady: false as const,
-      homologation: "NOT_HOMOLOGATED" as const,
+      ...(await serviceGate(db)),
     };
   }
 

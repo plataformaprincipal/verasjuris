@@ -116,12 +116,14 @@ export async function registerCommerceRoutes(app: FastifyInstance, deps: ApiDeps
       ip: requestMeta.ip,
       metadata: { ...result, oabSplitRules: oab },
     });
+    const { resolvePurchaseGate } = await import("../platform-admin/homologation-service.js");
+    const gate = await resolvePurchaseGate({ db: deps.db });
     return {
       ok: true as const,
       ...result,
       oabSplitRules: oab,
-      purchaseReady: false as const,
-      homologation: "NOT_HOMOLOGATED" as const,
+      purchaseReady: gate.purchaseReady,
+      homologation: gate.homologation,
     };
   });
 
@@ -151,42 +153,32 @@ export async function registerCommerceRoutes(app: FastifyInstance, deps: ApiDeps
       ip: requestMeta.ip,
       metadata: { ...result, oabSplitRules: oab, scope: "platform" },
     });
+    const { resolvePurchaseGate } = await import("../platform-admin/homologation-service.js");
+    const gate = await resolvePurchaseGate({ db: deps.db });
     return {
       ok: true as const,
       ...result,
       oabSplitRules: oab,
-      purchaseReady: false as const,
-      homologation: "NOT_HOMOLOGATED" as const,
+      purchaseReady: gate.purchaseReady,
+      homologation: gate.homologation,
     };
   });
 
   app.get("/commerce/catalog/purchase-status", async () => {
-    const { buildPaymentsHomologationChecklist } = await import(
-      "../platform-admin/homologation-checklist.js"
-    );
-    const paymentsLive = process.env.PAYMENTS_LIVE === "1";
-    const publicCheckout = process.env.FEATURE_PUBLIC_CHECKOUT === "1";
-    const paymentHealth = deps.paymentProvider
-      ? await deps.paymentProvider.healthCheck()
-      : { status: "not_configured", detail: "ausente", checkedAt: new Date().toISOString() };
-    const checklist = buildPaymentsHomologationChecklist({
-      paymentProviderMode: process.env.PAYMENT_PROVIDER ?? "not_configured",
-      asaasEnvironment: process.env.ASAAS_ENVIRONMENT ?? null,
-      asaasApiKeyPresent: Boolean(process.env.ASAAS_API_KEY?.trim()),
-      asaasWebhookTokenPresent: Boolean(process.env.ASAAS_WEBHOOK_TOKEN?.trim()),
-      paymentsLive,
-      publicCheckout,
-      paymentHealthStatus: paymentHealth.status,
-      paymentHealthDetail: "detail" in paymentHealth ? paymentHealth.detail : null,
-      catalogPurchaseReady: false,
-      isProduction: process.env.NODE_ENV === "production",
+    const { buildLiveChecklist } = await import("../platform-admin/homologation-service.js");
+    const checklist = await buildLiveChecklist({
+      db: deps.db,
+      paymentHealth: async () =>
+        deps.paymentProvider
+          ? deps.paymentProvider.healthCheck()
+          : { status: "not_configured", detail: "ausente" },
     });
     return {
-      purchaseReady: false as const,
-      paymentsLive,
-      publicCheckout,
-      status: "NOT_HOMOLOGATED" as const,
-      note: "Homologação comercial ≠ pronta para produção. Checklist apenas reporta evidências.",
+      purchaseReady: checklist.purchaseReady,
+      paymentsLive: checklist.paymentsLive,
+      publicCheckout: checklist.publicCheckout,
+      status: checklist.status,
+      note: checklist.note,
       phases: {
         catalog: "seeded",
         universalCart: "implemented_sandbox",
@@ -196,13 +188,16 @@ export async function registerCommerceRoutes(app: FastifyInstance, deps: ApiDeps
         serviceMilestones: "implemented_30_70",
         offerSurface: "implemented",
         fiscalDocuments: "not_configured_records",
-        liveHomologation: "checklist_only",
+        liveHomologation: "auditable_gates",
       },
       homologationChecklistSummary: {
-        readyForLive: false as const,
+        readyForLive: checklist.readyForLive,
         blockingCount: checklist.blocking.length,
+        pendingVerificationCount: checklist.pendingVerification.length,
         passedRequired: checklist.passedRequired,
         requiredTotal: checklist.requiredTotal,
+        paymentsLiveInsufficientWithoutApproval:
+          checklist.paymentsLiveInsufficientWithoutApproval,
       },
     };
   });
@@ -400,12 +395,10 @@ export async function registerCommerceRoutes(app: FastifyInstance, deps: ApiDeps
   );
 }
 
-/** Reject accidental PAYMENTS_LIVE enablement through commerce module. */
-export function assertPaymentsLiveForbidden(envFlag: string | undefined): void {
-  if (envFlag === "1" || envFlag === "true") {
-    throw new AppError(
-      "VALIDATION_ERROR",
-      "PAYMENTS_LIVE não pode ser habilitado pelo módulo de catálogo comercial.",
-    );
-  }
+/**
+ * Legado: o módulo commerce não escreve env. PAYMENTS_LIVE é ops-only e
+ * insuficiente sem aprovação DB — ver assertPlatformPurchaseReady.
+ */
+export function assertPaymentsLiveForbidden(_envFlag: string | undefined): void {
+  // no-op: gate real é checklist + aprovação em homologation-service
 }

@@ -34,8 +34,8 @@ export type CatalogItemView = {
   productType: string;
   commercialVersion: string | null;
   homologationStatus: string | null;
-  purchaseReady: false;
-  purchaseStatus: "CATALOG_SEEDED" | "NOT_READY_FOR_PURCHASE";
+  purchaseReady: boolean;
+  purchaseStatus: "CATALOG_SEEDED" | "NOT_READY_FOR_PURCHASE" | "PURCHASE_READY";
   requiresProposal: boolean;
   priceMode: string | null;
   amountCents: number | null;
@@ -408,8 +408,10 @@ export async function listCommercialCatalog(
   },
 ): Promise<{
   commercialVersion: typeof COMMERCIAL_VERSION;
-  purchaseReady: false;
-  paymentsLiveForbidden: true;
+  purchaseReady: boolean;
+  paymentsLiveForbidden: false;
+  readyForLive: boolean;
+  homologationStatus: string;
   commissionRules: typeof MARKETPLACE_COMMISSION_RULES;
   items: CatalogItemView[];
   total: number;
@@ -482,12 +484,32 @@ export async function listCommercialCatalog(
   const total = items.length;
   const sliced = items.slice(query.offset, query.offset + query.limit);
 
+  const { buildLiveChecklist, computeSkuPurchaseReady } = await import(
+    "../platform-admin/homologation-service.js"
+  );
+  const checklist = await buildLiveChecklist({ db });
+  const gated: CatalogItemView[] = [];
+  for (const item of sliced) {
+    const ready = await computeSkuPurchaseReady({ db }, item.sku, checklist);
+    gated.push({
+      ...item,
+      purchaseReady: ready.purchaseReady,
+      purchaseStatus: ready.purchaseReady
+        ? "PURCHASE_READY"
+        : item.source === "database"
+          ? "CATALOG_SEEDED"
+          : "NOT_READY_FOR_PURCHASE",
+    });
+  }
+
   return {
     commercialVersion: COMMERCIAL_VERSION,
-    purchaseReady: false,
-    paymentsLiveForbidden: true,
+    purchaseReady: checklist.purchaseReady,
+    paymentsLiveForbidden: false,
+    readyForLive: checklist.readyForLive,
+    homologationStatus: checklist.status,
     commissionRules: MARKETPLACE_COMMISSION_RULES,
-    items: sliced,
+    items: gated,
     total,
     limit: query.limit,
     offset: query.offset,

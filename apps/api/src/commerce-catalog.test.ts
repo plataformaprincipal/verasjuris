@@ -98,7 +98,7 @@ describe("Commercial catalog Phase 1", () => {
     }>();
     expect(body.commercialVersion).toBe(COMMERCIAL_VERSION);
     expect(body.purchaseReady).toBe(false);
-    expect(body.paymentsLiveForbidden).toBe(true);
+    expect(body.paymentsLiveForbidden).toBe(false);
     expect(body.items.some((i) => i.sku === "PLAN_PRO_INDIVIDUAL")).toBe(true);
     const raw = JSON.stringify(body);
     expect(raw).not.toMatch(/asaas/i);

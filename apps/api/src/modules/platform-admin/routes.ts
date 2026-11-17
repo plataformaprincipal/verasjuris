@@ -1,8 +1,11 @@
 import {
   activatePlatformInviteSchema,
+  createHomologationApprovalSchema,
   createPlatformInviteSchema,
   parseInput,
   platformUserListQuerySchema,
+  recordSkuEvidenceSchema,
+  revokeHomologationApprovalSchema,
   updatePlatformOrgStatusSchema,
   updatePlatformUserStatusSchema,
   uuidSchema,
@@ -10,7 +13,14 @@ import {
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { meta, requireAccount, type ApiDeps } from "../auth/routes.js";
-import { buildPaymentsHomologationChecklist } from "./homologation-checklist.js";
+import {
+  createHomologationApproval,
+  getEvidenceReport,
+  getHomologationChecklist,
+  getSkuEvidence,
+  recordSkuEvidence,
+  revokeHomologationApproval,
+} from "./homologation-service.js";
 import {
   activatePlatformInvite,
   createPlatformInvite,
@@ -25,6 +35,17 @@ import {
   type PlatformAdminDeps,
 } from "./service.js";
 import { requirePlatformPermission } from "./authorize.js";
+
+function homologationDeps(deps: ApiDeps) {
+  return {
+    db: deps.db,
+    paymentHealth: async () =>
+      deps.paymentProvider?.healthCheck() ?? {
+        status: "not_configured",
+        detail: "Provider não injetado.",
+      },
+  };
+}
 
 function platformDeps(deps: ApiDeps): PlatformAdminDeps {
   return {
@@ -82,30 +103,63 @@ export async function registerPlatformAdminRoutes(
     return getPlatformIntegrationsHealth(platformDeps(deps), account);
   });
 
-  /** Fase 9 — evidências de homologação live (somente leitura; nunca escreve PAYMENTS_LIVE). */
+  /** Homologação live (somente leitura; nunca escreve PAYMENTS_LIVE). */
   app.get(`${root}/payments/homologation-checklist`, async (request) => {
     const account = await requireAccount(deps, request);
-    requirePlatformPermission(account, "platform.integrations.read");
-    const paymentHealth = deps.paymentProvider
-      ? await deps.paymentProvider.healthCheck()
-      : {
-          status: "not_configured",
-          detail: "Provider não injetado.",
-          checkedAt: new Date().toISOString(),
-        };
-    return buildPaymentsHomologationChecklist({
-      paymentProviderMode: process.env.PAYMENT_PROVIDER ?? "not_configured",
-      billingProviderMode: process.env.BILLING_PROVIDER ?? "not_configured",
-      asaasEnvironment: process.env.ASAAS_ENVIRONMENT ?? null,
-      asaasApiKeyPresent: Boolean(process.env.ASAAS_API_KEY?.trim()),
-      asaasWebhookTokenPresent: Boolean(process.env.ASAAS_WEBHOOK_TOKEN?.trim()),
-      paymentsLive: process.env.PAYMENTS_LIVE === "1",
-      publicCheckout: process.env.FEATURE_PUBLIC_CHECKOUT === "1",
-      paymentHealthStatus: paymentHealth.status,
-      paymentHealthDetail: "detail" in paymentHealth ? (paymentHealth.detail ?? null) : null,
-      catalogPurchaseReady: false,
-      isProduction: process.env.NODE_ENV === "production",
-    });
+    return getHomologationChecklist(homologationDeps(deps), account);
+  });
+
+  app.get(`${root}/payments/homologation-report`, async (request) => {
+    const account = await requireAccount(deps, request);
+    return getEvidenceReport(homologationDeps(deps), account);
+  });
+
+  app.post(`${root}/payments/homologation-approvals`, async (request, reply) => {
+    const account = await requireAccount(deps, request);
+    const body = parseInput(createHomologationApprovalSchema, request.body ?? {});
+    const result = await createHomologationApproval(
+      homologationDeps(deps),
+      account,
+      body,
+      meta(request),
+    );
+    return reply.status(201).send(result);
+  });
+
+  app.post(`${root}/payments/homologation-approvals/revoke`, async (request) => {
+    const account = await requireAccount(deps, request);
+    const body = parseInput(revokeHomologationApprovalSchema, request.body ?? {});
+    return revokeHomologationApproval(homologationDeps(deps), account, body, meta(request));
+  });
+
+  app.get(`${root}/commerce/sku-homologation/:sku/evidence`, async (request) => {
+    const account = await requireAccount(deps, request);
+    const sku = z
+      .string()
+      .trim()
+      .min(2)
+      .max(64)
+      .parse((request.params as { sku?: string }).sku);
+    return getSkuEvidence(homologationDeps(deps), account, sku.toUpperCase());
+  });
+
+  app.post(`${root}/commerce/sku-homologation/:sku/evidence`, async (request, reply) => {
+    const account = await requireAccount(deps, request);
+    const sku = z
+      .string()
+      .trim()
+      .min(2)
+      .max(64)
+      .parse((request.params as { sku?: string }).sku);
+    const body = parseInput(recordSkuEvidenceSchema, request.body ?? {});
+    const result = await recordSkuEvidence(
+      homologationDeps(deps),
+      account,
+      sku.toUpperCase(),
+      body,
+      meta(request),
+    );
+    return reply.status(201).send(result);
   });
 
   app.get(`${root}/users`, async (request) => {

@@ -43,6 +43,7 @@ export * from "./finance.js";
 export * from "./monetization.js";
 export * from "./commerce.js";
 export * from "./fiscal.js";
+export * from "./homologation.js";
 export * from "./control.js";
 export * from "./analytics.js";
 export * from "./workflows.js";
@@ -989,6 +990,12 @@ import {
   commerceServiceMilestonesRelations,
 } from "./commerce.js";
 import { fiscalDocuments, fiscalDocumentsRelations } from "./fiscal.js";
+import {
+  skuHomologationEvidence,
+  paymentsHomologationApprovals,
+  skuHomologationEvidenceRelations,
+  paymentsHomologationApprovalsRelations,
+} from "./homologation.js";
 
 import {
   controlGoals,
@@ -1966,6 +1973,8 @@ export const schema = {
   commerceServiceProjects,
   commerceServiceMilestones,
   fiscalDocuments,
+  skuHomologationEvidence,
+  paymentsHomologationApprovals,
   usageMeters,
   usageRecords,
   aiCreditWallets,
@@ -2007,6 +2016,8 @@ export const schema = {
   commerceServiceProjectsRelations,
   commerceServiceMilestonesRelations,
   fiscalDocumentsRelations,
+  skuHomologationEvidenceRelations,
+  paymentsHomologationApprovalsRelations,
   usageMetersRelations,
   usageRecordsRelations,
   aiCreditWalletsRelations,
