@@ -182,6 +182,7 @@ import { registerExtrajudicialRoutes } from "./modules/extrajudicial/routes.js";
 import { registerCommunicationRoutes } from "./modules/communication/routes.js";
 import { registerEducationRoutes } from "./modules/education/routes.js";
 import { registerFinanceRoutes } from "./modules/finance/routes.js";
+import { registerEmailRoutes } from "./modules/email/routes.js";
 import { registerTaskRoutes } from "./modules/tasks/routes.js";
 import { registerControlRoutes } from "./modules/control/routes.js";
 import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
@@ -211,6 +212,8 @@ export type BuildAppOptions = {
   rateLimiter?: MemoryRateLimiter;
   events?: InProcessEventBus;
   email?: EmailProvider;
+  /** Segredo Svix do webhook Resend (`whsec_...`). */
+  resendWebhookSecret?: string;
   storage?: StorageProvider;
   malwareScanner?: MalwareScannerProvider;
   documentMaxUploadBytes?: number;
@@ -329,6 +332,7 @@ export async function buildApp(options: BuildAppOptions) {
     rateLimiter: options.rateLimiter ?? new MemoryRateLimiter(),
     secureCookies: options.isProduction,
     email: options.email ?? createEmailProvider("not_configured"),
+    resendWebhookSecret: options.resendWebhookSecret,
     webOrigin: options.webOrigin,
     storage: options.storage ?? createStorageProvider(process.env),
     malwareScanner: options.malwareScanner ?? createMalwareScanner(process.env),
@@ -537,6 +541,7 @@ export async function buildApp(options: BuildAppOptions) {
       await registerCommunicationRoutes(v1, deps);
       await registerEducationRoutes(v1, deps);
       await registerFinanceRoutes(v1, deps);
+      await registerEmailRoutes(v1, deps);
       await registerControlRoutes(v1, deps);
       await registerAnalyticsRoutes(v1, deps);
       await registerWorkflowRoutes(v1, deps);

@@ -38,6 +38,7 @@ export * from "./professional-verification.js";
 export * from "./diligence.js";
 export * from "./extrajudicial.js";
 export * from "./education.js";
+export * from "./email.js";
 export * from "./finance.js";
 export * from "./monetization.js";
 export * from "./control.js";
@@ -1138,6 +1139,12 @@ import {
   institutionalPoliciesRelations,
   institutionalPolicyVersionsRelations,
 } from "./institutional.js";
+import {
+  emailDispatches,
+  emailProviderEvents,
+  emailDispatchesRelations,
+  emailProviderEventsRelations,
+} from "./email.js";
 
 export const schema = {
   users,
@@ -2121,4 +2128,8 @@ export const schema = {
   institutionalPolicyVersions,
   institutionalPoliciesRelations,
   institutionalPolicyVersionsRelations,
+  emailDispatches,
+  emailProviderEvents,
+  emailDispatchesRelations,
+  emailProviderEventsRelations,
 };

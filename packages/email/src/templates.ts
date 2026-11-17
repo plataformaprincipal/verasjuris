@@ -91,6 +91,10 @@ function kindLabel(kind: EmailKind): string {
       return "JurisOne Work";
     case "security_alert":
       return "Alerta de segurança";
+    case "welcome":
+      return "Boas-vindas";
+    case "password_changed":
+      return "Senha alterada";
     default:
       return "Notificação";
   }

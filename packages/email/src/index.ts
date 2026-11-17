@@ -10,9 +10,26 @@ export type EmailKind =
   | "payment_update"
   | "engagement_update"
   | "juris_work_update"
-  | "security_alert";
+  | "security_alert"
+  | "welcome"
+  | "password_changed";
 
-export type EmailDeliveryStatus = "sent" | "not_configured" | "captured";
+/** Status público/operacional do envio imediato (não confundir com entrega). */
+export type EmailDeliveryStatus = "sent" | "not_configured" | "captured" | "failed";
+
+/**
+ * Aceitação pelo provedor vs estados de entrega (webhooks).
+ * `sent` no SendEmailResult = SENT_TO_PROVIDER.
+ */
+export type EmailProviderAcceptance = "queued" | "sent_to_provider" | "failed";
+
+export type EmailLifecycleStatus =
+  | "queued"
+  | "sent_to_provider"
+  | "delivered"
+  | "bounced"
+  | "complained"
+  | "failed";
 
 export type OutboundEmail = {
   kind: EmailKind;
@@ -28,6 +45,9 @@ export type OutboundEmail = {
 
 export type SendEmailResult = {
   status: EmailDeliveryStatus;
+  providerAcceptance?: EmailProviderAcceptance;
+  providerMessageId?: string | null;
+  providerKey?: string | null;
 };
 
 export interface EmailProvider {
@@ -39,17 +59,29 @@ export class NotConfiguredEmailProvider implements EmailProvider {
   readonly status = "not_configured" as const;
 
   async send(_message: OutboundEmail): Promise<SendEmailResult> {
-    return { status: "not_configured" };
+    return {
+      status: "not_configured",
+      providerAcceptance: "failed",
+      providerMessageId: null,
+      providerKey: null,
+    };
   }
 }
 
 export class MemoryEmailProvider implements EmailProvider {
   readonly status = "memory" as const;
   readonly outbox: OutboundEmail[] = [];
+  private seq = 0;
 
   async send(message: OutboundEmail): Promise<SendEmailResult> {
     this.outbox.push(message);
-    return { status: "captured" };
+    this.seq += 1;
+    return {
+      status: "captured",
+      providerAcceptance: "sent_to_provider",
+      providerMessageId: `mem_${this.seq}`,
+      providerKey: "memory",
+    };
   }
 
   latest(kind?: EmailKind, to?: string): OutboundEmail | undefined {
@@ -71,6 +103,7 @@ export class MemoryEmailProvider implements EmailProvider {
 export type EmailProviderMode = "not_configured" | "memory" | "resend";
 
 export type EmailProviderEnv = {
+  EMAIL_PROVIDER?: string | undefined;
   RESEND_API_KEY?: string | undefined;
   RESEND_FROM_EMAIL?: string | undefined;
 };
@@ -101,6 +134,18 @@ export function createEmailProvider(
   return new NotConfiguredEmailProvider();
 }
 
+/** Lê `EMAIL_PROVIDER` (+ credenciais Resend) do ambiente. */
+export function createEmailProviderFromEnv(
+  env: EmailProviderEnv = process.env,
+): EmailProvider {
+  const modeRaw = (env.EMAIL_PROVIDER ?? "not_configured").trim().toLowerCase();
+  const mode: EmailProviderMode =
+    modeRaw === "memory" || modeRaw === "resend" || modeRaw === "not_configured"
+      ? modeRaw
+      : "not_configured";
+  return createEmailProvider(mode, env);
+}
+
 export function publicEmailDeliveryMessage(status: EmailDeliveryStatus): string {
   if (status === "not_configured") {
     return "O envio por e-mail ainda não está configurado neste ambiente.";
@@ -108,10 +153,27 @@ export function publicEmailDeliveryMessage(status: EmailDeliveryStatus): string 
   if (status === "captured") {
     return "A mensagem foi capturada pelo adaptador de desenvolvimento. Nenhum e-mail real foi enviado.";
   }
+  if (status === "failed") {
+    return "Não foi possível concluir o envio neste momento. Tente novamente mais tarde.";
+  }
   return "Se existir uma conta elegível para este e-mail, enviaremos as próximas instruções.";
 }
 
-export { ResendEmailProvider, type ResendEmailProviderOptions } from "./resend-provider.js";
+/**
+ * Status público do provider para respostas neutras (anti-enumeração).
+ * Reflete capacidade do ambiente, não se a conta existe.
+ */
+export function publicProviderDeliveryStatus(provider: EmailProvider): EmailDeliveryStatus {
+  if (provider.status === "memory") return "captured";
+  if (provider.status === "configured") return "sent";
+  return "not_configured";
+}
+
+export {
+  ResendEmailProvider,
+  verifyResendWebhookSignature,
+  type ResendEmailProviderOptions,
+} from "./resend-provider.js";
 export {
   extractActionUrlFromText,
   renderTransactionalEmailHtml,

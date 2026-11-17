@@ -16,6 +16,7 @@ import { generateOpaqueToken, hashOpaqueToken, INVITATION_TTL_MS } from "@verasj
 import { AppError, type SystemRoleKey } from "@verasjuris/types";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import type { AuthEmailContext, RequestMeta } from "../auth/service.js";
+import { dispatchTransactionalEmail } from "../email/dispatch.js";
 
 type InviteRole = Extract<SystemRoleKey, "administrator" | "member">;
 
@@ -132,12 +133,15 @@ export async function createInvitation(
     );
   }
 
-  const sent = await email.provider.send({
+  const { result: sent } = await dispatchTransactionalEmail(db, email.provider, {
     kind: "organization_invitation",
     to: input.email,
     subject: `Convite para ${organization.name} no VerasJuris`,
     text: `Você foi convidado para ${organization.name}. Aceite em: ${invitationLink(email.webOrigin, token)}`,
     token,
+    organizationId,
+    idempotencyKey: `organization_invitation:${invitation.id}`,
+    category: "transactional",
     metadata: { organizationId, invitationId: invitation.id },
   });
 
@@ -276,12 +280,15 @@ export async function resendInvitation(
     .set({ tokenHash: hash, expiresAt, revokedAt: null })
     .where(eq(organizationInvitations.id, invitationId));
 
-  const sent = await email.provider.send({
+  const { result: sent } = await dispatchTransactionalEmail(db, email.provider, {
     kind: "organization_invitation",
     to: existing.email,
     subject: `Convite para ${existing.organization.name} no VerasJuris`,
     text: `Você foi convidado para ${existing.organization.name}. Aceite em: ${invitationLink(email.webOrigin, token)}`,
     token,
+    organizationId,
+    idempotencyKey: `organization_invitation_resend:${invitationId}:${hash.slice(0, 24)}`,
+    category: "transactional",
     metadata: { organizationId, invitationId },
   });
 

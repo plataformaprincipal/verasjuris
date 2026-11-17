@@ -12,9 +12,12 @@ import {
   policyRefund,
   type SessionAccount,
 } from "@verasjuris/auth";
+import type { EmailProvider } from "@verasjuris/email";
 import {
   billingCredits,
   isUniqueViolation,
+  marketplaceEngagements,
+  marketplaceRequests,
   payables,
   paymentAllocations,
   paymentIntents,
@@ -24,6 +27,7 @@ import {
   receivables,
   refundHistory,
   refunds,
+  users,
   type AppDatabase,
 } from "@verasjuris/database";
 import { AppError } from "@verasjuris/types";
@@ -32,6 +36,7 @@ import { and, count, desc, eq, inArray, type SQL } from "drizzle-orm";
 import { authorize, iso } from "../ai/shared.js";
 import type { RequestMeta } from "../auth/service.js";
 import { requireDocumentInOrg } from "../documents/service.js";
+import { dispatchTransactionalEmail } from "../email/dispatch.js";
 import { activateMarketplaceEngagementOnPayment } from "../marketplace/service.js";
 import { BillingService } from "./billing-service.js";
 import { LedgerPostingService } from "./ledger-posting-service.js";
@@ -143,14 +148,22 @@ function isVerifyResult(
 export class PaymentService {
   private readonly ledger: LedgerPostingService;
   private readonly billing: BillingService;
+  private readonly email: EmailProvider | null;
+  private readonly webOrigin: string;
 
   constructor(
     private readonly db: AppDatabase,
     private readonly paymentProvider: PaymentProvider,
     billingProvider: BillingProvider = new NotConfiguredBillingProvider(),
+    options?: {
+      email?: EmailProvider;
+      webOrigin?: string;
+    },
   ) {
     this.ledger = new LedgerPostingService(db);
     this.billing = new BillingService(db, paymentProvider, billingProvider);
+    this.email = options?.email ?? null;
+    this.webOrigin = options?.webOrigin ?? "https://app.verasjuris.com.br";
   }
 
   async providerStatus() {
@@ -573,11 +586,46 @@ export class PaymentService {
         intent.referenceId &&
         intent.organizationId
       ) {
-        await activateMarketplaceEngagementOnPayment(this.db, {
+        const activated = await activateMarketplaceEngagementOnPayment(this.db, {
           organizationId: intent.organizationId,
           engagementId: intent.referenceId,
           paymentIntentId: intent.id,
         });
+        if (activated.activated && this.email && this.email.status !== "not_configured") {
+          try {
+            const engagement = await this.db.query.marketplaceEngagements.findFirst({
+              where: eq(marketplaceEngagements.id, intent.referenceId),
+            });
+            const request = engagement
+              ? await this.db.query.marketplaceRequests.findFirst({
+                  where: eq(marketplaceRequests.id, engagement.requestId),
+                })
+              : null;
+            const requester = request?.requesterUserId
+              ? await this.db.query.users.findFirst({
+                  where: eq(users.id, request.requesterUserId),
+                })
+              : null;
+            if (requester?.email) {
+              await dispatchTransactionalEmail(this.db, this.email, {
+                kind: "payment_update",
+                to: requester.email,
+                subject: "Pagamento confirmado — contratação liberada",
+                text: [
+                  "Confirmamos o pagamento da sua contratação no marketplace VerasJuris.",
+                  "A liberação operacional foi registrada após validação financeira no backend.",
+                  `Acompanhe em: ${this.webOrigin}/app/marketplace/contratacoes/${intent.referenceId}`,
+                ].join("\n\n"),
+                recipientUserId: requester.id,
+                organizationId: intent.organizationId,
+                idempotencyKey: `marketplace_payment_confirmed:${intent.id}`,
+                category: "operational",
+              });
+            }
+          } catch {
+            // Notificação best-effort; não reverte confirmação financeira.
+          }
+        }
       }
     }
 

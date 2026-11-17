@@ -677,7 +677,10 @@ export async function getPlatformIntegrationsHealth(
         lastCheckedAt: emailHealth.checkedAt ?? checkedAt,
         ...emailClass,
         pendencies: emailConfigured
-          ? ["Homologar domínio remetente e fluxos de cadastro/recuperação."]
+          ? [
+              "Homologar domínio remetente e fluxos de cadastro/recuperação.",
+              "Configurar RESEND_WEBHOOK_SECRET e endpoint /v1/webhooks/email/resend.",
+            ]
           : ["Definir EMAIL_PROVIDER=resend e credenciais no servidor."],
       },
       {

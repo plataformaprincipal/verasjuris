@@ -66,7 +66,7 @@ describe("onboarding register multi-persona", () => {
     expect(body.account.user.email).toBe("ana.cliente@exemplo.com");
     expect(body.account.user.onboardingPersona).toBe("client_pf");
     expect(sessionFrom(response.headers)).toBeTruthy();
-    expect(email.latest("email_verification", "ana.cliente@exemplo.com")).toBeUndefined();
+    expect(email.latest("email_verification", "ana.cliente@exemplo.com")).toBeTruthy();
 
     const database = await started;
     const user = await database.db.query.users.findFirst({

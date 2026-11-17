@@ -51,7 +51,8 @@ describe("Etapa 1 — identidade", () => {
     expect(firstBody.emailVerified).toBe(false);
     expect(firstBody.redirectTo).toBe("/app");
     expect(first.headers["set-cookie"]).toBeTruthy();
-    expect(email.latest("email_verification", "helena@exemplo.com")).toBeUndefined();
+    expect(email.latest("email_verification", "helena@exemplo.com")).toBeTruthy();
+    expect(firstBody).toMatchObject({ emailDelivery: "captured" });
 
     const user = await database.db.query.users.findFirst({
       where: eq(users.email, "helena@exemplo.com"),
