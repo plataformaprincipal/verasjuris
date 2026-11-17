@@ -65,8 +65,7 @@ class ControllablePaymentProvider implements PaymentProvider {
       metadata.pixQrCodeBase64 = "qq==";
     }
     if (method === "boleto") {
-      metadata.boletoDigitableLine =
-        "23790.00000 00000.000000 00000.000000 1 00000000000000";
+      metadata.boletoDigitableLine = "23790.00000 00000.000000 00000.000000 1 00000000000000";
     }
     return Promise.resolve({
       externalIntentId,

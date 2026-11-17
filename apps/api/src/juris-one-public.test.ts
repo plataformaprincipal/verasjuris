@@ -14,6 +14,9 @@ class FakeOpenAI implements AIProvider {
   async generateText() {
     return { text: "Resposta real do modelo.", model: "gpt-4o-mini", usage: {} };
   }
+  async generateStructured() {
+    return { data: {}, model: "gpt-4o-mini", usage: {}, finishReason: "stop" as const };
+  }
   async healthCheck() {
     return {
       status: "ok" as const,

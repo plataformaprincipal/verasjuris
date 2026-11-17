@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Alert,
-  Breadcrumb,
-  Button,
-  ErrorState,
-  LoadingState,
-  PageHeader,
-} from "@verasjuris/ui";
+import { Alert, Breadcrumb, Button, ErrorState, LoadingState, PageHeader } from "@verasjuris/ui";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -54,16 +47,18 @@ export default function MarketplaceCheckoutPage() {
     };
   }, [org.ready, org.orgId, params.id]);
 
+  const orgId = org.orgId;
+  const checkoutStatus = checkout?.status;
   useEffect(() => {
-    if (!org.orgId || !checkout) return;
-    if (checkout.status === "completed" || checkout.status === "failed") return;
+    if (!orgId || !checkoutStatus) return;
+    if (checkoutStatus === "completed" || checkoutStatus === "failed") return;
     const timer = window.setInterval(() => {
-      void fetchMarketplaceCheckout(org.orgId!, params.id).then((data) => {
+      void fetchMarketplaceCheckout(orgId, params.id).then((data) => {
         if (!isApiFailure(data)) setCheckout(data);
       });
     }, 8000);
     return () => window.clearInterval(timer);
-  }, [org.orgId, checkout?.status, params.id]);
+  }, [orgId, checkoutStatus, params.id]);
 
   return (
     <div className="vj-stack">
@@ -105,9 +100,7 @@ export default function MarketplaceCheckoutPage() {
                     {" · "}
                     {formatMoneyCents(item.amountCents)}
                   </p>
-                  {item.errorMessage ? (
-                    <p className="vj-hint">{item.errorMessage}</p>
-                  ) : null}
+                  {item.errorMessage ? <p className="vj-hint">{item.errorMessage}</p> : null}
                   {pix.pixQrCodeBase64 ? (
                     <img
                       alt={t("inicio.pay.pixQr", "QR Code Pix")}
@@ -118,7 +111,9 @@ export default function MarketplaceCheckoutPage() {
                   ) : null}
                   {pix.pixCopyPaste ? (
                     <label className="vj-field">
-                      <span className="vj-label">{t("inicio.pay.pixCopy", "Pix copia e cola")}</span>
+                      <span className="vj-label">
+                        {t("inicio.pay.pixCopy", "Pix copia e cola")}
+                      </span>
                       <textarea className="vj-input" readOnly rows={3} value={pix.pixCopyPaste} />
                     </label>
                   ) : null}
@@ -158,7 +153,11 @@ export default function MarketplaceCheckoutPage() {
               );
             })}
           </ul>
-          <Button type="button" className="vj-button-secondary" onClick={() => window.location.reload()}>
+          <Button
+            type="button"
+            className="vj-button-secondary"
+            onClick={() => window.location.reload()}
+          >
             {t("inicio.pay.refresh", "Atualizar status")}
           </Button>
         </>

@@ -220,7 +220,9 @@ export default function MarketplaceEngagementPublicPage() {
                   ) : null}
                   {payment.paymentInstructions.pixCopyPaste ? (
                     <label className="vj-field">
-                      <span className="vj-label">{t("inicio.pay.pixCopy", "Pix copia e cola")}</span>
+                      <span className="vj-label">
+                        {t("inicio.pay.pixCopy", "Pix copia e cola")}
+                      </span>
                       <textarea
                         className="vj-input"
                         readOnly
@@ -256,7 +258,9 @@ export default function MarketplaceEngagementPublicPage() {
               ) : (
                 <>
                   <fieldset className="vj-stack">
-                    <legend className="vj-label">{t("inicio.cart.method", "Forma de pagamento")}</legend>
+                    <legend className="vj-label">
+                      {t("inicio.cart.method", "Forma de pagamento")}
+                    </legend>
                     {(
                       [
                         ["pix", t("inicio.pay.pix", "Pix")],
@@ -279,7 +283,11 @@ export default function MarketplaceEngagementPublicPage() {
                   {payError ? (
                     <ErrorState title={t("inicio.pay.title", "Pagamento")}>{payError}</ErrorState>
                   ) : null}
-                  <Button type="button" onClick={() => void startProviderPayment()} disabled={paying}>
+                  <Button
+                    type="button"
+                    onClick={() => void startProviderPayment()}
+                    disabled={paying}
+                  >
                     {paying
                       ? t("inicio.pay.running", "Gerando cobrança…")
                       : t("inicio.pay.cta", "Gerar cobrança (sandbox)")}

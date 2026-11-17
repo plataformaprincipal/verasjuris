@@ -201,7 +201,7 @@ export class AssistantService {
     }
     if (health.status === "unavailable") {
       throw new AppError(
-        "UNAVAILABLE",
+        "AI_PROVIDER_UNAVAILABLE",
         "O provedor de inteligência artificial está indisponível no momento.",
       );
     }

@@ -1191,14 +1191,11 @@ export async function getMarketplaceEngagement(
                   ? intentMeta.invoiceUrl
                   : null,
             invoiceUrl: typeof intentMeta.invoiceUrl === "string" ? intentMeta.invoiceUrl : null,
-            bankSlipUrl:
-              typeof intentMeta.bankSlipUrl === "string" ? intentMeta.bankSlipUrl : null,
+            bankSlipUrl: typeof intentMeta.bankSlipUrl === "string" ? intentMeta.bankSlipUrl : null,
             pixCopyPaste:
               typeof intentMeta.pixCopyPaste === "string" ? intentMeta.pixCopyPaste : null,
             pixQrCodeBase64:
-              typeof intentMeta.pixQrCodeBase64 === "string"
-                ? intentMeta.pixQrCodeBase64
-                : null,
+              typeof intentMeta.pixQrCodeBase64 === "string" ? intentMeta.pixQrCodeBase64 : null,
             pixExpiresAt:
               typeof intentMeta.pixExpiresAt === "string" ? intentMeta.pixExpiresAt : null,
             boletoDigitableLine:
@@ -1655,8 +1652,7 @@ export async function initiateMarketplaceProviderPayment(
     invoiceUrl: typeof metadata.invoiceUrl === "string" ? metadata.invoiceUrl : null,
     bankSlipUrl: typeof metadata.bankSlipUrl === "string" ? metadata.bankSlipUrl : null,
     pixCopyPaste: typeof metadata.pixCopyPaste === "string" ? metadata.pixCopyPaste : null,
-    pixQrCodeBase64:
-      typeof metadata.pixQrCodeBase64 === "string" ? metadata.pixQrCodeBase64 : null,
+    pixQrCodeBase64: typeof metadata.pixQrCodeBase64 === "string" ? metadata.pixQrCodeBase64 : null,
     pixExpiresAt: typeof metadata.pixExpiresAt === "string" ? metadata.pixExpiresAt : null,
     boletoDigitableLine:
       typeof metadata.boletoDigitableLine === "string" ? metadata.boletoDigitableLine : null,

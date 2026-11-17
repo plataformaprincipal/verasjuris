@@ -349,9 +349,7 @@ export async function buildApp(options: BuildAppOptions) {
         AI_REQUEST_TIMEOUT_MS: process.env.AI_REQUEST_TIMEOUT_MS
           ? Number(process.env.AI_REQUEST_TIMEOUT_MS)
           : undefined,
-        AI_MAX_RETRIES: process.env.AI_MAX_RETRIES
-          ? Number(process.env.AI_MAX_RETRIES)
-          : undefined,
+        AI_MAX_RETRIES: process.env.AI_MAX_RETRIES ? Number(process.env.AI_MAX_RETRIES) : undefined,
         AI_MAX_INPUT_TOKENS: process.env.AI_MAX_INPUT_TOKENS
           ? Number(process.env.AI_MAX_INPUT_TOKENS)
           : undefined,

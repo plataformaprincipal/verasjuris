@@ -8,7 +8,7 @@
 
 | Área | Arquivos |
 |------|----------|
-| Schema / migration | `packages/database/src/schema/marketplace.ts`, `packages/database/src/schema/index.ts`, `packages/database/drizzle/0027_marketplace_checkout_attempts.sql`, `packages/database/drizzle/meta/_journal.json` |
+| Schema / migration | `packages/database/src/schema/marketplace.ts`, `packages/database/src/schema/index.ts`, `packages/database/drizzle/0028_marketplace_checkout_attempts.sql`, `packages/database/drizzle/meta/_journal.json` |
 | Validação | `packages/validation/src/marketplace.ts` |
 | Checkout API | `apps/api/src/modules/marketplace/cart.ts`, `routes.ts`, `service.ts` |
 | Asaas | `packages/ai/src/asaas-client.ts`, `packages/ai/src/asaas-payment-provider.ts` |
@@ -31,7 +31,7 @@
 
 ## 3. Migrations
 
-- `0027_marketplace_checkout_attempts` — tabelas `marketplace_checkout_attempts` e `marketplace_checkout_attempt_items`
+- `0028_marketplace_checkout_attempts` — tabelas `marketplace_checkout_attempts` e `marketplace_checkout_attempt_items` (renumerada na consolidação; `0027` ficou com email tracking)
 - Não destrutiva
 
 ## 4. Fluxo completo de checkout
@@ -76,7 +76,7 @@ Webhook duplicado / Asaas sandbox já cobertos em `asaas-payments.integration.te
 - Homologação live Asaas + split de marketplace (não presumido habilitado)
 - Parcelamento de cartão (só se o provedor expor na fatura)
 - UI de estados vencido/cancelado com polling do provedor em tempo real além do status local
-- Aplicar migration `0027` nos ambientes antes do uso
+- Aplicar migrations `0027` (email) e `0028` (checkout attempts) nos ambientes antes do uso
 
 ## 9. Riscos financeiros remanescentes
 

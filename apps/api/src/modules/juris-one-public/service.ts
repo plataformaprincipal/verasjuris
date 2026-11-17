@@ -113,7 +113,7 @@ export async function publicJurisOneChat(
   }
   if (health.status === "unavailable") {
     throw new AppError(
-      "UNAVAILABLE",
+      "AI_PROVIDER_UNAVAILABLE",
       "O provedor de inteligência artificial está indisponível no momento. Tente novamente mais tarde.",
     );
   }
@@ -146,7 +146,7 @@ export async function publicJurisOneChat(
   } catch (error) {
     if (error instanceof AppError) throw error;
     throw new AppError(
-      "UNAVAILABLE",
+      "AI_PROVIDER_UNAVAILABLE",
       "Não foi possível obter resposta da inteligência artificial. Tente novamente mais tarde.",
     );
   } finally {

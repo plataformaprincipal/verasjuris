@@ -361,10 +361,7 @@ function paymentInstructionsFromMeta(
   };
 }
 
-async function loadCheckoutAttemptBundle(
-  db: AppDatabase,
-  attempt: CheckoutAttemptRow,
-) {
+async function loadCheckoutAttemptBundle(db: AppDatabase, attempt: CheckoutAttemptRow) {
   const items = await db.query.marketplaceCheckoutAttemptItems.findMany({
     where: eq(marketplaceCheckoutAttemptItems.attemptId, attempt.id),
     orderBy: asc(marketplaceCheckoutAttemptItems.sortOrder),
@@ -684,7 +681,8 @@ async function processCheckoutAttemptItems(
     .update(marketplaceCheckoutAttempts)
     .set({
       status: nextStatus,
-      completedAt: CHECKOUT_TERMINAL.has(nextStatus) || nextStatus === "partial_failed" ? new Date() : null,
+      completedAt:
+        CHECKOUT_TERMINAL.has(nextStatus) || nextStatus === "partial_failed" ? new Date() : null,
       updatedAt: new Date(),
     })
     .where(eq(marketplaceCheckoutAttempts.id, attempt.id));
@@ -777,10 +775,7 @@ export async function checkoutMarketplaceCart(
     }
 
     const lockedCart = await db.query.marketplaceCarts.findFirst({
-      where: and(
-        eq(marketplaceCarts.id, snapshot.cart.id),
-        eq(marketplaceCarts.status, "open"),
-      ),
+      where: and(eq(marketplaceCarts.id, snapshot.cart.id), eq(marketplaceCarts.status, "open")),
     });
     if (!lockedCart) {
       throw new AppError(
