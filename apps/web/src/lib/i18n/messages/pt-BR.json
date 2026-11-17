@@ -968,6 +968,7 @@
   "public.tab.marketplace": "Marketplace",
   "public.tab.tools": "Ferramentas",
   "jurisOne.openAuthenticated": "Abrir Juris One com sua conta",
+  "jurisOne.aiUnavailable": "A inteligência artificial está temporariamente indisponível. Tente novamente mais tarde.",
   "nav.backToPlatform": "Voltar à plataforma",
   "nav.backToOffice": "Voltar ao escritório",
   "nav.platformHome": "Início da plataforma",

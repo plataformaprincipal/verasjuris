@@ -317,6 +317,11 @@ export const DEFAULT_AI_FEATURES: Readonly<Record<string, AIFeatureDefinition>> 
     requires: [AICapability.TEXT],
     outputDisposition: "assistive",
   },
+  /** Juris One público (visitante) — limites rígidos no módulo da API. */
+  "juris_one.public_chat": {
+    requires: [AICapability.TEXT],
+    outputDisposition: "assistive",
+  },
   document_embedding: { requires: [AICapability.EMBEDDINGS], outputDisposition: "assistive" },
   document_vision: { requires: [AICapability.VISION], outputDisposition: "requires_review" },
 };

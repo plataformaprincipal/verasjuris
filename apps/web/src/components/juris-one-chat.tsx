@@ -20,11 +20,14 @@ import {
   JURIS_ONE_GUEST_LIMIT,
   JURIS_ONE_OBJECTIVES,
   JURIS_WORK_STATUS,
-  jurisOneReply,
-  modeForObjective,
   redirectsForObjective,
   type JurisOneObjectiveId,
 } from "../lib/juris-one";
+import {
+  fetchJurisOnePublicStatus,
+  getOrCreateJurisOneVisitorId,
+  sendJurisOnePublicChat,
+} from "../lib/juris-one-public-api";
 import { useLocale } from "./locale-provider";
 
 type ChatMessage = {
@@ -32,19 +35,6 @@ type ChatMessage = {
   role: "user" | "assistant" | "system";
   content: string;
 };
-
-const STORAGE_KEY = "vj.juris-one.guest-turns";
-
-function readGuestTurns(): number {
-  if (typeof window === "undefined") return 0;
-  const raw = window.sessionStorage.getItem(STORAGE_KEY);
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
-}
-
-function writeGuestTurns(value: number) {
-  window.sessionStorage.setItem(STORAGE_KEY, String(value));
-}
 
 export function JurisOneChat() {
   const { locale, t } = useLocale();
@@ -54,11 +44,13 @@ export function JurisOneChat() {
   const [objective, setObjective] = useState<JurisOneObjectiveId | null>(null);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
-  const [turns, setTurns] = useState(0);
+  const [remaining, setRemaining] = useState(JURIS_ONE_GUEST_LIMIT);
+  const [dailyLimit, setDailyLimit] = useState(JURIS_ONE_GUEST_LIMIT);
+  const [aiStatus, setAiStatus] = useState<string>("unknown");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setTurns(readGuestTurns());
     setMessages([
       {
         id: "welcome",
@@ -71,17 +63,26 @@ export function JurisOneChat() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const account = await fetchSessionAccount();
-      if (!cancelled) setSignedIn(Boolean(account));
+      const [account, status] = await Promise.all([
+        fetchSessionAccount(),
+        fetchJurisOnePublicStatus(),
+      ]);
+      if (cancelled) return;
+      setSignedIn(Boolean(account));
+      if (status) {
+        setAiStatus(status.status);
+        setDailyLimit(status.publicChat.dailyLimit);
+        setRemaining(status.publicChat.dailyLimit);
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const remaining = Math.max(0, JURIS_ONE_GUEST_LIMIT - turns);
   const limitReached = remaining <= 0;
   const redirects = redirectsForObjective(objective);
+  const aiUnavailable = aiStatus === "not_configured";
 
   function startNewConversation() {
     setMessages([
@@ -92,26 +93,52 @@ export function JurisOneChat() {
       },
     ]);
     setInput("");
+    setError(null);
   }
 
   async function send(textOverride?: string) {
     const text = (textOverride ?? input).trim();
     if (!text || pending) return;
-    if (limitReached) return;
+    if (limitReached || aiUnavailable) return;
 
     setPending(true);
+    setError(null);
     setInput("");
+    const history = messages
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
     setMessages((prev) => [...prev, { id: `u-${Date.now()}`, role: "user", content: text }]);
 
-    await new Promise((resolve) => setTimeout(resolve, 220));
+    const result = await sendJurisOnePublicChat({
+      message: text,
+      locale,
+      visitorId: getOrCreateJurisOneVisitorId(),
+      history,
+    });
 
-    const nextTurns = turns + 1;
-    writeGuestTurns(nextTurns);
-    setTurns(nextTurns);
+    if ("error" in result) {
+      setError(result.error.message);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `e-${Date.now()}`,
+          role: "system",
+          content: result.error.message,
+        },
+      ]);
+      if (result.error.code === "RATE_LIMIT") {
+        setRemaining(0);
+      }
+      setPending(false);
+      return;
+    }
 
-    const mode = modeForObjective(objective);
-    const { reply } = jurisOneReply(locale, mode, text, JURIS_ONE_GUEST_LIMIT - nextTurns + 1);
-    setMessages((prev) => [...prev, { id: `a-${Date.now()}`, role: "assistant", content: reply }]);
+    setRemaining(result.remainingToday);
+    setDailyLimit(result.dailyLimit);
+    setMessages((prev) => [
+      ...prev,
+      { id: `a-${Date.now()}`, role: "assistant", content: result.reply },
+    ]);
     setPending(false);
   }
 
@@ -149,9 +176,17 @@ export function JurisOneChat() {
             <p className="vj-meta">
               {t("jurisOne.freeQuota", undefined, {
                 remaining,
-                limit: JURIS_ONE_GUEST_LIMIT,
+                limit: dailyLimit,
               })}
             </p>
+            {aiUnavailable ? (
+              <p className="vj-hint" role="status">
+                {t(
+                  "jurisOne.aiUnavailable",
+                  "A inteligência artificial está temporariamente indisponível.",
+                )}
+              </p>
+            ) : null}
           </div>
           <div className="vj-stack">
             <p className="vj-meta">{t("jurisOne.modes")}</p>
@@ -257,9 +292,14 @@ export function JurisOneChat() {
               {t("jurisOne.processing")}
             </p>
           ) : null}
+          {error ? (
+            <p className="vj-hint" role="alert">
+              {error}
+            </p>
+          ) : null}
         </div>
 
-        {!limitReached ? (
+        {!limitReached && !aiUnavailable ? (
           <div className="vj-juris-suggestions">
             {suggestions.map((item) => (
               <button
@@ -311,12 +351,15 @@ export function JurisOneChat() {
               className="vj-input"
               rows={2}
               value={input}
-              disabled={pending || limitReached}
+              disabled={pending || limitReached || aiUnavailable}
               onChange={(event) => setInput(event.target.value)}
               placeholder={t("jurisOne.placeholder")}
             />
           </div>
-          <Button type="submit" disabled={pending || limitReached || !input.trim()}>
+          <Button
+            type="submit"
+            disabled={pending || limitReached || aiUnavailable || !input.trim()}
+          >
             <Send size={16} aria-hidden="true" /> {t("jurisOne.send")}
           </Button>
         </form>
