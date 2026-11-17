@@ -77,7 +77,13 @@ export default async function DashboardPage() {
   const modules = modulesForPersona(persona, permissions);
 
   return (
-    <Suspense fallback={<div className="vj-stack"><p>…</p></div>}>
+    <Suspense
+      fallback={
+        <div className="vj-stack">
+          <p>…</p>
+        </div>
+      }
+    >
       <MarketplaceInicioHub
         organizationName={organization?.organizationName ?? null}
         organizationSlug={organization?.organizationSlug ?? null}

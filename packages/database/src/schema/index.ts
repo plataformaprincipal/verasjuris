@@ -38,6 +38,7 @@ export * from "./professional-verification.js";
 export * from "./diligence.js";
 export * from "./extrajudicial.js";
 export * from "./education.js";
+export * from "./email.js";
 export * from "./finance.js";
 export * from "./monetization.js";
 export * from "./control.js";
@@ -715,6 +716,8 @@ import {
   serviceReviews,
   marketplaceCarts,
   marketplaceCartItems,
+  marketplaceCheckoutAttempts,
+  marketplaceCheckoutAttemptItems,
   marketplaceServiceCategoriesRelations,
   professionalServicesRelations,
   marketplaceRequestsRelations,
@@ -727,6 +730,8 @@ import {
   serviceReviewsRelations,
   marketplaceCartsRelations,
   marketplaceCartItemsRelations,
+  marketplaceCheckoutAttemptsRelations,
+  marketplaceCheckoutAttemptItemsRelations,
 } from "./marketplace.js";
 import {
   socialProfiles,
@@ -1138,6 +1143,12 @@ import {
   institutionalPoliciesRelations,
   institutionalPolicyVersionsRelations,
 } from "./institutional.js";
+import {
+  emailDispatches,
+  emailProviderEvents,
+  emailDispatchesRelations,
+  emailProviderEventsRelations,
+} from "./email.js";
 
 export const schema = {
   users,
@@ -1738,6 +1749,8 @@ export const schema = {
   serviceReviews,
   marketplaceCarts,
   marketplaceCartItems,
+  marketplaceCheckoutAttempts,
+  marketplaceCheckoutAttemptItems,
   marketplaceServiceCategoriesRelations,
   professionalServicesRelations,
   marketplaceRequestsRelations,
@@ -1750,6 +1763,8 @@ export const schema = {
   serviceReviewsRelations,
   marketplaceCartsRelations,
   marketplaceCartItemsRelations,
+  marketplaceCheckoutAttemptsRelations,
+  marketplaceCheckoutAttemptItemsRelations,
   socialProfiles,
   socialPosts,
   socialPostLikes,
@@ -2121,4 +2136,8 @@ export const schema = {
   institutionalPolicyVersions,
   institutionalPoliciesRelations,
   institutionalPolicyVersionsRelations,
+  emailDispatches,
+  emailProviderEvents,
+  emailDispatchesRelations,
+  emailProviderEventsRelations,
 };

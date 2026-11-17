@@ -29,6 +29,8 @@ describe("ResendEmailProvider", () => {
     });
 
     expect(result.status).toBe("sent");
+    expect(result.providerAcceptance).toBe("sent_to_provider");
+    expect(result.providerMessageId).toBe("msg_1");
     expect(provider.status).toBe("configured");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const call = fetchMock.mock.calls[0] as unknown as [string, RequestInit] | undefined;

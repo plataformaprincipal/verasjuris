@@ -58,10 +58,7 @@ export default function JurisOneWorkPage() {
   const [createNote, setCreateNote] = useState<string | null>(null);
 
   async function refresh(orgId: string) {
-    const [tasksRes, creditsRes] = await Promise.all([
-      listWorkTasks(orgId),
-      getWorkCredits(orgId),
-    ]);
+    const [tasksRes, creditsRes] = await Promise.all([listWorkTasks(orgId), getWorkCredits(orgId)]);
     if (isApiFailure(tasksRes)) {
       setError(jurisOneApiErrorMessage(tasksRes, "Não foi possível carregar tarefas Work."));
       setTasks([]);
@@ -75,13 +72,28 @@ export default function JurisOneWorkPage() {
   }
 
   useEffect(() => {
-    if (!org.ready || !org.orgId) return;
+    const orgId = org.orgId;
+    if (!org.ready || !orgId) return;
     let cancelled = false;
     void (async () => {
-      const ensured = await ensureInitialWorkCredits(org.orgId!);
+      const ensured = await ensureInitialWorkCredits(orgId);
       if (cancelled) return;
       if (!isApiFailure(ensured)) setCredits(ensured.credits);
-      await refresh(org.orgId!);
+      const [tasksRes, creditsRes] = await Promise.all([
+        listWorkTasks(orgId),
+        getWorkCredits(orgId),
+      ]);
+      if (cancelled) return;
+      if (isApiFailure(tasksRes)) {
+        setError(jurisOneApiErrorMessage(tasksRes, "Não foi possível carregar tarefas Work."));
+        setTasks([]);
+      } else {
+        setError(null);
+        setTasks(tasksRes.items);
+        if (tasksRes.credits) setCredits(tasksRes.credits);
+      }
+      if (!isApiFailure(creditsRes)) setCredits(creditsRes.credits);
+      setLoading(false);
     })();
     return () => {
       cancelled = true;
@@ -117,21 +129,14 @@ export default function JurisOneWorkPage() {
 
   return (
     <div className="vj-stack">
-      <Breadcrumb
-        items={[
-          { label: "Juris One", href: "/app/juris-one" },
-          { label: "Work" },
-        ]}
-      />
+      <Breadcrumb items={[{ label: "Juris One", href: "/app/juris-one" }, { label: "Work" }]} />
       <PageHeader title="Juris One Work" description={JURIS_WORK_STATUS.detail} />
       <p className="vj-hint">
         Scaffold autenticado com créditos: planejamento, aprovação humana, passos internos e
         bloqueio de ações externas. Não homologado para produção comercial.
       </p>
       <div className="vj-inline-actions">
-        <Badge tone="neutral">
-          Créditos: {credits?.balance != null ? credits.balance : "—"}
-        </Badge>
+        <Badge tone="neutral">Créditos: {credits?.balance != null ? credits.balance : "—"}</Badge>
         <Badge tone={JURIS_WORK_STATUS.authenticatedAvailable ? "success" : "warning"}>
           {JURIS_WORK_STATUS.authenticatedAvailable
             ? "Scaffold com créditos disponível"

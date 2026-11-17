@@ -6,7 +6,10 @@ import {
 } from "@verasjuris/types";
 import { AppError } from "@verasjuris/types";
 import type { SessionAccount } from "@verasjuris/auth";
-import { requirePlatformPermission, requirePlatformStaff } from "./modules/platform-admin/authorize.js";
+import {
+  requirePlatformPermission,
+  requirePlatformStaff,
+} from "./modules/platform-admin/authorize.js";
 
 function account(partial?: Partial<SessionAccount["platform"]>): SessionAccount {
   return {

@@ -39,8 +39,8 @@ export function DemoPrevidenciario() {
       canUndo={demo.canUndo}
     >
       <Alert tone="warning" title="Prévia ilustrativa">
-        Premissa demonstrativa: (meses × base × fator) / 120. Não substitui cálculo oficial do
-        INSS nem análise de tempo de contribuição.
+        Premissa demonstrativa: (meses × base × fator) / 120. Não substitui cálculo oficial do INSS
+        nem análise de tempo de contribuição.
       </Alert>
       <div className="vj-inicio-filters">
         <label className="vj-field">
@@ -50,9 +50,7 @@ export function DemoPrevidenciario() {
             type="number"
             min={1}
             value={demo.state.months}
-            onChange={(e) =>
-              demo.setState((s) => ({ ...s, months: Number(e.target.value) || 0 }))
-            }
+            onChange={(e) => demo.setState((s) => ({ ...s, months: Number(e.target.value) || 0 }))}
           />
         </label>
         <label className="vj-field">
@@ -76,16 +74,16 @@ export function DemoPrevidenciario() {
             max={1}
             step={0.01}
             value={demo.state.factor}
-            onChange={(e) =>
-              demo.setState((s) => ({ ...s, factor: Number(e.target.value) || 0 }))
-            }
+            onChange={(e) => demo.setState((s) => ({ ...s, factor: Number(e.target.value) || 0 }))}
           />
         </label>
       </div>
       <p>
         <strong>Estimativa ilustrativa: R$ {estimate.toFixed(2)}</strong>
       </p>
-      <p className="vj-hint">Competência normativa e regras reais não estão aplicadas nesta demo.</p>
+      <p className="vj-hint">
+        Competência normativa e regras reais não estão aplicadas nesta demo.
+      </p>
     </DemoShell>
   );
 }
@@ -136,10 +134,7 @@ export function DemoMarketplace() {
                 if (!demo.assertLimit(demo.state.cart.length)) return;
                 demo.setState((st) => ({
                   ...st,
-                  cart: [
-                    ...st.cart,
-                    { id: s.id, title: s.title, priceNote: s.priceNote },
-                  ],
+                  cart: [...st.cart, { id: s.id, title: s.title, priceNote: s.priceNote }],
                 }));
                 demo.setStatus("Item fictício no carrinho.");
               }}
@@ -228,8 +223,7 @@ const IA_SCENARIOS = [
     id: "s3",
     label: "Lista de documentos faltantes (exemplo)",
     input: "Pasta do caso previdenciário incompleta…",
-    output:
-      "Sugestão preparada de documentos a conferir. (Não constitui análise oficial.)",
+    output: "Sugestão preparada de documentos a conferir. (Não constitui análise oficial.)",
   },
 ];
 
@@ -238,12 +232,7 @@ export function DemoIa() {
   const scenario = IA_SCENARIOS.find((s) => s.id === demo.state.scenarioId) ?? IA_SCENARIOS[0]!;
 
   return (
-    <DemoShell
-      config={IA_CFG}
-      status={demo.status}
-      error={demo.error}
-      onReset={demo.reset}
-    >
+    <DemoShell config={IA_CFG} status={demo.status} error={demo.error} onReset={demo.reset}>
       <Alert tone="info" title="Resposta preparada">
         Esta demonstração exibe entradas e saídas previamente definidas. Não afirma análise por IA
         em tempo real.
@@ -324,7 +313,11 @@ export function DemoIntegracoes() {
           <li
             key={s.id}
             className={
-              i === step ? "vj-demo-card is-active" : i < step ? "vj-demo-card is-done" : "vj-demo-card"
+              i === step
+                ? "vj-demo-card is-active"
+                : i < step
+                  ? "vj-demo-card is-done"
+                  : "vj-demo-card"
             }
           >
             <strong>

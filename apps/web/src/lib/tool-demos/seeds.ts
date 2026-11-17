@@ -304,10 +304,7 @@ export const CONTRACT_TEMPLATES: ContractTemplate[] = [
   },
 ];
 
-export function renderContract(
-  template: ContractTemplate,
-  values: Record<string, string>,
-): string {
+export function renderContract(template: ContractTemplate, values: Record<string, string>): string {
   return template.body.replace(/\{\{(\w+)\}\}/g, (_m, key: string) => {
     const v = values[key]?.trim();
     return v ? v : `[${key}]`;
@@ -391,8 +388,16 @@ function countBy<T>(items: readonly T[], key: (item: T) => string): BarDatum[] {
 export function seedRelatorios(): RelatoriosState {
   return {
     groups: [
-      { id: "processos-area", title: "Processos por área", bars: countBy(DEMO_MATTERS, (m) => m.area) },
-      { id: "tarefas-situacao", title: "Tarefas por situação", bars: countBy(DEMO_TASKS, (t) => t.status) },
+      {
+        id: "processos-area",
+        title: "Processos por área",
+        bars: countBy(DEMO_MATTERS, (m) => m.area),
+      },
+      {
+        id: "tarefas-situacao",
+        title: "Tarefas por situação",
+        bars: countBy(DEMO_TASKS, (t) => t.status),
+      },
       {
         id: "atendimentos-mes",
         title: "Atendimentos por mês (fictício)",
@@ -491,10 +496,12 @@ export const IA_SCENARIOS: IaScenario[] = [
   {
     id: "analise",
     label: "Resumo de documento fictício",
-    input: "Documento de exemplo: contrato fictício de 3 páginas entre Empresa Exemplo 003 e Profissional Exemplo C.",
+    input:
+      "Documento de exemplo: contrato fictício de 3 páginas entre Empresa Exemplo 003 e Profissional Exemplo C.",
     output:
       "Resumo preparado: o texto fictício descreve objeto, prazo e obrigações gerais. Pontos de atenção de exemplo: cláusula de vigência sem prazo definido; ausência de foro. Conferir tudo no documento original.",
-    caution: "A análise real de documentos está em desenvolvimento e exigirá revisão do profissional.",
+    caution:
+      "A análise real de documentos está em desenvolvimento e exigirá revisão do profissional.",
   },
   {
     id: "peticao",
@@ -502,7 +509,8 @@ export const IA_SCENARIOS: IaScenario[] = [
     input: "Preciso de uma estrutura para petição inicial em caso cível fictício.",
     output:
       "Sugestão preparada de estrutura: 1) Endereçamento; 2) Qualificação das partes; 3) Fatos; 4) Fundamentos; 5) Pedidos; 6) Valor da causa e provas. Fatos, fundamentos e citações devem ser conferidos pelo advogado.",
-    caution: "O apoio real à elaboração de peças está em desenvolvimento; não protocola nada em tribunais.",
+    caution:
+      "O apoio real à elaboração de peças está em desenvolvimento; não protocola nada em tribunais.",
   },
 ];
 
@@ -526,9 +534,15 @@ export const INTEGRATION_SCENARIOS: IntegrationScenario[] = [
     availability: "Planejado — não está disponível e não há prazo definido.",
     steps: [
       { label: "Escolher tribunal", detail: "Lista ilustrativa; nenhuma consulta é feita." },
-      { label: "Autorizar acesso", detail: "Etapa prevista; nenhuma credencial é solicitada aqui." },
+      {
+        label: "Autorizar acesso",
+        detail: "Etapa prevista; nenhuma credencial é solicitada aqui.",
+      },
       { label: "Vincular processo", detail: "Mostraria o vínculo com o processo cadastrado." },
-      { label: "Receber andamentos", detail: "Prévia: hoje os andamentos são digitados manualmente." },
+      {
+        label: "Receber andamentos",
+        detail: "Prévia: hoje os andamentos são digitados manualmente.",
+      },
     ],
     errors: [
       {
@@ -551,9 +565,15 @@ export const INTEGRATION_SCENARIOS: IntegrationScenario[] = [
     availability: "Em testes controlados — não está aberto para pagamentos reais.",
     steps: [
       { label: "Escolher provedor", detail: "Provedor de pagamentos Asaas, em testes." },
-      { label: "Informar chave de acesso", detail: "Prévia: nenhuma chave é pedida ou guardada aqui." },
+      {
+        label: "Informar chave de acesso",
+        detail: "Prévia: nenhuma chave é pedida ou guardada aqui.",
+      },
       { label: "Criar cobrança de teste", detail: "Mostra o fluxo; nenhuma cobrança é emitida." },
-      { label: "Receber situação do pagamento", detail: "Ilustra o retorno da situação na plataforma." },
+      {
+        label: "Receber situação do pagamento",
+        detail: "Ilustra o retorno da situação na plataforma.",
+      },
     ],
     errors: [
       {
@@ -613,13 +633,17 @@ export const INTEGRATION_SCENARIOS: IntegrationScenario[] = [
     steps: [
       { label: "Escolher provedor", detail: "Lista ilustrativa." },
       { label: "Configurar acesso", detail: "Prévia; nenhuma chave é pedida aqui." },
-      { label: "Habilitar recursos assistidos", detail: "Depende de provedor configurado e contratado." },
+      {
+        label: "Habilitar recursos assistidos",
+        detail: "Depende de provedor configurado e contratado.",
+      },
     ],
     errors: [
       {
         id: "sem-provedor",
         label: "Provedor não configurado",
-        message: "Nenhum provedor de IA está configurado; os recursos assistidos ficam indisponíveis.",
+        message:
+          "Nenhum provedor de IA está configurado; os recursos assistidos ficam indisponíveis.",
         action: "Configurar um provedor quando houver disponibilidade.",
       },
     ],

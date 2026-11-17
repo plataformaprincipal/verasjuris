@@ -70,7 +70,9 @@ export function FeatureCatalogBrowser({
         <aside className="vj-showroom-nav" aria-label={t("showroom.nav", "Categorias")}>
           <button
             type="button"
-            className={category === "all" ? "vj-showroom-nav-item is-active" : "vj-showroom-nav-item"}
+            className={
+              category === "all" ? "vj-showroom-nav-item is-active" : "vj-showroom-nav-item"
+            }
             onClick={() => setCategory("all")}
           >
             {t("catalog.all")}
@@ -91,10 +93,7 @@ export function FeatureCatalogBrowser({
 
         <div className="vj-stack">
           <search className="vj-showroom-filters" aria-label={t("catalog.searchAria")}>
-            <form
-              className="vj-inicio-filters"
-              onSubmit={(event) => event.preventDefault()}
-            >
+            <form className="vj-inicio-filters" onSubmit={(event) => event.preventDefault()}>
               <label className="vj-field" style={{ gridColumn: "1 / -1" }}>
                 <span className="vj-label">{t("catalog.search")}</span>
                 <input
@@ -110,9 +109,7 @@ export function FeatureCatalogBrowser({
                 <select
                   className="vj-select"
                   value={availability}
-                  onChange={(event) =>
-                    setAvailability(event.target.value as Availability | "all")
-                  }
+                  onChange={(event) => setAvailability(event.target.value as Availability | "all")}
                 >
                   <option value="all">{t("catalog.all")}</option>
                   {(Object.keys(AVAILABILITY_META) as Availability[]).map((item) => (
@@ -159,7 +156,12 @@ export function FeatureCatalogBrowser({
 
           <div className={layout === "grid" ? "vj-showroom-grid" : "vj-showroom-list"}>
             {results.map((feature, index) => (
-              <FeatureCard key={feature.slug} feature={feature} index={index} compact={layout === "compact"} />
+              <FeatureCard
+                key={feature.slug}
+                feature={feature}
+                index={index}
+                compact={layout === "compact"}
+              />
             ))}
           </div>
         </div>

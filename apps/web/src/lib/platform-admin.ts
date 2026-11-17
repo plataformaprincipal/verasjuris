@@ -93,11 +93,7 @@ export async function fetchPlatformIntegrations() {
   );
 }
 
-export async function fetchPlatformUsers(params?: {
-  q?: string;
-  status?: string;
-  limit?: number;
-}) {
+export async function fetchPlatformUsers(params?: { q?: string; status?: string; limit?: number }) {
   const qs = new URLSearchParams();
   if (params?.q) qs.set("q", params.q);
   if (params?.status) qs.set("status", params.status);

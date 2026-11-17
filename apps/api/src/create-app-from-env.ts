@@ -9,7 +9,7 @@ import {
 } from "@verasjuris/ai";
 import { loadDotEnv, parseApiEnv, createLogger, type ApiEnv } from "@verasjuris/config";
 import { assertReferenceData, createDatabase } from "@verasjuris/database";
-import { createEmailProvider } from "@verasjuris/email";
+import { createEmailProviderFromEnv } from "@verasjuris/email";
 import { createMalwareScanner, createStorageProvider } from "@verasjuris/storage";
 import type { FastifyInstance } from "fastify";
 import { buildApp } from "./app.js";
@@ -55,10 +55,12 @@ export async function createAppFromEnv(
     logger,
     webOrigin: env.WEB_ORIGIN,
     isProduction: env.NODE_ENV === "production",
-    email: createEmailProvider(env.EMAIL_PROVIDER, {
+    email: createEmailProviderFromEnv({
+      EMAIL_PROVIDER: env.EMAIL_PROVIDER,
       RESEND_API_KEY: env.RESEND_API_KEY,
       RESEND_FROM_EMAIL: env.RESEND_FROM_EMAIL,
     }),
+    resendWebhookSecret: env.RESEND_WEBHOOK_SECRET,
     storage: createStorageProvider(env),
     malwareScanner: createMalwareScanner(env),
     documentMaxUploadBytes: env.DOCUMENT_MAX_UPLOAD_MB * 1024 * 1024,

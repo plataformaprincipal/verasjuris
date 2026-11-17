@@ -15,11 +15,7 @@ import {
   users,
 } from "@verasjuris/database";
 import { generateOpaqueToken, hashOpaqueToken, hashPassword } from "@verasjuris/security";
-import {
-  AppError,
-  PLATFORM_ROLE_KEYS,
-  type PlatformRoleKey,
-} from "@verasjuris/types";
+import { AppError, PLATFORM_ROLE_KEYS, type PlatformRoleKey } from "@verasjuris/types";
 import { and, count, desc, eq, gte, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import type { RequestMeta } from "../auth/service.js";
 import { requirePlatformPermission, requirePlatformStaffBootstrap } from "./authorize.js";
@@ -60,8 +56,7 @@ export async function getPlatformMe(account: SessionAccount) {
       mfaRequired: platform.mfaRequired,
       forcePasswordChange: platform.forcePasswordChange,
       mfaEnabled: platform.mfaEnabled,
-      adminReady:
-        !platform.forcePasswordChange && (!platform.mfaRequired || platform.mfaEnabled),
+      adminReady: !platform.forcePasswordChange && (!platform.mfaRequired || platform.mfaEnabled),
     },
   };
 }
@@ -87,12 +82,7 @@ export async function createPlatformInvite(
   await deps.db
     .update(platformAdminInvites)
     .set({ status: "revoked", updatedAt: new Date() })
-    .where(
-      and(
-        eq(platformAdminInvites.email, email),
-        eq(platformAdminInvites.status, "pending"),
-      ),
-    );
+    .where(and(eq(platformAdminInvites.email, email), eq(platformAdminInvites.status, "pending")));
 
   const [invite] = await deps.db
     .insert(platformAdminInvites)
@@ -334,10 +324,7 @@ export async function activatePlatformInvite(
   };
 }
 
-export async function getPlatformDashboard(
-  deps: PlatformAdminDeps,
-  account: SessionAccount,
-) {
+export async function getPlatformDashboard(deps: PlatformAdminDeps, account: SessionAccount) {
   requirePlatformPermission(account, "platform.dashboard.read");
   const now = new Date();
   const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
@@ -480,7 +467,10 @@ export async function updatePlatformUserStatus(
 ) {
   requirePlatformPermission(account, "platform.users.suspend");
   if (userId === account.user.id) {
-    throw new AppError("VALIDATION_ERROR", "Não é permitido alterar o próprio status por esta via.");
+    throw new AppError(
+      "VALIDATION_ERROR",
+      "Não é permitido alterar o próprio status por esta via.",
+    );
   }
 
   const target = await deps.db.query.users.findFirst({ where: eq(users.id, userId) });
@@ -677,7 +667,10 @@ export async function getPlatformIntegrationsHealth(
         lastCheckedAt: emailHealth.checkedAt ?? checkedAt,
         ...emailClass,
         pendencies: emailConfigured
-          ? ["Homologar domínio remetente e fluxos de cadastro/recuperação."]
+          ? [
+              "Homologar domínio remetente e fluxos de cadastro/recuperação.",
+              "Configurar RESEND_WEBHOOK_SECRET e endpoint /v1/webhooks/email/resend.",
+            ]
           : ["Definir EMAIL_PROVIDER=resend e credenciais no servidor."],
       },
       {
@@ -716,10 +709,7 @@ export async function getPlatformIntegrationsHealth(
   };
 }
 
-export async function listPlatformStaff(
-  deps: PlatformAdminDeps,
-  account: SessionAccount,
-) {
+export async function listPlatformStaff(deps: PlatformAdminDeps, account: SessionAccount) {
   requirePlatformPermission(account, "platform.staff.manage");
   const rows = await deps.db.query.platformStaff.findMany({
     orderBy: [desc(platformStaff.createdAt)],

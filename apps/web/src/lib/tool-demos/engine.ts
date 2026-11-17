@@ -12,7 +12,7 @@ export function useToolDemoState<T>(config: ToolDemoConfig, createInitial: () =>
   function setState(next: T | ((prev: T) => T)) {
     setStateInternal((prev) => {
       const value = typeof next === "function" ? (next as (p: T) => T)(prev) : next;
-      setHistory((h) => [...h.slice(-(19)), prev]);
+      setHistory((h) => [...h.slice(-19), prev]);
       return value;
     });
     setError(null);

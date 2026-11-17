@@ -41,7 +41,23 @@ export default function AdminUsersPage() {
   }
 
   useEffect(() => {
-    void refresh();
+    let cancelled = false;
+    void (async () => {
+      setLoading(true);
+      const res = await fetchPlatformUsers({ limit: 50 });
+      if (cancelled) return;
+      if (isApiFailure(res)) {
+        setError(platformAdminErrorMessage(res));
+        setItems([]);
+      } else {
+        setError(null);
+        setItems(res.items);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function setStatus(userId: string, status: "active" | "suspended" | "disabled") {

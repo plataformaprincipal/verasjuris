@@ -179,7 +179,9 @@ export function getCommercialSheet(slug: string): CommercialSheet | null {
     compliance: [
       "LGPD — demonstração pública não usa dados reais",
       "Operações reais exigem conta e permissões",
-      ...(feature.category === "marketplace" ? ["Validação ética/OAB antes de ativação comercial"] : []),
+      ...(feature.category === "marketplace"
+        ? ["Validação ética/OAB antes de ativação comercial"]
+        : []),
     ],
     suggestedModality:
       band === "transacional"
@@ -194,12 +196,7 @@ export function getCommercialSheet(slug: string): CommercialSheet | null {
         ? `/entrar?next=${encodeURIComponent(meta.authenticatedHref)}`
         : "/cadastro",
     },
-    conversionSignals: [
-      "abertura_demo",
-      "interacao_demo",
-      "cta_cadastro",
-      "cta_acesso_modulo",
-    ],
+    conversionSignals: ["abertura_demo", "interacao_demo", "cta_cadastro", "cta_acesso_modulo"],
   };
 }
 

@@ -1,10 +1,6 @@
 import { recordAudit } from "@verasjuris/audit";
 import { policyAi, type SessionAccount } from "@verasjuris/auth";
-import {
-  jurisWorkSteps,
-  jurisWorkTasks,
-  type AppDatabase,
-} from "@verasjuris/database";
+import { jurisWorkSteps, jurisWorkTasks, type AppDatabase } from "@verasjuris/database";
 import { AppError } from "@verasjuris/types";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { authorize, iso } from "../ai/shared.js";

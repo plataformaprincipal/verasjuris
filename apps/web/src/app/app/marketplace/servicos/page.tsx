@@ -75,14 +75,34 @@ function ServicesInner() {
   }
 
   useEffect(() => {
-    if (!org.ready || !org.orgId || !can) {
+    const orgId = org.orgId;
+    if (!org.ready || !orgId || !can) {
       setLoading(false);
       return;
     }
     let cancelled = false;
-    void reload(org.orgId).finally(() => {
-      if (!cancelled) setLoading(false);
-    });
+    void (async () => {
+      const [mine, cats] = await Promise.all([
+        fetchMyMarketplaceServices(orgId),
+        fetchMarketplaceCategories(orgId),
+      ]);
+      if (cancelled) return;
+      if (isApiFailure(mine)) {
+        setError(marketplaceErrorMessage(mine));
+        setLoading(false);
+        return;
+      }
+      if (!isApiFailure(cats)) {
+        setCategories(cats.items);
+        const firstCategory = cats.items[0];
+        if (firstCategory) {
+          setForm((f) => (f.categoryId ? f : { ...f, categoryId: firstCategory.id }));
+        }
+      }
+      setItems(mine.items);
+      setError(null);
+      setLoading(false);
+    })();
     return () => {
       cancelled = true;
     };
@@ -170,7 +190,9 @@ function ServicesInner() {
       {formOpen ? (
         <form className="vj-card vj-stack" onSubmit={(e) => void onSubmit(e)}>
           <h2 className="vj-subtitle">{t("inicio.listings.formTitle", "Novo anúncio")}</h2>
-          {formError ? <ErrorState title={t("common.error", "Erro")}>{formError}</ErrorState> : null}
+          {formError ? (
+            <ErrorState title={t("common.error", "Erro")}>{formError}</ErrorState>
+          ) : null}
           <label className="vj-field">
             <span className="vj-label">{t("inicio.filter.category", "Categoria")}</span>
             <select
@@ -285,7 +307,11 @@ function ServicesInner() {
                 {s.pricingModel}
                 {s.basePriceCents != null ? ` · R$ ${(s.basePriceCents / 100).toFixed(2)}` : null}
               </p>
-              <Button type="button" className="vj-button-secondary" onClick={() => void toggleActive(s)}>
+              <Button
+                type="button"
+                className="vj-button-secondary"
+                onClick={() => void toggleActive(s)}
+              >
                 {s.active
                   ? t("inicio.listings.pause", "Pausar")
                   : t("inicio.listings.activate", "Reativar")}

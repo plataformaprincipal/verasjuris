@@ -40,7 +40,9 @@ export default function AdminIntegrationsPage() {
         description="Classificação honesta: presença de variável de ambiente não implica homologação."
       />
       {generatedAt ? (
-        <p className="vj-meta">Última verificação: {new Date(generatedAt).toLocaleString("pt-BR")}</p>
+        <p className="vj-meta">
+          Última verificação: {new Date(generatedAt).toLocaleString("pt-BR")}
+        </p>
       ) : null}
       {loading ? <LoadingState label="Verificando integrações…" /> : null}
       {error ? <ErrorState title="Erro">{error}</ErrorState> : null}

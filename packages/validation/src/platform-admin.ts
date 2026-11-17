@@ -12,7 +12,12 @@ export const platformRoleKeySchema = z.enum([
 ]);
 
 export const createPlatformInviteSchema = z.object({
-  email: z.string().trim().email().max(320).transform((v) => v.toLowerCase()),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .max(320)
+    .transform((v) => v.toLowerCase()),
   roleKey: platformRoleKeySchema,
   note: z.string().trim().max(500).optional(),
   /** Dias até expirar; padrão 7. */

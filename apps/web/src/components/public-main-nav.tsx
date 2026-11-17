@@ -2,11 +2,7 @@
 
 import { BrainCircuit, Compass, House, Store, Wrench } from "lucide-react";
 import { usePathname } from "next/navigation";
-import {
-  isPlatformTabActive,
-  PLATFORM_MAIN_TABS,
-  platformTabHref,
-} from "../lib/platform-nav";
+import { isPlatformTabActive, PLATFORM_MAIN_TABS, platformTabHref } from "../lib/platform-nav";
 import { useLocale } from "./locale-provider";
 
 const ICONS = {
@@ -39,10 +35,7 @@ export function PublicMainNav({
           : "vj-main-tabs vj-main-tabs-drawer";
 
   return (
-    <nav
-      className={className}
-      aria-label={t("public.nav.aria", "Principal")}
-    >
+    <nav className={className} aria-label={t("public.nav.aria", "Principal")}>
       {PLATFORM_MAIN_TABS.map((tab) => {
         const Icon = ICONS[tab.icon];
         const href = platformTabHref(tab, authenticated);

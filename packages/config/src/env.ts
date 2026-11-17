@@ -36,6 +36,8 @@ export const apiEnvSchema = z.object({
   EMAIL_PROVIDER: z.enum(["not_configured", "memory", "resend"]).default("not_configured"),
   RESEND_API_KEY: optionalSecret,
   RESEND_FROM_EMAIL: optionalString,
+  /** Segredo Svix do webhook Resend (`whsec_...`). Ausente = webhook NOT_CONFIGURED. */
+  RESEND_WEBHOOK_SECRET: optionalSecret,
   STORAGE_PROVIDER: z.enum(["not_configured", "local", "supabase"]).default("not_configured"),
   LOCAL_STORAGE_PATH: z.string().min(1).default(".data/private-storage"),
   ALLOW_LOCAL_STORAGE_IN_PRODUCTION: z.enum(["0", "1"]).default("0"),

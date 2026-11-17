@@ -79,6 +79,9 @@ export function isPlatformSurfacePath(pathname: string): boolean {
   if (pathname === "/" || pathname === "/app") return true;
   return PLATFORM_MAIN_TABS.some((tab) => {
     const hrefs = [tab.guestHref, tab.authHref];
-    return hrefs.some((href) => href !== "/" && href !== "/app" && (pathname === href || pathname.startsWith(`${href}/`)));
+    return hrefs.some(
+      (href) =>
+        href !== "/" && href !== "/app" && (pathname === href || pathname.startsWith(`${href}/`)),
+    );
   });
 }

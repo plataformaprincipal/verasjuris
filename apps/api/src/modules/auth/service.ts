@@ -28,9 +28,11 @@ import {
 } from "@verasjuris/database";
 import {
   publicEmailDeliveryMessage,
+  publicProviderDeliveryStatus,
   type EmailDeliveryStatus,
   type EmailProvider,
 } from "@verasjuris/email";
+import { dispatchTransactionalEmail } from "../email/dispatch.js";
 import type { InProcessEventBus } from "@verasjuris/events";
 import {
   EMAIL_VERIFICATION_TTL_MS,
@@ -109,9 +111,12 @@ function resetLink(webOrigin: string, token: string): string {
   return `${webOrigin}/redefinir-senha?token=${encodeURIComponent(token)}`;
 }
 
-/** Status público do provider — não revela se o e-mail existe. */
+/**
+ * Status público do provider — reflete capacidade do ambiente.
+ * Não revela se o endereço existe (mensagem neutra + mesmo shape).
+ */
 function publicProviderDelivery(provider: EmailProvider): EmailDeliveryStatus {
-  return provider.status === "memory" ? "captured" : "not_configured";
+  return publicProviderDeliveryStatus(provider);
 }
 
 function neutralAccepted(provider: EmailProvider): {
@@ -125,6 +130,32 @@ function neutralAccepted(provider: EmailProvider): {
     emailDelivery,
     message: `${NEUTRAL_ACCOUNT_MESSAGE} ${publicEmailDeliveryMessage(emailDelivery)}`,
   };
+}
+
+async function sendPasswordChangedNotice(
+  db: AppDatabase,
+  email: AuthEmailContext,
+  user: { id: string; email: string },
+  reason: "reset" | "change",
+) {
+  if (email.provider.status === "not_configured") return;
+  await dispatchTransactionalEmail(db, email.provider, {
+    kind: "password_changed",
+    to: user.email,
+    subject: "Sua senha no VerasJuris foi alterada",
+    text: [
+      "Detectamos uma alteração de senha na sua conta VerasJuris.",
+      reason === "reset"
+        ? "A alteração ocorreu após uma solicitação de recuperação de acesso."
+        : "A alteração foi feita a partir das configurações da conta.",
+      "Se você não reconhece esta ação, recupere o acesso imediatamente e revise as sessões ativas.",
+      `Acesse: ${email.webOrigin}/entrar`,
+    ].join("\n\n"),
+    recipientUserId: user.id,
+    idempotencyKey: `password_changed:${user.id}:${reason}:${Date.now()}`,
+    category: "security",
+    metadata: { reason },
+  });
 }
 
 async function createVerificationToken(
@@ -236,7 +267,7 @@ export async function registerAccount(
   input: RegisterAccountInput,
   meta: RequestMeta,
   events: InProcessEventBus,
-  _email: AuthEmailContext,
+  email: AuthEmailContext,
 ): Promise<{
   status: "created";
   token: string;
@@ -244,6 +275,7 @@ export async function registerAccount(
   redirectTo: "/app" | "/portal";
   emailVerified: false;
   message: string;
+  emailDelivery?: EmailDeliveryStatus;
 }> {
   const emailAddress = input.email;
   const displayName = input.mode === "legacy" ? input.displayName : input.displayName;
@@ -496,14 +528,26 @@ export async function registerAccount(
 
   events.publish("auth.registered", { userId, requestId: meta.requestId });
   events.publish("auth.login_succeeded", { userId, requestId: meta.requestId });
+
+  let emailDelivery: EmailDeliveryStatus = publicProviderDelivery(email.provider);
+  try {
+    const verification = await requestEmailVerification(db, emailAddress, meta, email);
+    emailDelivery = verification.emailDelivery;
+  } catch {
+    // Cadastro não falha se o e-mail de verificação não sair.
+  }
+
   return {
     status: "created",
     token: sessionToken,
     account: toPublicSession(account),
     redirectTo: redirectFor(persona),
     emailVerified: false,
+    emailDelivery,
     message:
-      "Conta criada com sucesso. Seu e-mail ainda não foi verificado; isso não impede o acesso básico nesta fase.",
+      emailDelivery === "not_configured"
+        ? "Conta criada com sucesso. O envio de verificação de e-mail ainda não está configurado neste ambiente."
+        : "Conta criada com sucesso. Enviamos (ou enviaremos, se elegível) um e-mail de verificação. O acesso básico permanece disponível.",
   };
 }
 
@@ -516,12 +560,15 @@ export async function requestEmailVerification(
   const user = await db.query.users.findFirst({ where: eq(users.email, emailAddress) });
   if (user && user.status !== "disabled" && user.status !== "suspended" && !user.emailVerifiedAt) {
     const token = await createVerificationToken(db, user.id);
-    const sent = await email.provider.send({
+    const { result: sent } = await dispatchTransactionalEmail(db, email.provider, {
       kind: "email_verification",
       to: user.email,
       subject: "Confirme seu e-mail no VerasJuris",
       text: `Confirme seu e-mail: ${verificationLink(email.webOrigin, token)}`,
       token,
+      recipientUserId: user.id,
+      idempotencyKey: `email_verification:${user.id}:${hashOpaqueToken(token).slice(0, 32)}`,
+      category: "security",
     });
     await recordAudit(db, {
       actorUserId: user.id,
@@ -531,7 +578,7 @@ export async function requestEmailVerification(
       source: "api",
       requestId: meta.requestId,
       ip: meta.ip,
-      metadata: { delivery: sent.status },
+      metadata: { delivery: sent.status, providerMessageId: sent.providerMessageId ?? null },
     });
   }
   return neutralAccepted(email.provider);
@@ -705,12 +752,15 @@ export async function requestPasswordReset(
       tokenHash: hash,
       expiresAt: new Date(now.getTime() + PASSWORD_RESET_TTL_MS),
     });
-    const sent = await email.provider.send({
+    const { result: sent } = await dispatchTransactionalEmail(db, email.provider, {
       kind: "password_reset",
       to: user.email,
       subject: "Redefinição de senha no VerasJuris",
       text: `Redefina sua senha: ${resetLink(email.webOrigin, token)}`,
       token,
+      recipientUserId: user.id,
+      idempotencyKey: `password_reset:${user.id}:${hash.slice(0, 32)}`,
+      category: "security",
     });
     await recordAudit(db, {
       actorUserId: user.id,
@@ -720,7 +770,7 @@ export async function requestPasswordReset(
       source: "api",
       requestId: meta.requestId,
       ip: meta.ip,
-      metadata: { delivery: sent.status },
+      metadata: { delivery: sent.status, providerMessageId: sent.providerMessageId ?? null },
     });
   }
   return neutralAccepted(email.provider);
@@ -730,10 +780,12 @@ export async function confirmPasswordReset(
   db: AppDatabase,
   input: { token: string; password: string },
   meta: RequestMeta,
+  email?: AuthEmailContext,
 ): Promise<{ reset: true }> {
   const hash = hashOpaqueToken(input.token);
   const passwordHash = await hashPassword(input.password);
   const now = new Date();
+  let notifiedUser: { id: string; email: string } | null = null;
   await db.transaction(async (tx) => {
     await tx.execute(sql`
       select id from password_reset_tokens
@@ -773,7 +825,15 @@ export async function confirmPasswordReset(
       ip: meta.ip,
       metadata: { sessionsRevoked: true },
     });
+    notifiedUser = { id: activeUser.id, email: activeUser.email };
   });
+  if (email && notifiedUser) {
+    try {
+      await sendPasswordChangedNotice(db, email, notifiedUser, "reset");
+    } catch {
+      // Não falha a redefinição se o aviso de segurança não sair.
+    }
+  }
   return { reset: true };
 }
 
@@ -782,6 +842,7 @@ export async function changePassword(
   account: SessionAccount,
   input: { currentPassword: string; newPassword: string },
   meta: RequestMeta,
+  email?: AuthEmailContext,
 ): Promise<{ changed: true }> {
   const user = await db.query.users.findFirst({ where: eq(users.id, account.user.id) });
   if (!user) {
@@ -813,6 +874,13 @@ export async function changePassword(
       metadata: { otherSessionsRevoked: true },
     });
   });
+  if (email) {
+    try {
+      await sendPasswordChangedNotice(db, email, { id: user.id, email: user.email }, "change");
+    } catch {
+      // Aviso de segurança é best-effort.
+    }
+  }
   return { changed: true };
 }
 

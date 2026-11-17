@@ -1160,11 +1160,57 @@ export async function getMarketplaceEngagement(
     orderBy: desc(marketplaceEngagementEvents.createdAt),
     limit: 200,
   });
+  const intent = await db.query.paymentIntents.findFirst({
+    where: and(
+      eq(paymentIntents.organizationId, organizationId),
+      eq(paymentIntents.referenceType, "marketplace_engagement"),
+      eq(paymentIntents.referenceId, engagementId),
+    ),
+    orderBy: desc(paymentIntents.createdAt),
+  });
+  const intentMeta =
+    intent?.metadata && typeof intent.metadata === "object"
+      ? (intent.metadata as Record<string, unknown>)
+      : {};
+  const payment =
+    intent == null
+      ? null
+      : {
+          paymentIntentId: intent.id,
+          status: intent.status,
+          amountCents: intent.amountCents,
+          currency: intent.currency,
+          paymentMethod: intent.paymentMethod,
+          expiresAt: intent.expiresAt ? intent.expiresAt.toISOString() : null,
+          externalIntentId: intent.externalIntentId,
+          paymentInstructions: {
+            checkoutUrl:
+              typeof intentMeta.checkoutUrl === "string"
+                ? intentMeta.checkoutUrl
+                : typeof intentMeta.invoiceUrl === "string"
+                  ? intentMeta.invoiceUrl
+                  : null,
+            invoiceUrl: typeof intentMeta.invoiceUrl === "string" ? intentMeta.invoiceUrl : null,
+            bankSlipUrl: typeof intentMeta.bankSlipUrl === "string" ? intentMeta.bankSlipUrl : null,
+            pixCopyPaste:
+              typeof intentMeta.pixCopyPaste === "string" ? intentMeta.pixCopyPaste : null,
+            pixQrCodeBase64:
+              typeof intentMeta.pixQrCodeBase64 === "string" ? intentMeta.pixQrCodeBase64 : null,
+            pixExpiresAt:
+              typeof intentMeta.pixExpiresAt === "string" ? intentMeta.pixExpiresAt : null,
+            boletoDigitableLine:
+              typeof intentMeta.boletoDigitableLine === "string"
+                ? intentMeta.boletoDigitableLine
+                : null,
+            billingType: typeof intentMeta.billingType === "string" ? intentMeta.billingType : null,
+          },
+        };
   return {
     engagement: serializeEngagement(row),
     deliveries: deliveries.map(serializeDelivery),
     disputes: disputes.map(serializeDispute),
     events: events.map(serializeEngagementEvent),
+    payment,
   };
 }
 
@@ -1596,19 +1642,39 @@ export async function initiateMarketplaceProviderPayment(
       eq(paymentIntents.idempotencyKey, idempotencyKey),
     ),
   });
+  const instructionsFromMeta = (metadata: Record<string, unknown>) => ({
+    checkoutUrl:
+      typeof metadata.checkoutUrl === "string"
+        ? metadata.checkoutUrl
+        : typeof metadata.invoiceUrl === "string"
+          ? metadata.invoiceUrl
+          : null,
+    invoiceUrl: typeof metadata.invoiceUrl === "string" ? metadata.invoiceUrl : null,
+    bankSlipUrl: typeof metadata.bankSlipUrl === "string" ? metadata.bankSlipUrl : null,
+    pixCopyPaste: typeof metadata.pixCopyPaste === "string" ? metadata.pixCopyPaste : null,
+    pixQrCodeBase64: typeof metadata.pixQrCodeBase64 === "string" ? metadata.pixQrCodeBase64 : null,
+    pixExpiresAt: typeof metadata.pixExpiresAt === "string" ? metadata.pixExpiresAt : null,
+    boletoDigitableLine:
+      typeof metadata.boletoDigitableLine === "string" ? metadata.boletoDigitableLine : null,
+    billingType: typeof metadata.billingType === "string" ? metadata.billingType : null,
+  });
+
   if (existing) {
     const existingMeta =
       existing.metadata && typeof existing.metadata === "object"
         ? (existing.metadata as Record<string, unknown>)
         : {};
+    const instructions = instructionsFromMeta(existingMeta);
     return {
       paymentIntentId: existing.id,
       status: existing.status,
-      checkoutUrl:
-        typeof existingMeta.checkoutUrl === "string" ? existingMeta.checkoutUrl : null,
+      checkoutUrl: instructions.checkoutUrl,
+      paymentInstructions: instructions,
       alreadyExists: true as const,
       amountCents: existing.amountCents,
       currency: existing.currency,
+      paymentMethod: existing.paymentMethod,
+      expiresAt: existing.expiresAt ? existing.expiresAt.toISOString() : null,
     };
   }
 
@@ -1618,6 +1684,7 @@ export async function initiateMarketplaceProviderPayment(
     currency: "BRL",
     paymentMethod,
     description: `Marketplace ${engagementId.slice(0, 8)}`,
+    customerReference: account.user.id,
     referenceType: "marketplace_engagement",
     referenceId: engagementId,
     idempotencyKey,
@@ -1625,9 +1692,10 @@ export async function initiateMarketplaceProviderPayment(
       engagementId,
       proposalId: proposal.id,
       requestId: engagement.requestId,
+      customerName: account.user.displayName ?? account.user.email,
+      customerEmail: account.user.email,
     },
   });
-
   if (providerResult.status === "not_configured" || !providerResult.externalIntentId) {
     throw new AppError(
       "PAYMENT_PROVIDER_NOT_CONFIGURED",
@@ -1679,13 +1747,21 @@ export async function initiateMarketplaceProviderPayment(
       },
     });
 
+    const createdMeta = {
+      ...(providerResult.metadata ?? {}),
+      ...(providerResult.checkoutUrl ? { checkoutUrl: providerResult.checkoutUrl } : {}),
+    };
+    const instructions = instructionsFromMeta(createdMeta);
     return {
       paymentIntentId: intent!.id,
       status: intent!.status,
-      checkoutUrl: providerResult.checkoutUrl ?? null,
+      checkoutUrl: instructions.checkoutUrl,
+      paymentInstructions: instructions,
       alreadyExists: false as const,
       amountCents: intent!.amountCents,
       currency: intent!.currency,
+      paymentMethod: intent!.paymentMethod,
+      expiresAt: intent!.expiresAt ? intent!.expiresAt.toISOString() : null,
     };
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -1700,13 +1776,17 @@ export async function initiateMarketplaceProviderPayment(
           raced.metadata && typeof raced.metadata === "object"
             ? (raced.metadata as Record<string, unknown>)
             : {};
+        const instructions = instructionsFromMeta(racedMeta);
         return {
           paymentIntentId: raced.id,
           status: raced.status,
-          checkoutUrl: typeof racedMeta.checkoutUrl === "string" ? racedMeta.checkoutUrl : null,
+          checkoutUrl: instructions.checkoutUrl,
+          paymentInstructions: instructions,
           alreadyExists: true as const,
           amountCents: raced.amountCents,
           currency: raced.currency,
+          paymentMethod: raced.paymentMethod,
+          expiresAt: raced.expiresAt ? raced.expiresAt.toISOString() : null,
         };
       }
     }
@@ -1882,7 +1962,9 @@ export async function searchMarketplaceCatalog(
   const offset = Math.max(Math.trunc(filters.offset) || 0, 0);
 
   // Preço efetivo para filtro/ordenação: valor base, senão mínimo.
-  const priceExpr = sql<number | null>`coalesce(${professionalServices.basePriceCents}, ${professionalServices.minPriceCents})`;
+  const priceExpr = sql<
+    number | null
+  >`coalesce(${professionalServices.basePriceCents}, ${professionalServices.minPriceCents})`;
   const ratingExpr = sql<number | null>`(
     select avg(${serviceReviews.rating})::float8 from ${serviceReviews}
     where ${serviceReviews.professionalProfileId} = ${lawyerProfiles.userId}
@@ -1943,7 +2025,10 @@ export async function searchMarketplaceCatalog(
   const [countRow] = await db
     .select({ total: sql<number>`count(*)::int` })
     .from(professionalServices)
-    .innerJoin(lawyerProfiles, eq(lawyerProfiles.userId, professionalServices.professionalProfileId))
+    .innerJoin(
+      lawyerProfiles,
+      eq(lawyerProfiles.userId, professionalServices.professionalProfileId),
+    )
     .innerJoin(
       marketplaceServiceCategories,
       eq(marketplaceServiceCategories.id, professionalServices.categoryId),
@@ -1966,7 +2051,10 @@ export async function searchMarketplaceCatalog(
       reviewCount: reviewCountExpr,
     })
     .from(professionalServices)
-    .innerJoin(lawyerProfiles, eq(lawyerProfiles.userId, professionalServices.professionalProfileId))
+    .innerJoin(
+      lawyerProfiles,
+      eq(lawyerProfiles.userId, professionalServices.professionalProfileId),
+    )
     .innerJoin(
       marketplaceServiceCategories,
       eq(marketplaceServiceCategories.id, professionalServices.categoryId),
@@ -2121,7 +2209,8 @@ export async function cancelMarketplaceEngagement(
         ),
       )
       .returning();
-    if (!row) throw new AppError("CONFLICT", "A contratação foi alterada. Atualize e tente de novo.");
+    if (!row)
+      throw new AppError("CONFLICT", "A contratação foi alterada. Atualize e tente de novo.");
 
     if (request) {
       await tx
@@ -2221,10 +2310,17 @@ export async function requestMarketplaceRefund(
   }
   const evidence = await resolvePaidEvidence(db, organizationId, engagement);
   if (!evidence.hasPayment) {
-    throw new AppError("CONFLICT", "Não há pagamento confirmado para reembolsar nesta contratação.");
+    throw new AppError(
+      "CONFLICT",
+      "Não há pagamento confirmado para reembolsar nesta contratação.",
+    );
   }
   const amountCents = input.amountCents ?? null;
-  if (amountCents !== null && evidence.paidAmountCents !== null && amountCents > evidence.paidAmountCents) {
+  if (
+    amountCents !== null &&
+    evidence.paidAmountCents !== null &&
+    amountCents > evidence.paidAmountCents
+  ) {
     throw new AppError("VALIDATION_ERROR", "O valor excede o total pago.", [
       { path: "amountCents", message: "Valor superior ao pago." },
     ]);

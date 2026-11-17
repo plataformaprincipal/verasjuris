@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Alert,
-  Breadcrumb,
-  Button,
-  ErrorState,
-  LoadingState,
-  PageHeader,
-} from "@verasjuris/ui";
+import { Alert, Breadcrumb, Button, ErrorState, LoadingState, PageHeader } from "@verasjuris/ui";
 import { useParams, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useLocale } from "../../../../components/locale-provider";
@@ -15,6 +8,7 @@ import {
   MARKETPLACE_ENGAGEMENT_STATUS_LABELS,
   cancelMarketplaceEngagement,
   fetchMarketplaceEngagement,
+  formatMoneyCents,
   initiateMarketplaceProviderPayment,
   isApiFailure,
   marketplaceErrorMessage,
@@ -23,6 +17,7 @@ import {
   type MarketplaceDispute,
   type MarketplaceEngagement,
   type MarketplaceEngagementEvent,
+  type MarketplacePaymentInstructions,
 } from "../../../../lib/marketplace";
 import { useOrgContext } from "../../../../lib/use-org-context";
 
@@ -44,10 +39,20 @@ export default function MarketplaceEngagementPublicPage() {
   const [error, setError] = useState<string | null>(null);
   const [payError, setPayError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"pix" | "boleto" | "credit_card">("pix");
   const [engagement, setEngagement] = useState<MarketplaceEngagement | null>(null);
   const [deliveries, setDeliveries] = useState<MarketplaceDelivery[]>([]);
   const [disputes, setDisputes] = useState<MarketplaceDispute[]>([]);
   const [events, setEvents] = useState<MarketplaceEngagementEvent[]>([]);
+  const [payment, setPayment] = useState<{
+    paymentIntentId: string;
+    status: string;
+    amountCents: number;
+    currency: string;
+    paymentMethod?: string | null;
+    expiresAt?: string | null;
+    paymentInstructions: MarketplacePaymentInstructions;
+  } | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [refundReason, setRefundReason] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
@@ -63,15 +68,29 @@ export default function MarketplaceEngagementPublicPage() {
     setDeliveries(data.deliveries);
     setDisputes(data.disputes);
     setEvents(data.events ?? []);
+    setPayment(data.payment ?? null);
     setError(null);
   }
 
   useEffect(() => {
-    if (!org.ready || !org.orgId) return;
+    const orgId = org.orgId;
+    const engagementId = params.id;
+    if (!org.ready || !orgId || !engagementId) return;
     let cancelled = false;
-    void reload(org.orgId).finally(() => {
-      if (!cancelled) setLoading(false);
-    });
+    void (async () => {
+      const data = await fetchMarketplaceEngagement(orgId, engagementId);
+      if (cancelled) return;
+      if (isApiFailure(data)) {
+        setError(marketplaceErrorMessage(data));
+      } else {
+        setEngagement(data.engagement);
+        setDeliveries(data.deliveries);
+        setDisputes(data.disputes);
+        setEvents(data.events ?? []);
+        setError(null);
+      }
+      setLoading(false);
+    })();
     return () => {
       cancelled = true;
     };
@@ -82,23 +101,32 @@ export default function MarketplaceEngagementPublicPage() {
     setPaying(true);
     setPayError(null);
     const result = await initiateMarketplaceProviderPayment(org.orgId, engagement.id, {
-      paymentMethod: "pix",
+      paymentMethod,
     });
     setPaying(false);
     if (isApiFailure(result)) {
       setPayError(marketplaceErrorMessage(result));
       return;
     }
-    if (result.checkoutUrl) {
-      window.location.assign(result.checkoutUrl);
-      return;
-    }
-    setPayError(
-      t(
-        "inicio.pay.noUrl",
-        "Cobrança criada, mas sem URL de checkout. Confirme o pagamento apenas após validação do provedor (webhook).",
-      ),
-    );
+    setPayment({
+      paymentIntentId: result.paymentIntentId,
+      status: result.status,
+      amountCents: result.amountCents,
+      currency: result.currency,
+      paymentMethod: result.paymentMethod,
+      expiresAt: result.expiresAt,
+      paymentInstructions: result.paymentInstructions ?? {
+        checkoutUrl: result.checkoutUrl,
+        invoiceUrl: null,
+        bankSlipUrl: null,
+        pixCopyPaste: null,
+        pixQrCodeBase64: null,
+        pixExpiresAt: null,
+        boletoDigitableLine: null,
+        billingType: null,
+      },
+    });
+    await reload(org.orgId);
   }
 
   async function onCancel() {
@@ -176,12 +204,96 @@ export default function MarketplaceEngagementPublicPage() {
                   "A liberação do serviço ocorre somente após confirmação financeira no backend (webhook/provedor). O retorno visual do checkout não marca o pedido como pago.",
                 )}
               </p>
-              {payError ? <ErrorState title={t("inicio.pay.title", "Pagamento")}>{payError}</ErrorState> : null}
-              <Button type="button" onClick={() => void startProviderPayment()} disabled={paying}>
-                {paying
-                  ? t("inicio.pay.running", "Gerando cobrança…")
-                  : t("inicio.pay.pix", "Pagar com Pix (Asaas)")}
-              </Button>
+              {payment ? (
+                <div className="vj-stack">
+                  <p className="vj-meta">
+                    {t("inicio.pay.status", "Status da cobrança")}: {payment.status} ·{" "}
+                    {formatMoneyCents(payment.amountCents)}
+                  </p>
+                  {payment.paymentInstructions.pixQrCodeBase64 ? (
+                    <img
+                      alt={t("inicio.pay.pixQr", "QR Code Pix")}
+                      src={`data:image/png;base64,${payment.paymentInstructions.pixQrCodeBase64}`}
+                      width={180}
+                      height={180}
+                    />
+                  ) : null}
+                  {payment.paymentInstructions.pixCopyPaste ? (
+                    <label className="vj-field">
+                      <span className="vj-label">
+                        {t("inicio.pay.pixCopy", "Pix copia e cola")}
+                      </span>
+                      <textarea
+                        className="vj-input"
+                        readOnly
+                        rows={3}
+                        value={payment.paymentInstructions.pixCopyPaste}
+                      />
+                    </label>
+                  ) : null}
+                  {payment.paymentInstructions.boletoDigitableLine ? (
+                    <p>
+                      <strong>{t("inicio.pay.boletoLine", "Linha digitável")}:</strong>{" "}
+                      {payment.paymentInstructions.boletoDigitableLine}
+                    </p>
+                  ) : null}
+                  {payment.paymentInstructions.checkoutUrl ||
+                  payment.paymentInstructions.invoiceUrl ||
+                  payment.paymentInstructions.bankSlipUrl ? (
+                    <a
+                      className="vj-button"
+                      href={
+                        payment.paymentInstructions.checkoutUrl ||
+                        payment.paymentInstructions.invoiceUrl ||
+                        payment.paymentInstructions.bankSlipUrl ||
+                        "#"
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {t("inicio.pay.openProvider", "Abrir no provedor")}
+                    </a>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  <fieldset className="vj-stack">
+                    <legend className="vj-label">
+                      {t("inicio.cart.method", "Forma de pagamento")}
+                    </legend>
+                    {(
+                      [
+                        ["pix", t("inicio.pay.pix", "Pix")],
+                        ["boleto", t("inicio.pay.boleto", "Boleto")],
+                        ["credit_card", t("inicio.pay.card", "Cartão (fatura hospedada)")],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <label key={value} className="vj-field">
+                        <input
+                          type="radio"
+                          name="engagement-pay-method"
+                          value={value}
+                          checked={paymentMethod === value}
+                          onChange={() => setPaymentMethod(value)}
+                        />{" "}
+                        {label}
+                      </label>
+                    ))}
+                  </fieldset>
+                  {payError ? (
+                    <ErrorState title={t("inicio.pay.title", "Pagamento")}>{payError}</ErrorState>
+                  ) : null}
+                  <Button
+                    type="button"
+                    onClick={() => void startProviderPayment()}
+                    disabled={paying}
+                  >
+                    {paying
+                      ? t("inicio.pay.running", "Gerando cobrança…")
+                      : t("inicio.pay.cta", "Gerar cobrança (sandbox)")}
+                  </Button>
+                </>
+              )}
             </section>
           ) : null}
 
@@ -197,7 +309,9 @@ export default function MarketplaceEngagementPublicPage() {
               {t("inicio.engagement.timeline", "Linha do tempo")}
             </h2>
             {events.length === 0 ? (
-              <p className="vj-meta">{t("inicio.engagement.noEvents", "Sem eventos registrados ainda.")}</p>
+              <p className="vj-meta">
+                {t("inicio.engagement.noEvents", "Sem eventos registrados ainda.")}
+              </p>
             ) : (
               <ol className="vj-inicio-timeline">
                 {events.map((ev) => (
@@ -302,7 +416,9 @@ export default function MarketplaceEngagementPublicPage() {
               </li>
             ))}
             {deliveries.length === 0 ? (
-              <li className="vj-meta">{t("inicio.engagement.noDeliveries", "Nenhuma entrega ainda.")}</li>
+              <li className="vj-meta">
+                {t("inicio.engagement.noDeliveries", "Nenhuma entrega ainda.")}
+              </li>
             ) : null}
           </ul>
 

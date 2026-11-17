@@ -53,8 +53,8 @@ export default function AdminDashboardPage() {
       {data ? (
         <>
           <p className="vj-meta">
-            Período do dia desde {new Date(data.period.dayStart).toLocaleString("pt-BR")} · mês desde{" "}
-            {new Date(data.period.monthStart).toLocaleString("pt-BR")} · atualizado{" "}
+            Período do dia desde {new Date(data.period.dayStart).toLocaleString("pt-BR")} · mês
+            desde {new Date(data.period.monthStart).toLocaleString("pt-BR")} · atualizado{" "}
             {new Date(data.period.generatedAt).toLocaleString("pt-BR")}
           </p>
           <div className="vj-admin-metrics">
@@ -74,7 +74,10 @@ export default function AdminDashboardPage() {
               value={data.metrics.aiEstimatedSpendMonthMicros}
             />
             <MetricCard label="Assinaturas" value={data.metrics.subscriptions} />
-            <MetricCard label="Receita confirmada (centavos)" value={data.metrics.confirmedRevenueCents} />
+            <MetricCard
+              label="Receita confirmada (centavos)"
+              value={data.metrics.confirmedRevenueCents}
+            />
             <MetricCard label="Pagamentos pendentes" value={data.metrics.pendingPayments} />
             <MetricCard label="Cancelamentos" value={data.metrics.cancellations} />
             <MetricCard label="Reembolsos" value={data.metrics.refunds} />

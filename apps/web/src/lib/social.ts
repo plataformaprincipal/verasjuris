@@ -86,7 +86,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T | AiApiFa
     return {
       httpStatus: response.status,
       error: {
-        code: body.error?.code ?? (response.status === 401 ? "AUTHENTICATION_ERROR" : "INTERNAL_ERROR"),
+        code:
+          body.error?.code ?? (response.status === 401 ? "AUTHENTICATION_ERROR" : "INTERNAL_ERROR"),
         message: body.error?.message ?? "Falha na requisição.",
         details: body.error?.details,
       },

@@ -1,12 +1,11 @@
 import type { SessionAccount } from "@verasjuris/auth";
 import { AppError, type PlatformPermissionKey } from "@verasjuris/types";
 
-export function requirePlatformStaff(account: SessionAccount): NonNullable<SessionAccount["platform"]> {
+export function requirePlatformStaff(
+  account: SessionAccount,
+): NonNullable<SessionAccount["platform"]> {
   if (!account.platform || account.platform.roles.length === 0) {
-    throw new AppError(
-      "AUTHORIZATION_ERROR",
-      "Você não possui permissão para acessar esta área.",
-    );
+    throw new AppError("AUTHORIZATION_ERROR", "Você não possui permissão para acessar esta área.");
   }
   return account.platform;
 }
@@ -29,10 +28,7 @@ export function requirePlatformPermission(
     );
   }
   if (!platform.permissions.includes(permission)) {
-    throw new AppError(
-      "AUTHORIZATION_ERROR",
-      "Você não possui permissão para acessar esta área.",
-    );
+    throw new AppError("AUTHORIZATION_ERROR", "Você não possui permissão para acessar esta área.");
   }
   return platform;
 }

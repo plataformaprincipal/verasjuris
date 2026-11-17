@@ -813,6 +813,7 @@ export * from "./marketplace.js";
 export * from "./social.js";
 export * from "./juris-credits.js";
 export * from "./platform-admin.js";
+export * from "./juris-one-public.js";
 export * from "./professional-verification.js";
 export * from "./diligence.js";
 export * from "./extrajudicial.js";

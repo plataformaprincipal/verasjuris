@@ -3120,7 +3120,9 @@ html[data-theme="black"] {
   padding: 0.35rem 0.7rem;
   border-radius: var(--vj-radius-sm);
   cursor: pointer;
-  transition: border-color var(--vj-motion), background var(--vj-motion);
+  transition:
+    border-color var(--vj-motion),
+    background var(--vj-motion);
 }
 .vj-inicio-cat:hover {
   border-color: var(--vj-blue);
@@ -3149,7 +3151,9 @@ html[data-theme="black"] {
   border: 1px solid var(--vj-border);
   border-radius: var(--vj-radius-md);
   background: var(--vj-white);
-  transition: border-color var(--vj-motion), box-shadow var(--vj-motion);
+  transition:
+    border-color var(--vj-motion),
+    box-shadow var(--vj-motion);
 }
 .vj-inicio-card:hover {
   border-color: color-mix(in srgb, var(--vj-blue) 45%, var(--vj-border));
@@ -3194,7 +3198,9 @@ html[data-theme="black"] {
   color: var(--vj-navy);
   text-decoration: none;
   font-weight: var(--vj-weight-semibold);
-  transition: background var(--vj-motion), border-color var(--vj-motion);
+  transition:
+    background var(--vj-motion),
+    border-color var(--vj-motion);
 }
 .vj-inicio-mgmt-link:hover {
   background: var(--vj-blue-light);
@@ -3985,8 +3991,13 @@ html[data-theme="black"] {
   animation-delay: -4s;
 }
 @keyframes vj-showroom-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(12px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(12px);
+  }
 }
 .vj-showroom-layout {
   display: grid;
@@ -4048,7 +4059,10 @@ html[data-theme="black"] {
   background: var(--vj-white);
   overflow: hidden;
   animation: vj-showroom-enter 420ms ease both;
-  transition: transform var(--vj-motion), box-shadow var(--vj-motion), border-color var(--vj-motion);
+  transition:
+    transform var(--vj-motion),
+    box-shadow var(--vj-motion),
+    border-color var(--vj-motion);
 }
 .vj-showroom-card:hover {
   transform: translateY(-3px);
@@ -4061,8 +4075,7 @@ html[data-theme="black"] {
 .vj-showroom-card-preview {
   min-height: 5.5rem;
   background:
-    linear-gradient(135deg, rgba(6, 41, 91, 0.12), rgba(11, 86, 240, 0.08)),
-    var(--vj-canvas);
+    linear-gradient(135deg, rgba(6, 41, 91, 0.12), rgba(11, 86, 240, 0.08)), var(--vj-canvas);
   display: grid;
   place-items: center;
 }
@@ -4078,16 +4091,26 @@ html[data-theme="black"] {
   background: rgba(255, 255, 255, 0.75);
   box-shadow: inset 0 0 0 1px rgba(6, 41, 91, 0.08);
 }
-.vj-showroom-soft-ui span:nth-child(2) { width: 85%; }
-.vj-showroom-soft-ui span:nth-child(3) { width: 60%; }
+.vj-showroom-soft-ui span:nth-child(2) {
+  width: 85%;
+}
+.vj-showroom-soft-ui span:nth-child(3) {
+  width: 60%;
+}
 .vj-showroom-card-body {
   display: grid;
   gap: var(--vj-space-2);
   padding: var(--vj-space-4);
 }
 @keyframes vj-showroom-enter {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .vj-showroom-dl {
   display: grid;
@@ -4137,7 +4160,9 @@ html[data-theme="black"] {
   gap: var(--vj-space-4);
 }
 @media (min-width: 800px) {
-  .vj-demo-split { grid-template-columns: 1fr 1.2fr; }
+  .vj-demo-split {
+    grid-template-columns: 1fr 1.2fr;
+  }
 }
 .vj-demo-list {
   list-style: none;
@@ -4268,7 +4293,9 @@ html[data-theme="black"] {
   border-radius: var(--vj-radius-sm);
   cursor: pointer;
   text-decoration: none;
-  transition: background var(--vj-motion), border-color var(--vj-motion);
+  transition:
+    background var(--vj-motion),
+    border-color var(--vj-motion);
 }
 .vj-social-nav-item:hover,
 .vj-social-nav-item.is-active {
@@ -4313,7 +4340,9 @@ html[data-theme="black"] {
   margin: 0;
 }
 .vj-social-post {
-  transition: border-color var(--vj-motion), box-shadow var(--vj-motion);
+  transition:
+    border-color var(--vj-motion),
+    box-shadow var(--vj-motion);
 }
 .vj-social-post:hover {
   border-color: color-mix(in srgb, var(--vj-blue) 35%, var(--vj-border));
@@ -4377,7 +4406,11 @@ html[data-theme="black"] {
   grid-template-columns: 15.5rem minmax(0, 1fr);
   min-height: 100vh;
   background:
-    radial-gradient(1200px 480px at 10% -10%, color-mix(in srgb, var(--vj-navy) 12%, transparent), transparent),
+    radial-gradient(
+      1200px 480px at 10% -10%,
+      color-mix(in srgb, var(--vj-navy) 12%, transparent),
+      transparent
+    ),
     var(--vj-bg, #f6f7f9);
 }
 .vj-admin-shell-collapsed {

@@ -54,9 +54,12 @@ export const jurisWorkTasks = pgTable(
     createdByUserId: uuid("created_by_user_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
-    createdByMembershipId: uuid("created_by_membership_id").references(() => organizationMembers.id, {
-      onDelete: "set null",
-    }),
+    createdByMembershipId: uuid("created_by_membership_id").references(
+      () => organizationMembers.id,
+      {
+        onDelete: "set null",
+      },
+    ),
     title: text("title").notNull(),
     objective: text("objective").notNull(),
     status: jurisWorkTaskStatusEnum("status").notNull().default("draft"),

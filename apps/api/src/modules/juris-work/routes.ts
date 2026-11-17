@@ -1,8 +1,4 @@
-import {
-  ensureInitialWorkCreditsSchema,
-  parseInput,
-  uuidSchema,
-} from "@verasjuris/validation";
+import { ensureInitialWorkCreditsSchema, parseInput, uuidSchema } from "@verasjuris/validation";
 import { z } from "zod";
 import type { FastifyInstance } from "fastify";
 import { meta, requireAccount, type ApiDeps } from "../auth/routes.js";
@@ -72,12 +68,7 @@ export async function registerJurisWorkRoutes(app: FastifyInstance, deps: ApiDep
   app.get(`${root}/:taskId`, async (request) => {
     const account = await requireAccount(deps, request);
     const params = request.params as Params;
-    return getJurisWorkTask(
-      deps.db,
-      account,
-      org(params),
-      parseInput(uuidSchema, params.taskId),
-    );
+    return getJurisWorkTask(deps.db, account, org(params), parseInput(uuidSchema, params.taskId));
   });
 
   app.post(`${root}/:taskId/approve`, async (request) => {

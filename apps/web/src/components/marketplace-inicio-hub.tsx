@@ -49,13 +49,33 @@ function priceLabel(item: MarketplaceCatalogItem, t: (k: string, f?: string) => 
 }
 
 const MANAGEMENT_LINKS = [
-  { href: "/app/marketplace/contratacoes", labelKey: "inicio.mgmt.purchases", fallback: "Minhas compras" },
-  { href: "/app/marketplace/contratacoes", labelKey: "inicio.mgmt.hires", fallback: "Minhas contratações" },
-  { href: "/app/marketplace/oportunidades", labelKey: "inicio.mgmt.orders", fallback: "Pedidos / oportunidades" },
+  {
+    href: "/app/marketplace/contratacoes",
+    labelKey: "inicio.mgmt.purchases",
+    fallback: "Minhas compras",
+  },
+  {
+    href: "/app/marketplace/contratacoes",
+    labelKey: "inicio.mgmt.hires",
+    fallback: "Minhas contratações",
+  },
+  {
+    href: "/app/marketplace/oportunidades",
+    labelKey: "inicio.mgmt.orders",
+    fallback: "Pedidos / oportunidades",
+  },
   { href: "/app/marketplace/propostas", labelKey: "inicio.mgmt.sales", fallback: "Minhas vendas" },
-  { href: "/app/marketplace/servicos", labelKey: "inicio.mgmt.listings", fallback: "Meus anúncios" },
+  {
+    href: "/app/marketplace/servicos",
+    labelKey: "inicio.mgmt.listings",
+    fallback: "Meus anúncios",
+  },
   { href: "/app/comunicacao", labelKey: "inicio.mgmt.messages", fallback: "Mensagens" },
-  { href: "/app/financeiro", labelKey: "inicio.mgmt.payments", fallback: "Pagamentos e reembolsos" },
+  {
+    href: "/app/financeiro",
+    labelKey: "inicio.mgmt.payments",
+    fallback: "Pagamentos e reembolsos",
+  },
   { href: "/app/carrinho", labelKey: "inicio.mgmt.cart", fallback: "Carrinho" },
 ] as const;
 
@@ -261,22 +281,20 @@ export function MarketplaceInicioHub({
             )}
           </p>
         </div>
-        <div className="vj-inicio-header-actions" aria-label={t("inicio.ops", "Operações")}>
+        <nav className="vj-inicio-header-actions" aria-label={t("inicio.ops", "Operações")}>
           <Link className="vj-button vj-button-ghost" href="/app/comunicacao">
             {t("inicio.messages", "Mensagens")}
           </Link>
           <Link className="vj-button vj-button-secondary" href="/app/carrinho">
             {t("inicio.cart", "Carrinho")}
-            {cartCount > 0 ? (
-              <Badge tone="warning">{cartCount}</Badge>
-            ) : null}
+            {cartCount > 0 ? <Badge tone="warning">{cartCount}</Badge> : null}
           </Link>
           {canPublish ? (
             <Link className="vj-button" href="/app/marketplace/servicos?novo=1">
               {t("inicio.publish", "Anunciar produto ou serviço")}
             </Link>
           ) : null}
-        </div>
+        </nav>
       </header>
 
       {!hasOrg ? (
@@ -385,25 +403,23 @@ export function MarketplaceInicioHub({
               </label>
             </div>
             {categories.length > 0 ? (
-              <div className="vj-inicio-cats" role="list" aria-label={t("inicio.categories", "Categorias")}>
+              <ul className="vj-inicio-cats" aria-label={t("inicio.categories", "Categorias")}>
                 {categories.slice(0, 10).map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    role="listitem"
-                    className={
-                      categoryParam === c.id
-                        ? "vj-inicio-cat vj-inicio-cat-active"
-                        : "vj-inicio-cat"
-                    }
-                    onClick={() =>
-                      setFilter("categoryId", categoryParam === c.id ? "" : c.id)
-                    }
-                  >
-                    {c.name}
-                  </button>
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      className={
+                        categoryParam === c.id
+                          ? "vj-inicio-cat vj-inicio-cat-active"
+                          : "vj-inicio-cat"
+                      }
+                      onClick={() => setFilter("categoryId", categoryParam === c.id ? "" : c.id)}
+                    >
+                      {c.name}
+                    </button>
+                  </li>
                 ))}
-              </div>
+              </ul>
             ) : null}
           </section>
 
@@ -457,9 +473,7 @@ export function MarketplaceInicioHub({
                     <p className="vj-inicio-card-pro">
                       {item.professional?.professionalName ??
                         t("inicio.professional.unknown", "Profissional")}
-                      {item.professional?.oabUf
-                        ? ` · OAB/${item.professional.oabUf}`
-                        : null}
+                      {item.professional?.oabUf ? ` · OAB/${item.professional.oabUf}` : null}
                     </p>
                     {item.description ? (
                       <p className="vj-inicio-card-desc">{item.description.slice(0, 140)}</p>
@@ -543,7 +557,9 @@ export function MarketplaceInicioHub({
             <h2 className="vj-section-title">{t("dashboard.activeContext")}</h2>
             <p>
               {organizationName}
-              {organizationSlug ? <span className="vj-technical"> · {organizationSlug}</span> : null}
+              {organizationSlug ? (
+                <span className="vj-technical"> · {organizationSlug}</span>
+              ) : null}
             </p>
             {personaLabel ? (
               <p className="vj-meta">

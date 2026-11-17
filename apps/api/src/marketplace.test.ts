@@ -480,7 +480,10 @@ describe("Etapa 17 — Marketplace jurídico API", () => {
       s.memberA,
     );
     expect(empty.statusCode).toBe(200);
-    expect(empty.json<{ items: unknown[]; total: number }>()).toMatchObject({ items: [], total: 0 });
+    expect(empty.json<{ items: unknown[]; total: number }>()).toMatchObject({
+      items: [],
+      total: 0,
+    });
 
     const anon = await call(app, "GET", "/v1/marketplace/catalog");
     expect(anon.statusCode).toBeGreaterThanOrEqual(401);
@@ -563,7 +566,9 @@ describe("Etapa 17 — Marketplace jurídico API", () => {
     );
     const events = detail.json<{ events: Array<{ eventType: string; toStatus: string | null }> }>()
       .events;
-    expect(events.some((e) => e.eventType === "cancelled" && e.toStatus === "cancelled")).toBe(true);
+    expect(events.some((e) => e.eventType === "cancelled" && e.toStatus === "cancelled")).toBe(
+      true,
+    );
 
     const again = await call(
       app,

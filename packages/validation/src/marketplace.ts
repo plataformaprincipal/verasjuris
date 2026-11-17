@@ -219,6 +219,13 @@ export const checkoutMarketplaceCartSchema = z.object({
     errorMap: () => ({ message: "Aceite os termos para continuar." }),
   }),
   clientId: optionalUuid,
+  /** Chave de idempotência persistente (obrigatória para evitar cobranças duplicadas). */
+  idempotencyKey: z
+    .string()
+    .trim()
+    .min(8, "Informe uma chave de idempotência.")
+    .max(128)
+    .regex(/^[A-Za-z0-9._:-]+$/, "Chave de idempotência inválida."),
 });
 
 export const marketplaceListQuerySchema = z.object({
@@ -281,7 +288,10 @@ export const cancelMarketplaceEngagementSchema = z.object({
 export const requestMarketplaceRefundSchema = z.object({
   reason: safeText(10, 2000),
   /** null/ausente = reembolso integral do valor pago. */
-  amountCents: cents.refine((v) => v > 0, "Informe um valor positivo em centavos.").nullable().optional(),
+  amountCents: cents
+    .refine((v) => v > 0, "Informe um valor positivo em centavos.")
+    .nullable()
+    .optional(),
   evidenceDocumentId: optionalUuid,
 });
 

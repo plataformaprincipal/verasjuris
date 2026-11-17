@@ -566,6 +566,7 @@ export const marketplaceCartItems = pgTable(
 
 export const marketplaceCartsRelations = relations(marketplaceCarts, ({ many }) => ({
   items: many(marketplaceCartItems),
+  checkouts: many(marketplaceCheckoutAttempts),
 }));
 
 export const marketplaceCartItemsRelations = relations(marketplaceCartItems, ({ one }) => ({
@@ -578,3 +579,111 @@ export const marketplaceCartItemsRelations = relations(marketplaceCartItems, ({ 
     references: [professionalServices.id],
   }),
 }));
+
+/**
+ * Tentativa de checkout idempotente (carrinho → contratações + cobranças).
+ * Snapshot imutável de preços; recuperação sem reabrir TX durante chamadas ao PSP.
+ */
+export const marketplaceCheckoutAttempts = pgTable(
+  "marketplace_checkout_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    cartId: uuid("cart_id")
+      .notNull()
+      .references(() => marketplaceCarts.id, { onDelete: "restrict" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Chave de idempotência do cliente (duplo clique / retry). */
+    idempotencyKey: text("idempotency_key").notNull(),
+    /** pending | processing | completed | partial_failed | failed */
+    status: text("status").notNull().default("pending"),
+    paymentMethod: text("payment_method").notNull().default("pix"),
+    clientId: uuid("client_id").references(() => crmClients.id, { onDelete: "set null" }),
+    totalCents: bigint("total_cents", { mode: "number" }).notNull().default(0),
+    currency: text("currency").notNull().default("BRL"),
+    /** Snapshot imutável dos itens/preços no momento do checkout. */
+    snapshotJson: jsonb("snapshot_json").$type<Record<string, unknown>>().notNull().default({}),
+    lastError: text("last_error"),
+    completedAt: timestamp("completed_at", { withTimezone: true, mode: "date" }),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("marketplace_checkout_attempts_idempotency_unique").on(
+      table.organizationId,
+      table.userId,
+      table.idempotencyKey,
+    ),
+    index("marketplace_checkout_attempts_cart_idx").on(table.cartId),
+    index("marketplace_checkout_attempts_org_user_idx").on(table.organizationId, table.userId),
+    index("marketplace_checkout_attempts_status_idx").on(table.status),
+  ],
+);
+
+export const marketplaceCheckoutAttemptItems = pgTable(
+  "marketplace_checkout_attempt_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    attemptId: uuid("attempt_id")
+      .notNull()
+      .references(() => marketplaceCheckoutAttempts.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    cartItemId: uuid("cart_item_id"),
+    professionalServiceId: uuid("professional_service_id")
+      .notNull()
+      .references(() => professionalServices.id, { onDelete: "restrict" }),
+    quantity: integer("quantity").notNull().default(1),
+    unitPriceCents: bigint("unit_price_cents", { mode: "number" }).notNull(),
+    amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+    serviceTitle: text("service_title").notNull(),
+    /** pending | engagement_created | payment_initiated | failed | skipped */
+    status: text("status").notNull().default("pending"),
+    engagementId: uuid("engagement_id").references(() => marketplaceEngagements.id, {
+      onDelete: "set null",
+    }),
+    paymentIntentId: uuid("payment_intent_id"),
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("marketplace_checkout_attempt_items_attempt_cart_item_unique").on(
+      table.attemptId,
+      table.cartItemId,
+    ),
+    index("marketplace_checkout_attempt_items_attempt_idx").on(table.attemptId),
+    index("marketplace_checkout_attempt_items_engagement_idx").on(table.engagementId),
+    index("marketplace_checkout_attempt_items_status_idx").on(table.status),
+  ],
+);
+
+export const marketplaceCheckoutAttemptsRelations = relations(
+  marketplaceCheckoutAttempts,
+  ({ one, many }) => ({
+    cart: one(marketplaceCarts, {
+      fields: [marketplaceCheckoutAttempts.cartId],
+      references: [marketplaceCarts.id],
+    }),
+    items: many(marketplaceCheckoutAttemptItems),
+  }),
+);
+
+export const marketplaceCheckoutAttemptItemsRelations = relations(
+  marketplaceCheckoutAttemptItems,
+  ({ one }) => ({
+    attempt: one(marketplaceCheckoutAttempts, {
+      fields: [marketplaceCheckoutAttemptItems.attemptId],
+      references: [marketplaceCheckoutAttempts.id],
+    }),
+    engagement: one(marketplaceEngagements, {
+      fields: [marketplaceCheckoutAttemptItems.engagementId],
+      references: [marketplaceEngagements.id],
+    }),
+  }),
+);

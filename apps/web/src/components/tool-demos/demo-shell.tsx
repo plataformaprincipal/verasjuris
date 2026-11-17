@@ -41,7 +41,12 @@ export function DemoShell({
         <h3 className="vj-subtitle">{config.title}</h3>
         <div className="vj-inline-actions">
           {onUndo ? (
-            <Button type="button" className="vj-button-secondary" disabled={!canUndo} onClick={onUndo}>
+            <Button
+              type="button"
+              className="vj-button-secondary"
+              disabled={!canUndo}
+              onClick={onUndo}
+            >
               {t("showroom.demo.undo", "Desfazer")}
             </Button>
           ) : null}

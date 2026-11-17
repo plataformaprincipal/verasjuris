@@ -33,13 +33,7 @@ const NAV = [
   { href: "/admin/seguranca", label: "Segurança", icon: Shield },
 ] as const;
 
-export function AdminShell({
-  children,
-  roles,
-}: {
-  children: ReactNode;
-  roles?: string[];
-}) {
+export function AdminShell({ children, roles }: { children: ReactNode; roles?: string[] }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -52,9 +46,10 @@ export function AdminShell({
         </div>
         <nav className="vj-admin-nav">
           {NAV.map((item) => {
-            const active = ("exact" in item && item.exact)
-              ? pathname === item.href
-              : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active =
+              "exact" in item && item.exact
+                ? pathname === item.href
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
             return (
               <Link
@@ -70,9 +65,7 @@ export function AdminShell({
           })}
         </nav>
         <div className="vj-admin-sidebar-foot">
-          {roles?.length ? (
-            <p className="vj-meta">{collapsed ? "…" : roles.join(", ")}</p>
-          ) : null}
+          {roles?.length ? <p className="vj-meta">{collapsed ? "…" : roles.join(", ")}</p> : null}
           <button
             type="button"
             className="vj-button vj-button-ghost"

@@ -102,11 +102,7 @@ export class AssistantService {
     return { conversation: updated };
   }
 
-  async favoriteConversation(
-    account: SessionAccount,
-    conversationId: string,
-    favorite: boolean,
-  ) {
+  async favoriteConversation(account: SessionAccount, conversationId: string, favorite: boolean) {
     const conversation = await this.requireOwnedConversation(account, conversationId);
     const metadata = {
       ...(conversation.metadata ?? {}),
@@ -144,9 +140,8 @@ export class AssistantService {
       conversation = updated!;
     }
     if (input.favorite !== undefined) {
-      conversation = (
-        await this.favoriteConversation(account, conversationId, input.favorite)
-      ).conversation!;
+      conversation = (await this.favoriteConversation(account, conversationId, input.favorite))
+        .conversation!;
     }
     return { conversation };
   }
@@ -183,43 +178,64 @@ export class AssistantService {
     });
 
     const locale = conversation.locale || "pt-BR";
-    let replyText: string;
-    let providerKey = "faq_fallback";
-
-    if (this.aiGateway) {
-      try {
-        const health = await this.aiGateway.healthCheck();
-        if (health.status === "not_configured") {
-          replyText = this.notConfiguredReply(locale, input.content);
-          providerKey = "faq_fallback";
-        } else if (conversation.organizationId) {
-          const result = await this.generateChatText(
-            account,
-            conversation.organizationId,
-            locale,
-            input.content,
-          );
-          replyText = result.data;
-          providerKey = result.provider || "ai";
-        } else {
-          replyText = this.faqReply(locale, input.content);
-          providerKey = "faq_fallback";
-        }
-      } catch {
-        replyText = this.faqReply(locale, input.content);
-        providerKey = "faq_fallback";
-      }
-    } else {
-      replyText = this.notConfiguredReply(locale, input.content);
+    if (!conversation.organizationId) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Conversa sem organização. Crie a conversa no contexto da organização ativa.",
+      );
     }
+    if (!this.aiGateway) {
+      throw new AppError(
+        "AI_PROVIDER_NOT_CONFIGURED",
+        "O serviço de inteligência artificial está temporariamente indisponível.",
+      );
+    }
+
+    const health = await this.aiGateway.healthCheck();
+    const description = this.aiGateway.describe();
+    if (description.status === "not_configured" || health.status === "not_configured") {
+      throw new AppError(
+        "AI_PROVIDER_NOT_CONFIGURED",
+        "O serviço de inteligência artificial está temporariamente indisponível.",
+      );
+    }
+    if (health.status === "unavailable") {
+      throw new AppError(
+        "AI_PROVIDER_UNAVAILABLE",
+        "O provedor de inteligência artificial está indisponível no momento.",
+      );
+    }
+
+    const recent = await this.db.query.assistantMessages.findMany({
+      where: eq(assistantMessages.conversationId, conversation.id),
+      orderBy: [desc(assistantMessages.createdAt)],
+      limit: 12,
+    });
+    const chronological = [...recent].reverse();
+    const contextLines = chronological
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => `${m.role}: ${m.content.slice(0, 1_500)}`);
+    const modelInput =
+      contextLines.length > 0
+        ? `${contextLines.join("\n")}\nuser: ${input.content}`
+        : input.content;
+
+    const result = await this.generateChatText(
+      account,
+      conversation.organizationId,
+      locale,
+      modelInput,
+    );
+    const providerKey = result.provider || "ai";
 
     const [assistantMsg] = await this.db
       .insert(assistantMessages)
       .values({
         conversationId: conversation.id,
         role: "assistant",
-        content: replyText,
+        content: result.data,
         providerKey,
+        metadata: { model: result.model, feature: result.feature },
       })
       .returning();
 
@@ -231,6 +247,8 @@ export class AssistantService {
     return {
       message: assistantMsg,
       providerKey,
+      model: result.model,
+      faqHint: this.faqReply(locale, input.content),
       tools: [
         "searchHelp",
         "navigateTo",
@@ -336,15 +354,6 @@ export class AssistantService {
         `Muitas mensagens no chat. Aguarde ${result.retryAfterSeconds}s e tente novamente.`,
       );
     }
-  }
-
-  private notConfiguredReply(locale: string, content: string): string {
-    const lang = locale.toLowerCase().startsWith("en") ? "en" : "pt-BR";
-    const honesty =
-      lang === "en"
-        ? "The AI provider is not configured (FEATURE_AI=0 / AI_PROVIDER=not_configured). Falling back to FAQ."
-        : "O provedor de IA não está configurado (FEATURE_AI=0 / AI_PROVIDER=not_configured). Resposta via FAQ.";
-    return `${honesty}\n\n${this.faqReply(locale, content)}`;
   }
 
   private faqReply(locale: string, content: string): string {

@@ -182,6 +182,7 @@ import { registerExtrajudicialRoutes } from "./modules/extrajudicial/routes.js";
 import { registerCommunicationRoutes } from "./modules/communication/routes.js";
 import { registerEducationRoutes } from "./modules/education/routes.js";
 import { registerFinanceRoutes } from "./modules/finance/routes.js";
+import { registerEmailRoutes } from "./modules/email/routes.js";
 import { registerTaskRoutes } from "./modules/tasks/routes.js";
 import { registerControlRoutes } from "./modules/control/routes.js";
 import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
@@ -198,6 +199,7 @@ import { registerAccessibilityRoutes } from "./modules/accessibility/routes.js";
 import { registerI18nRoutes } from "./modules/i18n/routes.js";
 import { registerAssistantRoutes } from "./modules/assistant/routes.js";
 import { registerPlatformAdminRoutes } from "./modules/platform-admin/routes.js";
+import { registerJurisOnePublicRoutes } from "./modules/juris-one-public/routes.js";
 import { registerPublicApiRoutes } from "./modules/public-api/routes.js";
 import { registerInstitutionalRoutes } from "./modules/institutional/routes.js";
 import { registerHttpGuards } from "./plugins/http.js";
@@ -211,6 +213,8 @@ export type BuildAppOptions = {
   rateLimiter?: MemoryRateLimiter;
   events?: InProcessEventBus;
   email?: EmailProvider;
+  /** Segredo Svix do webhook Resend (`whsec_...`). */
+  resendWebhookSecret?: string;
   storage?: StorageProvider;
   malwareScanner?: MalwareScannerProvider;
   documentMaxUploadBytes?: number;
@@ -329,6 +333,7 @@ export async function buildApp(options: BuildAppOptions) {
     rateLimiter: options.rateLimiter ?? new MemoryRateLimiter(),
     secureCookies: options.isProduction,
     email: options.email ?? createEmailProvider("not_configured"),
+    resendWebhookSecret: options.resendWebhookSecret,
     webOrigin: options.webOrigin,
     storage: options.storage ?? createStorageProvider(process.env),
     malwareScanner: options.malwareScanner ?? createMalwareScanner(process.env),
@@ -337,7 +342,21 @@ export async function buildApp(options: BuildAppOptions) {
     holidays: options.holidays ?? new NotConfiguredHolidayCalendar(),
     aiGateway:
       options.aiGateway ??
-      createAiGatewayFromEnv({ FEATURE_AI: process.env.FEATURE_AI, AI_PROVIDER: "not_configured" }),
+      createAiGatewayFromEnv({
+        FEATURE_AI: process.env.FEATURE_AI,
+        AI_PROVIDER: process.env.AI_PROVIDER ?? "not_configured",
+        AI_DEFAULT_MODEL: process.env.AI_DEFAULT_MODEL,
+        AI_REQUEST_TIMEOUT_MS: process.env.AI_REQUEST_TIMEOUT_MS
+          ? Number(process.env.AI_REQUEST_TIMEOUT_MS)
+          : undefined,
+        AI_MAX_RETRIES: process.env.AI_MAX_RETRIES ? Number(process.env.AI_MAX_RETRIES) : undefined,
+        AI_MAX_INPUT_TOKENS: process.env.AI_MAX_INPUT_TOKENS
+          ? Number(process.env.AI_MAX_INPUT_TOKENS)
+          : undefined,
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+        OPENAI_DEFAULT_MODEL: process.env.OPENAI_DEFAULT_MODEL,
+        OPENAI_HEALTHCHECK: process.env.OPENAI_HEALTHCHECK,
+      }),
     ocrProvider: options.ocrProvider ?? new NotConfiguredOCRProvider(),
     publicOpportunityProvider:
       options.publicOpportunityProvider ?? new NotConfiguredPublicOpportunityProvider(),
@@ -537,6 +556,7 @@ export async function buildApp(options: BuildAppOptions) {
       await registerCommunicationRoutes(v1, deps);
       await registerEducationRoutes(v1, deps);
       await registerFinanceRoutes(v1, deps);
+      await registerEmailRoutes(v1, deps);
       await registerControlRoutes(v1, deps);
       await registerAnalyticsRoutes(v1, deps);
       await registerWorkflowRoutes(v1, deps);
@@ -548,6 +568,7 @@ export async function buildApp(options: BuildAppOptions) {
       await registerAccessibilityRoutes(v1, deps);
       await registerI18nRoutes(v1, deps);
       await registerAssistantRoutes(v1, deps);
+      await registerJurisOnePublicRoutes(v1, deps);
       await registerPlatformAdminRoutes(v1, deps);
       await registerInstitutionalRoutes(v1, deps);
     },
