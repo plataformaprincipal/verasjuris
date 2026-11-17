@@ -1,4 +1,5 @@
 import { recordAudit } from "@verasjuris/audit";
+import type { AIGateway } from "@verasjuris/ai";
 import { policyAi, type SessionAccount } from "@verasjuris/auth";
 import { jurisWorkSteps, jurisWorkTasks, type AppDatabase } from "@verasjuris/database";
 import { AppError } from "@verasjuris/types";
@@ -14,33 +15,21 @@ import {
   reserveWorkCredit,
   reserveWorkCreditIdempotencyKey,
 } from "./credits.js";
+import {
+  executeInternalWorkStep,
+  isExternalTool,
+  planWorkSteps,
+  type JurisWorkToolName,
+} from "./executor.js";
 
-/** Ferramentas internas permitidas sem ação externa irreversível. */
-const SAFE_INTERNAL_TOOLS = [
-  "organize_dossier",
-  "extract_data",
-  "generate_report",
-  "compare_versions",
-  "prepare_draft",
-  "create_checklist",
-  "build_timeline",
-  "identify_missing_documents",
-] as const;
-
-const EXTERNAL_ACTION_TOOLS = [
-  "send_external_message",
-  "protocol_petition",
-  "sign_contract",
-  "execute_payment",
-  "delete_records",
-] as const;
+export type { JurisWorkToolName };
 
 /** Status em que ainda não houve trabalho significativo — cancelamento reembolsa crédito. */
 const PRE_RUN_STATUSES = new Set(["draft", "planned", "awaiting_approval"]);
 
-export type JurisWorkToolName =
-  | (typeof SAFE_INTERNAL_TOOLS)[number]
-  | (typeof EXTERNAL_ACTION_TOOLS)[number];
+export type JurisWorkRuntimeDeps = {
+  gateway?: AIGateway | null;
+};
 
 function requireJurisWorkAccess(account: SessionAccount, organizationId: string) {
   return authorize(account, organizationId, (membership) => policyAi(membership, "ai.use"));
@@ -91,57 +80,6 @@ function serializeStep(row: typeof jurisWorkSteps.$inferSelect) {
   };
 }
 
-function buildPlan(objective: string): Array<{
-  toolName: JurisWorkToolName;
-  title: string;
-  requiresApproval: boolean;
-}> {
-  const lower = objective.toLowerCase();
-  const steps: Array<{
-    toolName: JurisWorkToolName;
-    title: string;
-    requiresApproval: boolean;
-  }> = [
-    {
-      toolName: "identify_missing_documents",
-      title: "Identificar documentos ausentes",
-      requiresApproval: false,
-    },
-    {
-      toolName: "organize_dossier",
-      title: "Organizar dossiê interno",
-      requiresApproval: false,
-    },
-    {
-      toolName: "extract_data",
-      title: "Extrair dados estruturados",
-      requiresApproval: false,
-    },
-    {
-      toolName: "generate_report",
-      title: "Gerar relatório interno",
-      requiresApproval: false,
-    },
-  ];
-
-  if (/\b(minuta|petição|peticao|contrato)\b/i.test(lower)) {
-    steps.push({
-      toolName: "prepare_draft",
-      title: "Preparar minuta assistida (revisão humana obrigatória)",
-      requiresApproval: true,
-    });
-  }
-  if (/\b(enviar|protocolar|assinar|pagar|excluir)\b/i.test(lower)) {
-    steps.push({
-      toolName: "send_external_message",
-      title: "Ação externa bloqueada até aprovação explícita",
-      requiresApproval: true,
-    });
-  }
-
-  return steps.slice(0, 12);
-}
-
 async function creditsPayload(
   db: AppDatabase,
   organizationId: string,
@@ -162,9 +100,16 @@ export async function createJurisWorkTask(
     maxSteps?: number;
   },
   meta: RequestMeta,
+  runtime: JurisWorkRuntimeDeps = {},
 ) {
   const membership = requireJurisWorkAccess(account, organizationId);
-  const plan = buildPlan(input.objective);
+  const planned = await planWorkSteps({
+    gateway: runtime.gateway,
+    account,
+    organizationId,
+    objective: input.objective,
+  });
+  const plan = planned.steps;
   const now = new Date();
 
   await ensureInitialWorkCredits(db, {
@@ -186,9 +131,10 @@ export async function createJurisWorkTask(
           objective: input.objective.trim().slice(0, 4000),
           status: "awaiting_approval",
           planJson: {
-            version: 1,
+            version: 2,
+            source: planned.source,
             tools: plan.map((s) => s.toolName),
-            note: "Plano gerado localmente. Execução de ferramentas externas exige aprovação humana.",
+            note: planned.note,
           },
           budgetMicros: input.budgetMicros ?? 500_000,
           maxSteps: input.maxSteps ?? plan.length,
@@ -403,6 +349,7 @@ export async function runNextJurisWorkStep(
   organizationId: string,
   taskId: string,
   meta: RequestMeta,
+  runtime: JurisWorkRuntimeDeps = {},
 ) {
   requireJurisWorkAccess(account, organizationId);
   const task = await db.query.jurisWorkTasks.findFirst({
@@ -417,7 +364,6 @@ export async function runNextJurisWorkStep(
       .update(jurisWorkTasks)
       .set({ status: "budget_exceeded", updatedAt: new Date() })
       .where(eq(jurisWorkTasks.id, taskId));
-    // Trabalho já iniciado — consome crédito reservado (sem reembolso).
     await consumeReservedCredit(db, {
       organizationId,
       userId: task.createdByUserId,
@@ -447,7 +393,6 @@ export async function runNextJurisWorkStep(
       .where(eq(jurisWorkTasks.id, taskId))
       .returning();
 
-    // Conclusão após execução — consome reserva (não reembolsa).
     await consumeReservedCredit(db, {
       organizationId,
       userId: task.createdByUserId,
@@ -459,31 +404,67 @@ export async function runNextJurisWorkStep(
     return { task: serializeTask(completed!), step: null, done: true as const, credits };
   }
 
-  if (
-    EXTERNAL_ACTION_TOOLS.includes(next.toolName as (typeof EXTERNAL_ACTION_TOOLS)[number]) ||
-    (next.requiresApproval && !next.approvedAt)
-  ) {
+  if (isExternalTool(next.toolName) || (next.requiresApproval && !next.approvedAt)) {
     throw new AppError(
       "AUTHORIZATION_ERROR",
       `O passo "${next.title}" exige aprovação humana explícita e não executa ações externas automaticamente.`,
     );
   }
 
+  const startedAt = new Date();
+  await db
+    .update(jurisWorkSteps)
+    .set({ status: "running", startedAt, updatedAt: startedAt })
+    .where(eq(jurisWorkSteps.id, next.id));
+
+  let output: Awaited<ReturnType<typeof executeInternalWorkStep>>;
+  try {
+    output = await executeInternalWorkStep({
+      db,
+      gateway: runtime.gateway,
+      account,
+      organizationId,
+      objective: task.objective,
+      toolName: next.toolName,
+      stepTitle: next.title,
+    });
+  } catch (error) {
+    const failedAt = new Date();
+    const code = error instanceof AppError ? error.code : "INTERNAL_ERROR";
+    await db
+      .update(jurisWorkSteps)
+      .set({
+        status: "failed",
+        completedAt: failedAt,
+        errorCode: code,
+        outputJson: {
+          status: "failed",
+          errorCode: code,
+          message: error instanceof AppError ? error.message : "Falha ao executar etapa Work.",
+        },
+        updatedAt: failedAt,
+      })
+      .where(eq(jurisWorkSteps.id, next.id));
+    await db
+      .update(jurisWorkTasks)
+      .set({
+        status: "failed",
+        lastError: error instanceof AppError ? error.message : "Falha ao executar etapa Work.",
+        updatedAt: failedAt,
+      })
+      .where(eq(jurisWorkTasks.id, taskId));
+    throw error;
+  }
+
   const now = new Date();
-  const stepCost = 25_000;
+  const stepCost = Math.max(25_000, output.usage.estimatedCostMicros || 25_000);
   const [updatedStep] = await db
     .update(jurisWorkSteps)
     .set({
       status: "completed",
-      startedAt: now,
+      startedAt,
       completedAt: now,
-      outputJson: {
-        status: "simulated_internal",
-        detail:
-          "Resultado interno gerado pelo scaffold JurisOne Work. Não constitui ato jurídico nem consulta oficial.",
-        toolName: next.toolName,
-        humanReviewRequired: true,
-      },
+      outputJson: output,
       updatedAt: now,
     })
     .where(eq(jurisWorkSteps.id, next.id))
@@ -506,7 +487,12 @@ export async function runNextJurisWorkStep(
     source: "api",
     requestId: meta.requestId,
     ip: meta.ip,
-    after: { toolName: next.toolName, costMicros: stepCost },
+    after: {
+      toolName: next.toolName,
+      costMicros: stepCost,
+      provider: output.provider,
+      model: output.model,
+    },
   });
 
   const credits = await creditsPayload(db, organizationId, account.user.id);
@@ -538,7 +524,7 @@ export async function approveJurisWorkStep(
   if (!step.requiresApproval) {
     throw new AppError("CONFLICT", "Este passo não exige aprovação.");
   }
-  if (EXTERNAL_ACTION_TOOLS.includes(step.toolName as (typeof EXTERNAL_ACTION_TOOLS)[number])) {
+  if (isExternalTool(step.toolName)) {
     throw new AppError(
       "NOT_CONFIGURED",
       "Ações externas (envio, protocolo, assinatura, pagamento, exclusão) permanecem bloqueadas até conectores homologados.",

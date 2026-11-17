@@ -322,6 +322,11 @@ export const DEFAULT_AI_FEATURES: Readonly<Record<string, AIFeatureDefinition>> 
     requires: [AICapability.TEXT],
     outputDisposition: "assistive",
   },
+  /** Juris One Work — planejamento/execução interna; saída exige revisão humana. */
+  "juris_one.work": {
+    requires: [AICapability.TEXT],
+    outputDisposition: "requires_review",
+  },
   document_embedding: { requires: [AICapability.EMBEDDINGS], outputDisposition: "assistive" },
   document_vision: { requires: [AICapability.VISION], outputDisposition: "requires_review" },
 };

@@ -13,36 +13,22 @@ import {
 import { useEffect, useState } from "react";
 import { isApiFailure } from "../../../../lib/ai";
 import {
+  approveWorkStep,
+  approveWorkTask,
+  cancelWorkTask,
   createWorkTask,
   ensureInitialWorkCredits,
   getWorkCredits,
+  getWorkTask,
   jurisOneApiErrorMessage,
   listWorkTasks,
+  runNextWorkStep,
   type JurisWorkCredits,
+  type JurisWorkStep,
   type JurisWorkTask,
 } from "../../../../lib/juris-one-api";
 import { JURIS_WORK_STATUS } from "../../../../lib/juris-one";
 import { useOrgContext } from "../../../../lib/use-org-context";
-import { CSRF_HEADER } from "@verasjuris/security/constants";
-
-async function approveRun(orgId: string, taskId: string) {
-  const headers = {
-    "Content-Type": "application/json",
-    [CSRF_HEADER]: "1",
-  };
-  await fetch(`/api/v1/organizations/${orgId}/juris-work/${taskId}/approve`, {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: "{}",
-  });
-  await fetch(`/api/v1/organizations/${orgId}/juris-work/${taskId}/run-next`, {
-    method: "POST",
-    credentials: "include",
-    headers,
-    body: "{}",
-  });
-}
 
 export default function JurisOneWorkPage() {
   const org = useOrgContext();
@@ -50,12 +36,15 @@ export default function JurisOneWorkPage() {
   const [error, setError] = useState<string | null>(null);
   const [tasks, setTasks] = useState<JurisWorkTask[]>([]);
   const [credits, setCredits] = useState<JurisWorkCredits | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [steps, setSteps] = useState<JurisWorkStep[]>([]);
   const [title, setTitle] = useState("Organizar dossiê");
   const [objective, setObjective] = useState(
     "Organizar documentos, extrair dados e gerar relatório interno para revisão humana.",
   );
   const [busy, setBusy] = useState(false);
   const [createNote, setCreateNote] = useState<string | null>(null);
+  const [lastOutput, setLastOutput] = useState<string | null>(null);
 
   async function refresh(orgId: string) {
     const [tasksRes, creditsRes] = await Promise.all([listWorkTasks(orgId), getWorkCredits(orgId)]);
@@ -69,6 +58,25 @@ export default function JurisOneWorkPage() {
     }
     if (!isApiFailure(creditsRes)) setCredits(creditsRes.credits);
     setLoading(false);
+  }
+
+  async function loadTaskDetail(orgId: string, taskId: string) {
+    const detail = await getWorkTask(orgId, taskId);
+    if (isApiFailure(detail)) {
+      setError(jurisOneApiErrorMessage(detail, "Não foi possível carregar a tarefa."));
+      return;
+    }
+    setSelectedId(taskId);
+    setSteps(detail.steps);
+    if (detail.credits) setCredits(detail.credits);
+    const completed = [...detail.steps]
+      .reverse()
+      .find((step) => step.status === "completed" && step.output);
+    const content =
+      completed?.output && typeof completed.output.content === "string"
+        ? completed.output.content
+        : null;
+    setLastOutput(content);
   }
 
   useEffect(() => {
@@ -117,13 +125,78 @@ export default function JurisOneWorkPage() {
       setCreateNote("Tarefa criada.");
     }
     await refresh(org.orgId);
+    await loadTaskDetail(org.orgId, result.task.id);
   }
 
   async function approveAndRun(taskId: string) {
     if (!org.orgId) return;
     setBusy(true);
-    await approveRun(org.orgId, taskId);
+    setError(null);
+    const approved = await approveWorkTask(org.orgId, taskId);
+    if (isApiFailure(approved)) {
+      setBusy(false);
+      setError(jurisOneApiErrorMessage(approved, "Não foi possível aprovar a tarefa."));
+      return;
+    }
+    const ran = await runNextWorkStep(org.orgId, taskId);
     setBusy(false);
+    if (isApiFailure(ran)) {
+      setError(jurisOneApiErrorMessage(ran, "Não foi possível executar o próximo passo."));
+      await loadTaskDetail(org.orgId, taskId);
+      await refresh(org.orgId);
+      return;
+    }
+    if (ran.credits) setCredits(ran.credits);
+    if (ran.step?.output && typeof ran.step.output.content === "string") {
+      setLastOutput(ran.step.output.content);
+    }
+    await refresh(org.orgId);
+    await loadTaskDetail(org.orgId, taskId);
+  }
+
+  async function runNext(taskId: string) {
+    if (!org.orgId) return;
+    setBusy(true);
+    setError(null);
+    const ran = await runNextWorkStep(org.orgId, taskId);
+    setBusy(false);
+    if (isApiFailure(ran)) {
+      setError(jurisOneApiErrorMessage(ran, "Não foi possível executar o próximo passo."));
+      await loadTaskDetail(org.orgId, taskId);
+      return;
+    }
+    if (ran.credits) setCredits(ran.credits);
+    if (ran.step?.output && typeof ran.step.output.content === "string") {
+      setLastOutput(ran.step.output.content);
+    }
+    await refresh(org.orgId);
+    await loadTaskDetail(org.orgId, taskId);
+  }
+
+  async function approveStep(taskId: string, stepId: string) {
+    if (!org.orgId) return;
+    setBusy(true);
+    const result = await approveWorkStep(org.orgId, taskId, stepId);
+    setBusy(false);
+    if (isApiFailure(result)) {
+      setError(jurisOneApiErrorMessage(result, "Não foi possível aprovar o passo."));
+      return;
+    }
+    await loadTaskDetail(org.orgId, taskId);
+  }
+
+  async function cancelTask(taskId: string) {
+    if (!org.orgId) return;
+    setBusy(true);
+    const result = await cancelWorkTask(org.orgId, taskId);
+    setBusy(false);
+    if (isApiFailure(result)) {
+      setError(jurisOneApiErrorMessage(result, "Não foi possível cancelar a tarefa."));
+      return;
+    }
+    if (result.credits) setCredits(result.credits);
+    setSelectedId(null);
+    setSteps([]);
     await refresh(org.orgId);
   }
 
@@ -132,14 +205,15 @@ export default function JurisOneWorkPage() {
       <Breadcrumb items={[{ label: "Juris One", href: "/app/juris-one" }, { label: "Work" }]} />
       <PageHeader title="Juris One Work" description={JURIS_WORK_STATUS.detail} />
       <p className="vj-hint">
-        Scaffold autenticado com créditos: planejamento, aprovação humana, passos internos e
-        bloqueio de ações externas. Não homologado para produção comercial.
+        Agente autenticado com RBAC (`ai.use`), isolamento por organização, créditos, auditoria e
+        aprovação humana. Passos internos usam OpenAI quando configurada; ações externas (protocolo,
+        pagamento, e-mail, exclusão) permanecem bloqueadas.
       </p>
       <div className="vj-inline-actions">
         <Badge tone="neutral">Créditos: {credits?.balance != null ? credits.balance : "—"}</Badge>
         <Badge tone={JURIS_WORK_STATUS.authenticatedAvailable ? "success" : "warning"}>
           {JURIS_WORK_STATUS.authenticatedAvailable
-            ? "Scaffold com créditos disponível"
+            ? "Work autenticado disponível"
             : "Indisponível"}
         </Badge>
       </div>
@@ -179,14 +253,78 @@ export default function JurisOneWorkPage() {
               micro)
             </p>
             <p>{task.objective}</p>
-            {task.status === "awaiting_approval" || task.status === "running" ? (
-              <Button type="button" disabled={busy} onClick={() => void approveAndRun(task.id)}>
-                Aprovar / executar próximo passo interno
+            {task.lastError ? <p className="vj-hint">Erro: {task.lastError}</p> : null}
+            <div className="vj-inline-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={busy}
+                onClick={() => org.orgId && void loadTaskDetail(org.orgId, task.id)}
+              >
+                Detalhes
               </Button>
-            ) : null}
+              {task.status === "awaiting_approval" ? (
+                <Button type="button" disabled={busy} onClick={() => void approveAndRun(task.id)}>
+                  Aprovar e executar próximo passo
+                </Button>
+              ) : null}
+              {task.status === "running" ? (
+                <Button type="button" disabled={busy} onClick={() => void runNext(task.id)}>
+                  Executar próximo passo
+                </Button>
+              ) : null}
+              {task.status === "awaiting_approval" || task.status === "running" ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() => void cancelTask(task.id)}
+                >
+                  Cancelar
+                </Button>
+              ) : null}
+            </div>
           </li>
         ))}
       </ul>
+
+      {selectedId ? (
+        <section className="vj-card vj-stack" aria-labelledby="work-steps">
+          <h2 id="work-steps" className="vj-subtitle">
+            Etapas da tarefa
+          </h2>
+          <ol className="vj-stack">
+            {steps.map((step) => (
+              <li key={step.id} className="vj-stack">
+                <strong>
+                  {step.stepIndex + 1}. {step.title}
+                </strong>
+                <p className="vj-hint">
+                  {step.toolName} · {step.status}
+                  {step.requiresApproval ? " · requer aprovação" : ""}
+                </p>
+                {step.status === "awaiting_approval" ? (
+                  <Button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void approveStep(selectedId, step.id)}
+                  >
+                    Aprovar passo interno
+                  </Button>
+                ) : null}
+                {step.output && typeof step.output.content === "string" ? (
+                  <p className="vj-hint">{step.output.content}</p>
+                ) : null}
+              </li>
+            ))}
+          </ol>
+          {lastOutput ? (
+            <Alert tone="info" title="Última saída assistiva">
+              Revisar antes de qualquer uso externo. Ações externas não foram executadas.
+            </Alert>
+          ) : null}
+        </section>
+      ) : null}
     </div>
   );
 }

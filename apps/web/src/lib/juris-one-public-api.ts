@@ -1,3 +1,5 @@
+import { CSRF_HEADER } from "@verasjuris/security/constants";
+
 const VISITOR_KEY = "vj.juris-one.visitor-id";
 
 export function getOrCreateJurisOneVisitorId(): string {
@@ -49,7 +51,11 @@ export async function sendJurisOnePublicChat(input: {
   try {
     const res = await fetch("/api/v1/juris-one/public/chat", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        /** Obrigatório: o BFF repassa ao Fastify; `registerHttpGuards` rejeita mutações sem este valor. */
+        [CSRF_HEADER]: "1",
+      },
       body: JSON.stringify({
         message: input.message,
         locale: input.locale,

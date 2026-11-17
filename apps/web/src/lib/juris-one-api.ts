@@ -51,6 +51,21 @@ export type JurisWorkTask = {
   status: string;
   spentMicros: number;
   budgetMicros: number | null;
+  plan?: Record<string, unknown> | null;
+  result?: Record<string, unknown> | null;
+  lastError?: string | null;
+};
+
+export type JurisWorkStep = {
+  id: string;
+  taskId: string;
+  stepIndex: number;
+  toolName: string;
+  title: string;
+  status: string;
+  requiresApproval: boolean;
+  output?: Record<string, unknown> | null;
+  errorCode?: string | null;
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T | AiApiFailure> {
@@ -225,6 +240,68 @@ export async function createWorkTask(
     method: "POST",
     body: JSON.stringify(input),
   });
+}
+
+export async function getWorkTask(
+  orgId: string,
+  taskId: string,
+): Promise<
+  { task: JurisWorkTask; steps: JurisWorkStep[]; credits?: JurisWorkCredits } | AiApiFailure
+> {
+  return request<{ task: JurisWorkTask; steps: JurisWorkStep[]; credits?: JurisWorkCredits }>(
+    orgWorkPath(orgId, `/${taskId}`),
+  );
+}
+
+export async function approveWorkTask(
+  orgId: string,
+  taskId: string,
+): Promise<{ task: JurisWorkTask; credits?: JurisWorkCredits } | AiApiFailure> {
+  return request<{ task: JurisWorkTask; credits?: JurisWorkCredits }>(
+    orgWorkPath(orgId, `/${taskId}/approve`),
+    { method: "POST", body: "{}" },
+  );
+}
+
+export async function runNextWorkStep(
+  orgId: string,
+  taskId: string,
+): Promise<
+  | {
+      task: JurisWorkTask;
+      step: JurisWorkStep | null;
+      done: boolean;
+      credits?: JurisWorkCredits;
+    }
+  | AiApiFailure
+> {
+  return request<{
+    task: JurisWorkTask;
+    step: JurisWorkStep | null;
+    done: boolean;
+    credits?: JurisWorkCredits;
+  }>(orgWorkPath(orgId, `/${taskId}/run-next`), { method: "POST", body: "{}" });
+}
+
+export async function approveWorkStep(
+  orgId: string,
+  taskId: string,
+  stepId: string,
+): Promise<{ step: JurisWorkStep } | AiApiFailure> {
+  return request<{ step: JurisWorkStep }>(
+    orgWorkPath(orgId, `/${taskId}/steps/${stepId}/approve`),
+    { method: "POST", body: "{}" },
+  );
+}
+
+export async function cancelWorkTask(
+  orgId: string,
+  taskId: string,
+): Promise<{ task: JurisWorkTask; credits?: JurisWorkCredits } | AiApiFailure> {
+  return request<{ task: JurisWorkTask; credits?: JurisWorkCredits }>(
+    orgWorkPath(orgId, `/${taskId}/cancel`),
+    { method: "POST", body: "{}" },
+  );
 }
 
 export { isApiFailure };
