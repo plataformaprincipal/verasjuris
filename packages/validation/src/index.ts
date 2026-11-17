@@ -822,6 +822,7 @@ export * from "./finance.js";
 export * from "./monetization.js";
 export * from "./commercial-catalog.js";
 export * from "./commerce.js";
+export * from "./ai-module-features.js";
 export * from "./control.js";
 export * from "./analytics.js";
 export * from "./workflows.js";

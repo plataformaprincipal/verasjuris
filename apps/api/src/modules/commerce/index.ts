@@ -21,4 +21,15 @@ export {
   resolveMarketplaceOabServiceType,
   type OabServiceType,
 } from "./oab-split-seed.js";
+export { assertAndConsumeAiCredits } from "./ai-credit-gate.js";
+export {
+  acceptServiceDelivery,
+  acceptServiceProposal,
+  checkoutServiceMilestone,
+  createServiceProposal,
+  getServiceProject,
+  listServiceProjects,
+  markServiceMilestonePaid,
+  submitServiceDelivery,
+} from "./service-project-service.js";
 export { assertPaymentsLiveForbidden, registerCommerceRoutes } from "./routes.js";

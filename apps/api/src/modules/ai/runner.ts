@@ -323,6 +323,16 @@ export async function runStructuredAi<T>(
     if (remaining !== undefined && remaining <= 0) {
       throw new AppError("AI_BUDGET_EXCEEDED", "O orçamento de IA da organização foi atingido.");
     }
+    // Fase 5: módulo comercial + franquia/créditos (idempotente por chave da request).
+    const { assertAndConsumeAiCredits } = await import("../commerce/ai-credit-gate.js");
+    await assertAndConsumeAiCredits(ctx.db, {
+      organizationId: ctx.organizationId,
+      feature: params.feature,
+      idempotencyKey: params.idempotencyKey
+        ? `ai_run:${params.idempotencyKey}`
+        : `ai_run:${request.id}`,
+      actorUserId: ctx.account.user.id,
+    });
   } catch (error) {
     return fail(error);
   }

@@ -43,6 +43,7 @@ import {
   MARKETPLACE_SPLIT_PRODUCT_TYPE,
   resolveMarketplaceOabServiceType,
 } from "../commerce/oab-split-seed.js";
+import { markServiceMilestonePaid } from "../commerce/service-project-service.js";
 import { activateMarketplaceEngagementOnPayment } from "../marketplace/service.js";
 import { BillingService } from "./billing-service.js";
 import { LedgerPostingService } from "./ledger-posting-service.js";
@@ -668,6 +669,22 @@ export class PaymentService {
           });
         } catch {
           // Fulfillment falhou — pagamento permanece confirmado; retry via reprocessamento.
+        }
+      }
+
+      if (
+        intent?.referenceType === "commerce_service_milestone" &&
+        intent.referenceId &&
+        intent.organizationId
+      ) {
+        try {
+          await markServiceMilestonePaid(this.db, {
+            organizationId: intent.organizationId,
+            milestoneId: intent.referenceId,
+            paymentIntentId: intent.id,
+          });
+        } catch {
+          // Marco permanece pendente até reprocessamento.
         }
       }
     }

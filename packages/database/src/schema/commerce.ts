@@ -216,3 +216,88 @@ export const organizationCommercialGrantsRelations = relations(
     }),
   }),
 );
+
+/* ─── Fase 6: serviços próprios SRV_* com marcos 30/70 ─── */
+
+export const commerceServiceProjects = pgTable(
+  "commerce_service_projects",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    requesterUserId: uuid("requester_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    skuCode: text("sku_code").notNull(),
+    productId: uuid("product_id").references(() => monetizationProducts.id, {
+      onDelete: "set null",
+    }),
+    status: text("status").notNull().default("proposed"),
+    totalCents: bigint("total_cents", { mode: "number" }).notNull(),
+    currency: text("currency").notNull().default("BRL"),
+    requiresProposal: boolean("requires_proposal").notNull().default(false),
+    notes: text("notes"),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true, mode: "date" }),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true, mode: "date" }),
+    deliveryAcceptedAt: timestamp("delivery_accepted_at", { withTimezone: true, mode: "date" }),
+    deliverySummary: text("delivery_summary"),
+    deliveryArtifactUrl: text("delivery_artifact_url"),
+    metadataJson: jsonb("metadata_json").$type<Record<string, unknown>>().notNull().default({}),
+    ...timestamps,
+  },
+  (table) => [
+    index("commerce_service_projects_org_idx").on(table.organizationId),
+    index("commerce_service_projects_sku_idx").on(table.skuCode),
+    index("commerce_service_projects_status_idx").on(table.status),
+  ],
+);
+
+export const commerceServiceMilestones = pgTable(
+  "commerce_service_milestones",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => commerceServiceProjects.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    label: text("label").notNull(),
+    pctBps: integer("pct_bps").notNull(),
+    amountCents: bigint("amount_cents", { mode: "number" }).notNull(),
+    status: text("status").notNull().default("pending"),
+    paymentIntentId: uuid("payment_intent_id").references(() => paymentIntents.id, {
+      onDelete: "set null",
+    }),
+    paidAt: timestamp("paid_at", { withTimezone: true, mode: "date" }),
+    dueAt: timestamp("due_at", { withTimezone: true, mode: "date" }),
+    sortOrder: integer("sort_order").notNull().default(10),
+    metadataJson: jsonb("metadata_json").$type<Record<string, unknown>>().notNull().default({}),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("commerce_service_milestones_project_kind_unique").on(table.projectId, table.kind),
+    index("commerce_service_milestones_org_idx").on(table.organizationId),
+    index("commerce_service_milestones_status_idx").on(table.status),
+  ],
+);
+
+export const commerceServiceProjectsRelations = relations(commerceServiceProjects, ({ many }) => ({
+  milestones: many(commerceServiceMilestones),
+}));
+
+export const commerceServiceMilestonesRelations = relations(
+  commerceServiceMilestones,
+  ({ one }) => ({
+    project: one(commerceServiceProjects, {
+      fields: [commerceServiceMilestones.projectId],
+      references: [commerceServiceProjects.id],
+    }),
+    paymentIntent: one(paymentIntents, {
+      fields: [commerceServiceMilestones.paymentIntentId],
+      references: [paymentIntents.id],
+    }),
+  }),
+);

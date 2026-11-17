@@ -2,10 +2,15 @@ import { recordAudit } from "@verasjuris/audit";
 import { policyMonetization } from "@verasjuris/auth";
 import { AppError } from "@verasjuris/types";
 import {
+  acceptServiceDeliverySchema,
+  acceptServiceProposalSchema,
   addCommerceCartItemSchema,
   checkoutCommerceCartSchema,
+  checkoutServiceMilestoneSchema,
   commercialCatalogQuerySchema,
+  createServiceProposalSchema,
   parseInput,
+  submitServiceDeliverySchema,
   updateCommerceCartItemSchema,
   uuidSchema,
 } from "@verasjuris/validation";
@@ -26,10 +31,21 @@ import {
 } from "./cart-service.js";
 import { listCommercialCatalog, syncCommercialCatalog } from "./catalog-sync.js";
 import { ensureOabMarketplaceSplitRules } from "./oab-split-seed.js";
+import {
+  acceptServiceDelivery,
+  acceptServiceProposal,
+  checkoutServiceMilestone,
+  createServiceProposal,
+  getServiceProject,
+  listServiceProjects,
+  submitServiceDelivery,
+} from "./service-project-service.js";
 
 type OrgParams = { organizationId?: string };
 type ItemParams = OrgParams & { itemId?: string };
 type OrderParams = OrgParams & { orderId?: string };
+type ProjectParams = OrgParams & { projectId?: string };
+type MilestoneParams = ProjectParams & { milestoneId?: string };
 
 /**
  * Commerce API — catálogo (Fase 1) + carrinho/checkout (Fase 2) + splits OAB seed (Fase 4).
@@ -250,6 +266,109 @@ export async function registerCommerceRoutes(app: FastifyInstance, deps: ApiDeps
       ],
     };
   });
+
+  /* ─── Fase 6: serviços SRV_* 30/70 ─── */
+
+  app.get("/organizations/:organizationId/commerce/services", async (request) => {
+    const account = await requireAccount(deps, request);
+    const organizationId = parseInput(uuidSchema, (request.params as OrgParams).organizationId);
+    const query = parseInput(
+      z.object({ limit: z.coerce.number().int().min(1).max(100).default(30) }),
+      request.query ?? {},
+    );
+    return listServiceProjects(deps.db, account, organizationId, query.limit);
+  });
+
+  app.post("/organizations/:organizationId/commerce/services/proposals", async (request) => {
+    const account = await requireAccount(deps, request);
+    const organizationId = parseInput(uuidSchema, (request.params as OrgParams).organizationId);
+    const body = parseInput(createServiceProposalSchema, request.body ?? {});
+    return createServiceProposal(deps.db, account, organizationId, body, meta(request));
+  });
+
+  app.get("/organizations/:organizationId/commerce/services/:projectId", async (request) => {
+    const account = await requireAccount(deps, request);
+    const params = request.params as ProjectParams;
+    const organizationId = parseInput(uuidSchema, params.organizationId);
+    const projectId = parseInput(uuidSchema, params.projectId);
+    return getServiceProject(deps.db, account, organizationId, projectId);
+  });
+
+  app.post(
+    "/organizations/:organizationId/commerce/services/:projectId/accept",
+    async (request) => {
+      const account = await requireAccount(deps, request);
+      const params = request.params as ProjectParams;
+      const organizationId = parseInput(uuidSchema, params.organizationId);
+      const projectId = parseInput(uuidSchema, params.projectId);
+      parseInput(acceptServiceProposalSchema, request.body ?? { accept: true });
+      return acceptServiceProposal(deps.db, account, organizationId, projectId, meta(request));
+    },
+  );
+
+  app.post(
+    "/organizations/:organizationId/commerce/services/:projectId/milestones/:milestoneId/checkout",
+    async (request) => {
+      const account = await requireAccount(deps, request);
+      const params = request.params as MilestoneParams;
+      const organizationId = parseInput(uuidSchema, params.organizationId);
+      const projectId = parseInput(uuidSchema, params.projectId);
+      const milestoneId = parseInput(uuidSchema, params.milestoneId);
+      const body = parseInput(checkoutServiceMilestoneSchema, request.body ?? {});
+      if (!deps.paymentProvider) {
+        throw new AppError("NOT_CONFIGURED", "PaymentProvider não configurado.");
+      }
+      const checkout = new CheckoutService(deps.db, deps.paymentProvider, deps.billingProvider);
+      return checkoutServiceMilestone(
+        deps.db,
+        account,
+        organizationId,
+        projectId,
+        milestoneId,
+        body,
+        meta(request),
+        checkout,
+      );
+    },
+  );
+
+  app.post(
+    "/organizations/:organizationId/commerce/services/:projectId/deliver",
+    async (request) => {
+      const account = await requireAccount(deps, request);
+      const params = request.params as ProjectParams;
+      const organizationId = parseInput(uuidSchema, params.organizationId);
+      const projectId = parseInput(uuidSchema, params.projectId);
+      const body = parseInput(submitServiceDeliverySchema, request.body ?? {});
+      return submitServiceDelivery(
+        deps.db,
+        account,
+        organizationId,
+        projectId,
+        body,
+        meta(request),
+      );
+    },
+  );
+
+  app.post(
+    "/organizations/:organizationId/commerce/services/:projectId/accept-delivery",
+    async (request) => {
+      const account = await requireAccount(deps, request);
+      const params = request.params as ProjectParams;
+      const organizationId = parseInput(uuidSchema, params.organizationId);
+      const projectId = parseInput(uuidSchema, params.projectId);
+      const body = parseInput(acceptServiceDeliverySchema, request.body ?? {});
+      return acceptServiceDelivery(
+        deps.db,
+        account,
+        organizationId,
+        projectId,
+        body,
+        meta(request),
+      );
+    },
+  );
 }
 
 /** Reject accidental PAYMENTS_LIVE enablement through commerce module. */

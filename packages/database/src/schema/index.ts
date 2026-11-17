@@ -977,11 +977,15 @@ import {
   commerceOrders,
   commerceOrderItems,
   organizationCommercialGrants,
+  commerceServiceProjects,
+  commerceServiceMilestones,
   commerceCartsRelations,
   commerceCartItemsRelations,
   commerceOrdersRelations,
   commerceOrderItemsRelations,
   organizationCommercialGrantsRelations,
+  commerceServiceProjectsRelations,
+  commerceServiceMilestonesRelations,
 } from "./commerce.js";
 
 import {
@@ -1957,6 +1961,8 @@ export const schema = {
   commerceOrders,
   commerceOrderItems,
   organizationCommercialGrants,
+  commerceServiceProjects,
+  commerceServiceMilestones,
   usageMeters,
   usageRecords,
   aiCreditWallets,
@@ -1995,6 +2001,8 @@ export const schema = {
   commerceOrdersRelations,
   commerceOrderItemsRelations,
   organizationCommercialGrantsRelations,
+  commerceServiceProjectsRelations,
+  commerceServiceMilestonesRelations,
   usageMetersRelations,
   usageRecordsRelations,
   aiCreditWalletsRelations,
