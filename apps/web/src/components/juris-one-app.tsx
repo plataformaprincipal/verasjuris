@@ -669,8 +669,8 @@ export function JurisOneApp() {
               >
                 {message.content}
               </p>
-              {message.role === "assistant" && message.providerKey === "faq_fallback" ? (
-                <p className="vj-meta">Provedor: faq_fallback</p>
+              {message.role === "assistant" && message.providerKey ? (
+                <p className="vj-meta">Provedor: {message.providerKey}</p>
               ) : null}
             </div>
           ))}
@@ -679,7 +679,7 @@ export function JurisOneApp() {
               <LoaderCircle size={14} className="vj-spin" aria-hidden="true" /> Processando…
             </p>
           ) : null}
-          {lastProviderKey === "faq_fallback" && messages.some((m) => m.role === "assistant") ? (
+          {lastProviderKey === "faq_fallback" || lastProviderKey === "not_configured" ? (
             <p className="vj-hint">Última resposta via FAQ/fallback (provedor OpenAI não ativo).</p>
           ) : null}
           <div ref={messagesEndRef} />

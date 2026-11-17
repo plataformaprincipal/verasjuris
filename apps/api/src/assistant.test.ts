@@ -47,7 +47,7 @@ describe("Etapa 32/33 — assistant", () => {
     await database.close();
   });
 
-  it("permission, cross-tenant, no critical action, AI fallback FAQ", async () => {
+  it("permission, cross-tenant, no critical action, AI not silently FAQ", async () => {
     const created = await call(
       app,
       "POST",
@@ -83,10 +83,11 @@ describe("Etapa 32/33 — assistant", () => {
       { sessionId: conversationId, content: "Como resetar minha senha?" },
       cookieA,
     );
-    expect(msg.statusCode).toBe(201);
-    const body = msg.json<{ providerKey: string; message: { content: string } }>();
-    expect(body.providerKey).toBe("faq_fallback");
-    expect(body.message.content.toLowerCase()).toContain("senha");
+    // Sem provedor configurado no teste: erro honesto — nunca FAQ fingindo ser IA.
+    expect(msg.statusCode).toBeGreaterThanOrEqual(400);
+    const err = msg.json<{ error?: { code?: string }; code?: string; message?: string }>();
+    const code = err.error?.code ?? err.code ?? "";
+    expect(["AI_PROVIDER_NOT_CONFIGURED", "NOT_CONFIGURED", "UNAVAILABLE"]).toContain(code);
 
     const tool = await call(
       app,
