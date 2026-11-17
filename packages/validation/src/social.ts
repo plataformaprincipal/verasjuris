@@ -30,7 +30,12 @@ export const createSocialPostSchema = z.object({
   visibility: z.enum(SOCIAL_VISIBILITIES).default("public"),
   legalCategory: z.string().trim().max(80).optional(),
   hashtags: z.string().trim().max(400).optional(),
-  linkUrl: z.string().url().max(2000).optional().or(z.literal("").transform(() => undefined)),
+  linkUrl: z
+    .string()
+    .url()
+    .max(2000)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
   status: z.enum(["published", "draft"]).default("published"),
 });
 
