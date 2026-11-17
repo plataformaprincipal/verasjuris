@@ -17,10 +17,7 @@ function loadEnv(path) {
     if (i < 0) continue;
     const k = line.slice(0, i).trim();
     let v = line.slice(i + 1).trim();
-    if (
-      (v.startsWith('"') && v.endsWith('"')) ||
-      (v.startsWith("'") && v.endsWith("'"))
-    ) {
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
       v = v.slice(1, -1);
     }
     out[k] = v;
