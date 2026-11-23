@@ -37,6 +37,8 @@ const LEGAL: FooterLink[] = [
   { href: "/termos-de-uso", labelKey: "footer.terms" },
   { href: "/termos-de-servico", labelKey: "footer.termsOfService" },
   { href: "/politica-de-privacidade", labelKey: "footer.privacyPolicy" },
+  { href: "/politicas/reembolso", labelKey: "footer.refund" },
+  { href: "/politicas/pagamentos", labelKey: "footer.payments" },
   { href: "/politicas/cookies", labelKey: "footer.cookies" },
   { href: "/politicas/lgpd", labelKey: "footer.lgpd" },
 ];
