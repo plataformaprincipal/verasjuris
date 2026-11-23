@@ -253,6 +253,13 @@
       "when": 1795100000000,
       "tag": "0035_court_communications",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1795200000000,
+      "tag": "0036_inpi_benefits_guided_protocol",
+      "breakpoints": true
     }
   ]
 }

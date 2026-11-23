@@ -28,6 +28,7 @@ export const PREVIDENCIARIO_TABS = [
   { href: "/app/previdenciario", label: "Visão geral" },
   { href: "/app/previdenciario/casos", label: "Casos" },
   { href: "/app/previdenciario/calculos", label: "Cálculos" },
+  { href: "/app/previdenciario/checklists", label: "Checklists" },
 ];
 
 export const PREVIDENTIARY_CASE_SECTIONS = [

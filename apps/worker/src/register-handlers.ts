@@ -10,6 +10,7 @@ import { registerLocalEducationFinanceHandlers } from "./jobs/education-finance-
 import { registerLocalMonetizationTreasuryHandlers } from "./jobs/monetization-treasury-handlers.js";
 import { registerLocalControlAnalyticsWorkflowHandlers } from "./jobs/control-analytics-workflow-handlers.js";
 import { registerLocalPlatformHardeningHandlers } from "./jobs/platform-hardening-handlers.js";
+import { createInpiRpiHandler, INPI_RPI_JOB } from "./jobs/inpi.js";
 import {
   COURT_COMMUNICATIONS_CAPTURE_JOB,
   createCourtCommunicationsCaptureHandler,
@@ -66,6 +67,12 @@ export function registerWorkerHandlers(queue: JobQueue, db: AppDatabase): Worker
   handlers.set(COURT_COMMUNICATIONS_CAPTURE_JOB, courtHandler);
   if (queue instanceof LocalInProcessQueueProvider) {
     queue.registerHandler(COURT_COMMUNICATIONS_CAPTURE_JOB, courtHandler);
+  }
+
+  const inpiHandler = createInpiRpiHandler({ db });
+  handlers.set(INPI_RPI_JOB, inpiHandler);
+  if (queue instanceof LocalInProcessQueueProvider) {
+    queue.registerHandler(INPI_RPI_JOB, inpiHandler);
   }
 
   return handlers;

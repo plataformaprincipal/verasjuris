@@ -118,6 +118,7 @@ import {
   type TimeTrackingImportProvider,
   type DatajudProvider,
   DjenProvider,
+  InpiRpiProvider,
 } from "@verasjuris/ai";
 import { InProcessEventBus } from "@verasjuris/events";
 import { createEmailProvider, type EmailProvider } from "@verasjuris/email";
@@ -190,6 +191,9 @@ import { registerCommerceRoutes } from "./modules/commerce/routes.js";
 import { registerEmailRoutes } from "./modules/email/routes.js";
 import { registerTaskRoutes } from "./modules/tasks/routes.js";
 import { createRemoteCapture } from "./modules/court-communications/capture.js";
+import { registerAdminProcedureRoutes } from "./modules/admin-procedures/routes.js";
+import { createRemoteRpiRun } from "./modules/inpi/capture.js";
+import { registerInpiRoutes } from "./modules/inpi/routes.js";
 import { registerCourtCommunicationRoutes } from "./modules/court-communications/routes.js";
 import { registerControlRoutes } from "./modules/control/routes.js";
 import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
@@ -319,6 +323,8 @@ export type BuildAppOptions = {
   datajudProvider?: DatajudProvider | null;
   /** Worker com IP brasileiro para captura sob demanda no DJEN. */
   courtCaptureWorker?: { url: string; secret: string } | null;
+  /** RPI do INPI. Padrão: provedor público real. */
+  inpiProvider?: InpiRpiProvider;
   keyManagementProvider?: KeyManagementProvider;
   observabilityProvider?: ObservabilityProvider;
   statusPageProvider?: StatusPageProvider;
@@ -589,6 +595,16 @@ export async function buildApp(options: BuildAppOptions) {
             })
           : undefined,
       });
+      await registerInpiRoutes(v1, deps, {
+        provider: options.inpiProvider ?? new InpiRpiProvider(),
+        remoteRun: options.courtCaptureWorker
+          ? createRemoteRpiRun({
+              workerUrl: options.courtCaptureWorker.url,
+              secret: options.courtCaptureWorker.secret,
+            })
+          : undefined,
+      });
+      await registerAdminProcedureRoutes(v1, deps);
       await registerSecurityRoutes(v1, deps);
       await registerPrivacyRoutes(v1, deps);
       await registerObservabilityRoutes(v1, deps);
