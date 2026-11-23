@@ -118,7 +118,11 @@ export function MarketplacePublicCatalog() {
       <h2 id="catalogo-titulo" className="vj-section-title">
         Serviços disponíveis
       </h2>
-      <form className="vj-inline-form" onSubmit={(e) => e.preventDefault()} aria-label="Filtros do catálogo">
+      <form
+        className="vj-inline-form"
+        onSubmit={(e) => e.preventDefault()}
+        aria-label="Filtros do catálogo"
+      >
         <label>
           Buscar
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} />
