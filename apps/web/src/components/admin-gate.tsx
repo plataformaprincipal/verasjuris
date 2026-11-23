@@ -72,7 +72,9 @@ export function AdminGate({ children }: { children: ReactNode }) {
         <Alert tone="warning" title="MFA obrigatório">
           A autenticação em dois fatores é obrigatória para a equipe administrativa.
         </Alert>
-        <ButtonLink href="/app/configuracoes">Abrir configurações de segurança</ButtonLink>
+        <ButtonLink href="/app/configuracoes/seguranca">
+          Abrir configurações de segurança
+        </ButtonLink>
         <EmptyState title="Painel bloqueado até MFA">
           Após ativar o MFA, recarregue esta página.
         </EmptyState>

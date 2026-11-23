@@ -38,7 +38,7 @@ const AUTH_HREF: Record<string, string> = {
   "assistente-ia": "/app/ia",
   "analise-documentos": "/app/ia",
   "peticoes-assistidas": "/app/documentos-juridicos",
-  "integracao-tribunais": "/app/integracoes",
+  "integracao-tribunais": "/app/intimacoes",
   "integracao-pagamentos": "/app/financeiro",
   "integracao-email": "/app/comunicacao",
   "integracao-agenda": "/app/agenda",
