@@ -1225,5 +1225,7 @@
   "solution.page.exploreDemo": "Explorar demostración",
   "solution.page.featuresTitle": "Funcionalidades relacionadas",
   "solution.page.meta": "Soluciones",
-  "solution.page.problemsTitle": "Problemas que esta solución aborda"
+  "solution.page.problemsTitle": "Problemas que esta solución aborda",
+  "footer.refund": "Cancelación y reembolso",
+  "footer.payments": "Pagos"
 }
