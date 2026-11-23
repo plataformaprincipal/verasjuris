@@ -11,6 +11,10 @@ import { registerLocalMonetizationTreasuryHandlers } from "./jobs/monetization-t
 import { registerLocalControlAnalyticsWorkflowHandlers } from "./jobs/control-analytics-workflow-handlers.js";
 import { registerLocalPlatformHardeningHandlers } from "./jobs/platform-hardening-handlers.js";
 import {
+  COURT_COMMUNICATIONS_CAPTURE_JOB,
+  createCourtCommunicationsCaptureHandler,
+} from "./jobs/court-communications.js";
+import {
   createStorageReconciliationHandler,
   STORAGE_RECONCILIATION_JOB,
 } from "./jobs/storage-reconciliation.js";
@@ -56,6 +60,12 @@ export function registerWorkerHandlers(queue: JobQueue, db: AppDatabase): Worker
   handlers.set(STORAGE_RECONCILIATION_JOB, storageHandler);
   if (queue instanceof LocalInProcessQueueProvider) {
     queue.registerHandler(STORAGE_RECONCILIATION_JOB, storageHandler);
+  }
+
+  const courtHandler = createCourtCommunicationsCaptureHandler({ db });
+  handlers.set(COURT_COMMUNICATIONS_CAPTURE_JOB, courtHandler);
+  if (queue instanceof LocalInProcessQueueProvider) {
+    queue.registerHandler(COURT_COMMUNICATIONS_CAPTURE_JOB, courtHandler);
   }
 
   return handlers;

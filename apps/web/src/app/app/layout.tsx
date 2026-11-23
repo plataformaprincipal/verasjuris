@@ -77,6 +77,9 @@ export default async function AuthenticatedLayout({ children }: { children: Reac
           ...(permissions.has("deadline.read")
             ? [{ href: "/app/prazos", label: "Prazos", icon: "prazos" as const }]
             : []),
+          ...(permissions.has("judicial_process.read")
+            ? [{ href: "/app/intimacoes", label: "Intimações", icon: "intimacoes" as const }]
+            : []),
           ...([
             "ai.use",
             "ai.usage.read",

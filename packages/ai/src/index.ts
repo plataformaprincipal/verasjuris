@@ -803,6 +803,35 @@ export {
   courtIntegrationProviderNotConfiguredError,
 } from "./court-integration-provider.js";
 export {
+  DJEN_DEFAULT_BASE_URL,
+  DJEN_PAGE_SIZE,
+  DJEN_PROVIDER_ID,
+  DjenProvider,
+  maskCnjNumber,
+  normalizeCnjNumber,
+  parseDjenDate,
+  parseDjenItem,
+  stripHtml,
+  type DjenCommunication,
+  type DjenProviderOptions,
+  type DjenRecipient,
+  type DjenRecipientLawyer,
+  type DjenSearchInput,
+  type DjenSearchResult,
+} from "./djen-provider.js";
+export {
+  DATAJUD_DEFAULT_BASE_URL,
+  DATAJUD_PROVIDER_ID,
+  DatajudProvider,
+  datajudAliasFromCnj,
+  isValidCnjNumber,
+  parseDatajudHit,
+  parseDatajudTimestamp,
+  type DatajudMovement,
+  type DatajudProcess,
+  type DatajudProviderOptions,
+} from "./datajud-provider.js";
+export {
   type AdministrativeAgencyCapability,
   type AdministrativeAgencyHealth,
   type AdministrativeAgencyProvider,

@@ -11,9 +11,11 @@ import {
 } from "@verasjuris/events";
 import type { FastifyInstance } from "fastify";
 import { buildWorkerApp, checkDatabase } from "./app.js";
+import { captureMonitorById } from "./jobs/court-communications.js";
 import { registerWorkerHandlers, type WorkerHandlerRegistry } from "./register-handlers.js";
 
 type WorkerBoot = {
+  db: ReturnType<typeof createDatabase>["db"];
   app: FastifyInstance;
   queue: JobQueue;
   handlers: WorkerHandlerRegistry;
@@ -67,7 +69,7 @@ async function getBoot(): Promise<WorkerBoot> {
         queue,
       });
       await app.ready();
-      return { app, queue, handlers };
+      return { db: database.db, app, queue, handlers };
     })();
   }
   return bootPromise;
@@ -134,6 +136,83 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     res.statusCode = response.statusCode;
     res.setHeader("content-type", "application/json; charset=utf-8");
     res.end(response.body);
+    return;
+  }
+
+  // Vercel Cron: GET com Authorization: Bearer <CRON_SECRET>.
+  const cronJobs: Record<string, string> = {
+    "/cron/court-communications": "COURT_COMMUNICATIONS_CAPTURE",
+  };
+  const cronJob = cronJobs[url.pathname];
+  if (method === "GET" && cronJob) {
+    const expected = process.env.CRON_SECRET?.trim();
+    if (!expected) {
+      sendJson(res, 503, {
+        error: { code: "NOT_CONFIGURED", message: "CRON_SECRET não configurado." },
+      });
+      return;
+    }
+    const provided = readHeader(req, "authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+    if (!secretsEqual(provided, expected)) {
+      sendJson(res, 401, {
+        error: { code: "AUTHENTICATION_ERROR", message: "Invocação não autorizada." },
+      });
+      return;
+    }
+    try {
+      const { queue, handlers } = await getBoot();
+      const result = await runJob(queue, handlers, cronJob, {});
+      sendJson(res, 200, { job: result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "JOB_FAILED";
+      sendJson(res, 500, { error: { code: "JOB_FAILED", message: message.slice(0, 500) } });
+    }
+    return;
+  }
+
+  // Captura sob demanda de um monitor (chamada pela API; roda aqui por causa do IP brasileiro).
+  if (method === "POST" && url.pathname === "/internal/court-communications/capture") {
+    const expected = process.env.WORKER_INVOKE_SECRET?.trim();
+    if (!expected) {
+      sendJson(res, 503, {
+        error: { code: "NOT_CONFIGURED", message: "WORKER_INVOKE_SECRET não configurado." },
+      });
+      return;
+    }
+    const provided = readHeader(req, "x-worker-invoke-secret") ?? "";
+    if (!secretsEqual(provided, expected)) {
+      sendJson(res, 401, {
+        error: { code: "AUTHENTICATION_ERROR", message: "Invocação não autorizada." },
+      });
+      return;
+    }
+    try {
+      const body = (await readJsonBody(req)) as {
+        monitorId?: unknown;
+        from?: unknown;
+        to?: unknown;
+      };
+      const monitorId = typeof body?.monitorId === "string" ? body.monitorId : "";
+      if (!/^[0-9a-f-]{36}$/i.test(monitorId)) {
+        sendJson(res, 400, { error: { code: "VALIDATION_ERROR", message: "monitorId inválido." } });
+        return;
+      }
+      const iso = (v: unknown) =>
+        typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined;
+      const { db } = await getBoot();
+      const result = await captureMonitorById(db, monitorId, {
+        from: iso(body.from),
+        to: iso(body.to),
+      });
+      if (!result) {
+        sendJson(res, 404, { error: { code: "NOT_FOUND", message: "Monitor não encontrado." } });
+        return;
+      }
+      sendJson(res, 200, { result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "CAPTURE_FAILED";
+      sendJson(res, 500, { error: { code: "INTERNAL_ERROR", message: message.slice(0, 500) } });
+    }
     return;
   }
 

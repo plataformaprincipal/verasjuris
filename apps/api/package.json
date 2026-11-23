@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./communication/dispatch": "./src/modules/communication/dispatch.ts"
+    "./communication/dispatch": "./src/modules/communication/dispatch.ts",
+    "./court-communications/capture": "./src/modules/court-communications/capture.ts"
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",

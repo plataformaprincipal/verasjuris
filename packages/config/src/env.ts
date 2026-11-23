@@ -63,6 +63,13 @@ export const apiEnvSchema = z.object({
   PUBLIC_OPPORTUNITY_PROVIDER: z.enum(["not_configured"]).default("not_configured"),
   AUCTION_PROVIDER: z.enum(["not_configured"]).default("not_configured"),
   LEGAL_SOURCE_PROVIDER: z.enum(["not_configured"]).default("not_configured"),
+  /** Chave pública do Datajud (CNJ). Ausente = Datajud NOT_CONFIGURED. */
+  DATAJUD_API_KEY: optionalSecret,
+  /** Base da API do DJEN; padrão https://comunicaapi.pje.jus.br/api/v1. */
+  DJEN_BASE_URL: optionalString,
+  /** URL do worker (gru1) para captura sob demanda; com WORKER_INVOKE_SECRET. */
+  WORKER_INTERNAL_URL: optionalString,
+  WORKER_INVOKE_SECRET: optionalSecret,
   /** PSP: not_configured (padrão) | asaas. */
   PAYMENT_PROVIDER: z.enum(["not_configured", "asaas"]).default("not_configured"),
   /** Assinaturas externas; se omitido e PAYMENT_PROVIDER=asaas, espelha asaas na factory. */
@@ -85,6 +92,12 @@ export const apiEnvSchema = z.object({
 });
 
 export const workerEnvSchema = z.object({
+  /** Chave pública do Datajud (CNJ). Ausente = Datajud NOT_CONFIGURED. */
+  DATAJUD_API_KEY: optionalSecret,
+  /** Base da API do DJEN; padrão https://comunicaapi.pje.jus.br/api/v1. */
+  DJEN_BASE_URL: optionalString,
+  /** Segredo do Vercel Cron (Authorization: Bearer). */
+  CRON_SECRET: optionalSecret,
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   DATABASE_URL: databaseUrl,
   WORKER_HOST: z.string().min(1).default("127.0.0.1"),

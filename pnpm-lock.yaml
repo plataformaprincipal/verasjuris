@@ -146,6 +146,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@verasjuris/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
       '@verasjuris/api':
         specifier: workspace:*
         version: link:../api

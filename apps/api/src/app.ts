@@ -116,6 +116,8 @@ import {
   type ResearchGateway,
   type SocialSecurityProvider,
   type TimeTrackingImportProvider,
+  type DatajudProvider,
+  DjenProvider,
 } from "@verasjuris/ai";
 import { InProcessEventBus } from "@verasjuris/events";
 import { createEmailProvider, type EmailProvider } from "@verasjuris/email";
@@ -187,6 +189,8 @@ import { registerFinanceRoutes } from "./modules/finance/routes.js";
 import { registerCommerceRoutes } from "./modules/commerce/routes.js";
 import { registerEmailRoutes } from "./modules/email/routes.js";
 import { registerTaskRoutes } from "./modules/tasks/routes.js";
+import { createRemoteCapture } from "./modules/court-communications/capture.js";
+import { registerCourtCommunicationRoutes } from "./modules/court-communications/routes.js";
 import { registerControlRoutes } from "./modules/control/routes.js";
 import { registerAnalyticsRoutes } from "./modules/analytics/routes.js";
 import { registerWorkflowRoutes } from "./modules/workflows/routes.js";
@@ -309,6 +313,12 @@ export type BuildAppOptions = {
   /** Padrão: workflow webhook NOT_CONFIGURED. */
   workflowWebhookProvider?: WorkflowWebhookProvider;
   courtIntegrationProvider?: CourtIntegrationProvider;
+  /** DJEN (captura de intimações). Padrão: provedor público real. */
+  djenProvider?: DjenProvider;
+  /** Datajud (movimentações). Ausente = NOT_CONFIGURED. */
+  datajudProvider?: DatajudProvider | null;
+  /** Worker com IP brasileiro para captura sob demanda no DJEN. */
+  courtCaptureWorker?: { url: string; secret: string } | null;
   keyManagementProvider?: KeyManagementProvider;
   observabilityProvider?: ObservabilityProvider;
   statusPageProvider?: StatusPageProvider;
@@ -569,6 +579,16 @@ export async function buildApp(options: BuildAppOptions) {
       await registerAnalyticsRoutes(v1, deps);
       await registerWorkflowRoutes(v1, deps);
       await registerIntegrationRoutes(v1, deps);
+      await registerCourtCommunicationRoutes(v1, deps, {
+        djen: options.djenProvider ?? new DjenProvider(),
+        datajud: options.datajudProvider ?? null,
+        remoteCapture: options.courtCaptureWorker
+          ? createRemoteCapture({
+              workerUrl: options.courtCaptureWorker.url,
+              secret: options.courtCaptureWorker.secret,
+            })
+          : undefined,
+      });
       await registerSecurityRoutes(v1, deps);
       await registerPrivacyRoutes(v1, deps);
       await registerObservabilityRoutes(v1, deps);

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { relations } from "drizzle-orm";
 import {
   boolean,
@@ -467,6 +468,9 @@ export const judicialMovements = pgTable(
   (table) => [
     index("judicial_movements_process_occurred_idx").on(table.judicialProcessId, table.occurredAt),
     index("judicial_movements_org_idx").on(table.organizationId),
+    uniqueIndex("judicial_movements_process_source_ref_unique")
+      .on(table.judicialProcessId, table.sourceReference)
+      .where(sql`${table.sourceReference} IS NOT NULL`),
   ],
 );
 
