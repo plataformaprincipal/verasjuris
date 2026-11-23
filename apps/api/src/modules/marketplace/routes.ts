@@ -62,6 +62,7 @@ import {
   requestMarketplaceRefund,
   reviewMarketplaceDelivery,
   searchMarketplaceCatalog,
+  searchPublicMarketplaceCatalog,
   searchMarketplaceProfessionals,
   searchMarketplaceProfessionalsForOrg,
   submitMarketplaceDelivery,
@@ -99,6 +100,15 @@ export async function registerMarketplaceRoutes(app: FastifyInstance, deps: ApiD
   app.get("/marketplace/categories", async (request) => {
     await requireAccount(deps, request);
     return listMarketplaceCategories(deps.db);
+  });
+
+  app.get("/marketplace/public/categories", async () => {
+    return listMarketplaceCategories(deps.db);
+  });
+
+  app.get("/marketplace/public/catalog", async (request) => {
+    const query = parseInput(marketplaceCatalogSearchSchema, request.query ?? {});
+    return searchPublicMarketplaceCatalog(deps.db, query);
   });
 
   app.get("/marketplace/catalog", async (request) => {

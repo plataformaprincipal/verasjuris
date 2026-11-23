@@ -1950,12 +1950,23 @@ export type MarketplaceCatalogFilters = {
 
 const CATALOG_MAX_LIMIT = 50;
 
-export async function searchMarketplaceCatalog(
+/**
+ * Catálogo público: somente serviços ativos de perfis com marketplace habilitado
+ * e ativo (mesmas regras do catálogo autenticado). Não expõe dados de contato.
+ */
+export async function searchPublicMarketplaceCatalog(
   db: AppDatabase,
-  account: SessionAccount,
   filters: MarketplaceCatalogFilters,
 ) {
-  if (!account.memberships.length) {
+  return searchMarketplaceCatalog(db, null, filters);
+}
+
+export async function searchMarketplaceCatalog(
+  db: AppDatabase,
+  account: SessionAccount | null,
+  filters: MarketplaceCatalogFilters,
+) {
+  if (account && !account.memberships.length) {
     throw new AppError("AUTHENTICATION_ERROR", "Faça login para consultar o catálogo.");
   }
   const limit = Math.min(Math.max(Math.trunc(filters.limit) || 20, 1), CATALOG_MAX_LIMIT);

@@ -20,7 +20,6 @@ import {
   Workflow,
 } from "lucide-react";
 import { PUBLIC_CATALOG } from "../lib/public-catalog";
-import { DEMO_MARKETPLACE_SERVICES } from "../lib/demo-data";
 import {
   featureNameKey,
   featureSummaryKey,
@@ -30,7 +29,6 @@ import {
 import { SOLUTIONS } from "../lib/solutions";
 import { HomeProductPreview } from "./home-product-preview";
 import { PublicPageShell, PublicSection, AvailabilityBadge } from "./public-page-shell";
-import { RequireAuthCta } from "./require-auth-cta";
 import { useLocale } from "./locale-provider";
 
 const SERVICES = [
@@ -112,35 +110,6 @@ export function HomeCommercial() {
       </PublicSection>
 
       <PublicSection title={t("home.marketplace.title")} lead={t("home.marketplace.lead")}>
-        <p className="vj-demo-banner" role="status">
-          {t("demo.banner")}
-        </p>
-        <div className="vj-feature-grid">
-          {DEMO_MARKETPLACE_SERVICES.map((service) => (
-            <article key={service.id} className="vj-card">
-              <p className="vj-meta">{t("home.marketplace.example")}</p>
-              <h3 className="vj-section-title">
-                {t(`demo.marketplace.${service.id}.title`, service.title)}
-              </h3>
-              <p>{t(`demo.marketplace.${service.id}.description`, service.description)}</p>
-              <p className="vj-meta">
-                {t(`demo.marketplace.${service.id}.provider`, service.provider)} ·{" "}
-                {t(`demo.marketplace.${service.id}.area`, service.area)}
-              </p>
-              <p className="vj-meta">{t("demo.marketplace.priceNote", service.priceNote)}</p>
-              <RequireAuthCta
-                actionLabel={t("home.marketplace.requestProposal", "Solicitar proposta")}
-                title={t("home.marketplace.ctaAuth")}
-                message={t(
-                  "home.marketplace.authMessage",
-                  "Para solicitar propostas ou contratar serviços, entre ou crie sua conta no VerasJuris.",
-                )}
-                redirectTo="/marketplace/solicitacoes/nova"
-                variant="secondary"
-              />
-            </article>
-          ))}
-        </div>
         <div className="vj-form-actions">
           <ButtonLink href="/marketplace-juridico">{t("home.marketplace.ctaExplore")}</ButtonLink>
         </div>
