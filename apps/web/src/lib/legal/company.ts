@@ -6,8 +6,8 @@
 export const COMPANY = {
   legalName: "" as string,
   cnpj: "" as string,
-  supportEmail: "" as string,
-  privacyEmail: "" as string,
+  supportEmail: "acesseverasjuris@gmail.com" as string,
+  privacyEmail: "acesseverasjuris@gmail.com" as string,
   dpoName: "" as string,
   forum: "" as string,
 };
