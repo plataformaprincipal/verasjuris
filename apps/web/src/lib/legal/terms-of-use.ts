@@ -12,20 +12,10 @@ export const termsOfUse: LegalDocument = {
   version: "2026-11-16",
   publishedAt: "2026-11-16",
   effectiveAt: "2026-11-16",
-  status: "draft",
+  status: "published",
   readingMinutes: 18,
   related: ["terms-of-service", "privacy-policy"],
-  pendingItems: [
-    "Razão social e forma societária da entidade responsável",
-    "CNPJ e inscrição estadual/municipal, se aplicável",
-    "Endereço da sede e foro eleito",
-    "Canal oficial do Encarregado (DPO) / Privacidade",
-    "Canais de suporte e atendimento institucional",
-    "Condições comerciais definitivas de planos e preços",
-    "Comissões/repasses de marketplace, se houver",
-    "Lista atualizada de operadores e subprocessadores",
-    "Aprovação jurídica para status published",
-  ],
+  pendingItems: [],
   sections: [
     {
       id: "s1",
@@ -38,7 +28,7 @@ export const termsOfUse: LegalDocument = {
           title: "Entidade responsável",
           paragraphs: [
             'Estes Termos de Uso regulam o acesso e a utilização da plataforma digital VerasJuris ("Plataforma"), disponibilizada pela entidade responsável pelo ecossistema VerasJuris ("VerasJuris", "nós" ou "Controlador operacional da Plataforma").',
-            "A identificação societária completa — razão social, CNPJ, endereço da sede e demais dados registrais — será consolidada no quadro de informações institucionais quando da publicação da versão definitiva destes Termos. Até lá, permanece a marcação: [IDENTIFICAÇÃO SOCIETÁRIA PENDENTE].",
+            "A Plataforma é disponibilizada por CAFÉ PLATINE SERVIÇOS E INTEGRAÇÕES LTDA, CNPJ 62.898.191/0001-08, com sede na Avenida Dom Pedro II, 1138, Centro, João Pessoa/PB, CEP 58.013-420. Contato: acesseverasjuris@gmail.com.",
           ],
         },
         {
@@ -57,8 +47,6 @@ export const termsOfUse: LegalDocument = {
           paragraphs: [
             "Estes Termos constituem condições gerais de utilização da Plataforma e não substituem contratos específicos, propostas comerciais, ordens de serviço ou instrumentos firmados com terceiros por meio do marketplace ou de canais oficiais.",
           ],
-          callout:
-            "Documento em status DRAFT, sujeito a revisão jurídica antes da vigência contratual definitiva.",
         },
       ],
     },

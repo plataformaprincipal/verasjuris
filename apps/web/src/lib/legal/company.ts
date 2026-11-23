@@ -4,12 +4,12 @@
  * no canal genérico "Central de Ajuda" — nada é inventado.
  */
 export const COMPANY = {
-  legalName: "" as string,
-  cnpj: "" as string,
+  legalName: "CAFÉ PLATINE SERVIÇOS E INTEGRAÇÕES LTDA" as string,
+  cnpj: "62.898.191/0001-08" as string,
   supportEmail: "acesseverasjuris@gmail.com" as string,
   privacyEmail: "acesseverasjuris@gmail.com" as string,
   dpoName: "" as string,
-  forum: "" as string,
+  forum: "João Pessoa/PB" as string,
 };
 
 export const POLICIES_VERSION = "2026-11-23";
