@@ -1,5 +1,20 @@
 export { calculateDeadlineDueAt } from "./deadline-calculator.js";
 export {
+  addForensicBusinessDays,
+  civilDate,
+  djenTermDates,
+  easterSunday,
+  isExpedientRecess,
+  isForensicRecess,
+  NationalAdministrativeHolidayCalendar,
+  NationalForensicHolidayCalendar,
+  nationalForensicHolidays,
+  nextBusinessDay,
+  nonBusinessReason,
+  type DjenTermDates,
+  type NonBusinessReason,
+} from "./national-holidays.js";
+export {
   InAppNotificationProvider,
   NotConfiguredHolidayCalendar,
   NotConfiguredNotificationProvider,

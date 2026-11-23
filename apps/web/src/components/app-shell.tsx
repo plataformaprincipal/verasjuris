@@ -17,6 +17,7 @@ import {
   Handshake,
   HardHat,
   Hourglass,
+  Inbox,
   Landmark,
   LayoutDashboard,
   LogOut,
@@ -70,6 +71,9 @@ type NavItem = {
     | "tarefas"
     | "agenda"
     | "prazos"
+    | "intimacoes"
+    | "inpi"
+    | "procedimentos"
     | "ia"
     | "configuracoes-ia"
     | "oportunidades"
@@ -104,6 +108,9 @@ const icons = {
   tarefas: CheckSquare,
   agenda: CalendarDays,
   prazos: Hourglass,
+  intimacoes: Inbox,
+  inpi: Tags,
+  procedimentos: Scale,
   crm: Handshake,
   leads: ContactRound,
   clientes: UsersRound,

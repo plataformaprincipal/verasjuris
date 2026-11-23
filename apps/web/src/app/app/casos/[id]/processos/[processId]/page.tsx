@@ -54,6 +54,7 @@ import {
   type JudicialTimelineItem,
 } from "../../../../../../lib/judicial";
 import { fetchMatter } from "../../../../../../lib/matters";
+import { DatajudSyncPanel } from "../../../../../../components/datajud-sync-panel";
 
 function DataBlock({
   title,
@@ -269,6 +270,13 @@ export default function ProcessoJudicialDetailPage() {
             </ButtonLink>
           </div>
         }
+      />
+
+      <DatajudSyncPanel
+        processId={processId}
+        onSynced={() => {
+          void getActiveOrgId().then((id) => (id ? reload(id) : undefined));
+        }}
       />
 
       <div className="vj-detail-grid">

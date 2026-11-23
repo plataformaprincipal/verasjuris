@@ -200,6 +200,10 @@ export const administrativeRequests = pgTable(
     submittedAt: timestamp("submitted_at", { withTimezone: true, mode: "date" }),
     protocolNumber: text("protocol_number"),
     protocolReference: text("protocol_reference"),
+    /** Procedimento do catálogo (protocolo manual orientado). */
+    procedureKey: text("procedure_key"),
+    /** Comprovante de protocolo anexado (documents.id). Sem ele, não há protocolo confirmado. */
+    receiptDocumentId: uuid("receipt_document_id"),
     /** Justificativa humana quando SUBMITTED sem número de protocolo. */
     justification: text("justification"),
     source: administrativeDataSourceEnum("source").notNull().default("manual"),
@@ -451,6 +455,62 @@ export const SEED_ADMINISTRATIVE_BODIES = [
     bodyType: "state" as const,
     jurisdiction: "state",
     stateCode: "SP",
+  },
+  {
+    code: "PGFN",
+    name: "Procuradoria-Geral da Fazenda Nacional",
+    acronym: "PGFN",
+    bodyType: "federal" as const,
+    jurisdiction: "federal",
+    stateCode: null,
+  },
+  {
+    code: "INPI",
+    name: "Instituto Nacional da Propriedade Industrial",
+    acronym: "INPI",
+    bodyType: "autarchy" as const,
+    jurisdiction: "federal",
+    stateCode: null,
+  },
+  {
+    code: "CGU-FALABR",
+    name: "Controladoria-Geral da União — Fala.BR",
+    acronym: "Fala.BR",
+    bodyType: "federal" as const,
+    jurisdiction: "federal",
+    stateCode: null,
+  },
+  {
+    code: "SENACON",
+    name: "Secretaria Nacional do Consumidor — Consumidor.gov.br",
+    acronym: "Consumidor.gov.br",
+    bodyType: "federal" as const,
+    jurisdiction: "federal",
+    stateCode: null,
+  },
+  {
+    code: "SEI-FEDERAL",
+    name: "Sistema Eletrônico de Informações — órgãos federais",
+    acronym: "SEI",
+    bodyType: "federal" as const,
+    jurisdiction: "federal",
+    stateCode: null,
+  },
+  {
+    code: "PROCON-PB",
+    name: "Procon da Paraíba",
+    acronym: "Procon-PB",
+    bodyType: "state" as const,
+    jurisdiction: "state",
+    stateCode: "PB",
+  },
+  {
+    code: "DETRAN-PB",
+    name: "Departamento Estadual de Trânsito da Paraíba",
+    acronym: "Detran-PB",
+    bodyType: "state" as const,
+    jurisdiction: "state",
+    stateCode: "PB",
   },
 ] as const;
 

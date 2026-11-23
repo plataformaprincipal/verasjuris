@@ -803,6 +803,48 @@ export {
   courtIntegrationProviderNotConfiguredError,
 } from "./court-integration-provider.js";
 export {
+  DJEN_DEFAULT_BASE_URL,
+  DJEN_PAGE_SIZE,
+  DJEN_PROVIDER_ID,
+  DjenProvider,
+  maskCnjNumber,
+  normalizeCnjNumber,
+  parseDjenDate,
+  parseDjenItem,
+  stripHtml,
+  type DjenCommunication,
+  type DjenProviderOptions,
+  type DjenRecipient,
+  type DjenRecipientLawyer,
+  type DjenSearchInput,
+  type DjenSearchResult,
+} from "./djen-provider.js";
+export {
+  DATAJUD_DEFAULT_BASE_URL,
+  DATAJUD_PROVIDER_ID,
+  DatajudProvider,
+  datajudAliasFromCnj,
+  isValidCnjNumber,
+  parseDatajudHit,
+  parseDatajudTimestamp,
+  type DatajudMovement,
+  type DatajudProcess,
+  type DatajudProviderOptions,
+} from "./datajud-provider.js";
+export {
+  extractTrademarkProcesses,
+  INPI_DEFAULT_BASE_URL,
+  INPI_PROVIDER_ID,
+  InpiRpiProvider,
+  normalizeInpiProcessNumber,
+  parseInpiDate,
+  parseInpiProcessElement,
+  type InpiDispatch,
+  type InpiEdition,
+  type InpiRpiProviderOptions,
+  type InpiTrademarkProcess,
+} from "./inpi-rpi-provider.js";
+export {
   type AdministrativeAgencyCapability,
   type AdministrativeAgencyHealth,
   type AdministrativeAgencyProvider,

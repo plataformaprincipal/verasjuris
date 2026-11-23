@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./communication/dispatch": "./src/modules/communication/dispatch.ts"
+    "./communication/dispatch": "./src/modules/communication/dispatch.ts",
+    "./court-communications/capture": "./src/modules/court-communications/capture.ts",
+    "./inpi/capture": "./src/modules/inpi/capture.ts"
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
@@ -40,6 +42,7 @@
   },
   "devDependencies": {
     "@types/node": "26.6.3",
+    "fflate": "0.8.2",
     "tsup": "8.5.1",
     "tsx": "4.23.15",
     "typescript": "5.9.3",

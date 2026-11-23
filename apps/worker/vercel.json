@@ -3,6 +3,30 @@
   "version": 2,
   "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
   "buildCommand": "cd ../.. && pnpm --filter @verasjuris/worker build",
-  "builds": [{ "src": "dist/vercel.cjs", "use": "@vercel/node" }],
-  "routes": [{ "src": "/(.*)", "dest": "dist/vercel.cjs" }]
+  "builds": [
+    {
+      "src": "dist/vercel.cjs",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 300
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "dist/vercel.cjs"
+    }
+  ],
+  "regions": ["gru1"],
+  "crons": [
+    {
+      "path": "/cron/court-communications",
+      "schedule": "15 9,16 * * *"
+    },
+    {
+      "path": "/cron/inpi-rpi",
+      "schedule": "30 15 * * 2,3"
+    }
+  ]
 }

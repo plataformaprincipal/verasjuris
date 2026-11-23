@@ -2,6 +2,8 @@ import {
   createAiGatewayFromEnv,
   createBillingProviderFromEnv,
   createPaymentProviderFromEnv,
+  DatajudProvider,
+  DjenProvider,
   NotConfiguredAuctionBidProvider,
   NotConfiguredAuctionProvider,
   NotConfiguredOCRProvider,
@@ -75,6 +77,14 @@ export async function createAppFromEnv(
       OPENAI_DEFAULT_MODEL: env.OPENAI_DEFAULT_MODEL,
       OPENAI_HEALTHCHECK: env.OPENAI_HEALTHCHECK,
     }),
+    djenProvider: new DjenProvider({ baseUrl: env.DJEN_BASE_URL }),
+    datajudProvider: env.DATAJUD_API_KEY
+      ? new DatajudProvider({ apiKey: env.DATAJUD_API_KEY })
+      : null,
+    courtCaptureWorker:
+      env.WORKER_INTERNAL_URL && env.WORKER_INVOKE_SECRET
+        ? { url: env.WORKER_INTERNAL_URL, secret: env.WORKER_INVOKE_SECRET }
+        : null,
     ocrProvider: new NotConfiguredOCRProvider(),
     publicOpportunityProvider: new NotConfiguredPublicOpportunityProvider(),
     auctionProvider: new NotConfiguredAuctionProvider(),

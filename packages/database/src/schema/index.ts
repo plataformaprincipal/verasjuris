@@ -56,6 +56,8 @@ export * from "./accessibility.js";
 export * from "./i18n.js";
 export * from "./assistant.js";
 export * from "./institutional.js";
+export * from "./court-communications.js";
+export * from "./inpi.js";
 /** Reexport legado `legalCases` — ver matters.ts. */
 export { legalCases, legalCasesRelations } from "./cases.js";
 
@@ -1178,6 +1180,21 @@ import {
   emailProviderEventsRelations,
 } from "./email.js";
 
+import {
+  courtCommunicationMonitors,
+  courtCommunicationMonitorsRelations,
+  courtCommunications,
+  courtCommunicationsRelations,
+} from "./court-communications.js";
+import {
+  benefitChecklists,
+  inpiAttorneyMonitors,
+  inpiDispatches,
+  inpiDispatchesRelations,
+  inpiMonitoredProcesses,
+  inpiMonitoredProcessesRelations,
+  inpiRpiRuns,
+} from "./inpi.js";
 export const schema = {
   users,
   profiles,
@@ -2190,4 +2207,15 @@ export const schema = {
   emailProviderEvents,
   emailDispatchesRelations,
   emailProviderEventsRelations,
+  courtCommunicationMonitors,
+  courtCommunicationMonitorsRelations,
+  courtCommunications,
+  courtCommunicationsRelations,
+  inpiMonitoredProcesses,
+  inpiMonitoredProcessesRelations,
+  inpiAttorneyMonitors,
+  inpiDispatches,
+  inpiDispatchesRelations,
+  inpiRpiRuns,
+  benefitChecklists,
 };
