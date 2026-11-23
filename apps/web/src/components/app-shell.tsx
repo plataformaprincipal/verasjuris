@@ -72,6 +72,8 @@ type NavItem = {
     | "agenda"
     | "prazos"
     | "intimacoes"
+    | "inpi"
+    | "procedimentos"
     | "ia"
     | "configuracoes-ia"
     | "oportunidades"
@@ -107,6 +109,8 @@ const icons = {
   agenda: CalendarDays,
   prazos: Hourglass,
   intimacoes: Inbox,
+  inpi: Tags,
+  procedimentos: Scale,
   crm: Handshake,
   leads: ContactRound,
   clientes: UsersRound,

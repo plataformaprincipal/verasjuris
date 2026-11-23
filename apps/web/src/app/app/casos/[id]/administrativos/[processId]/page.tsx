@@ -42,6 +42,7 @@ import {
   type AdministrativeRequirement,
   type AdministrativeTimelineItem,
 } from "../../../../../../lib/administrative";
+import { GuidedProtocolPanel } from "../../../../../../components/guided-protocol-panel";
 import { fetchMatter } from "../../../../../../lib/matters";
 
 function DataBlock({
@@ -256,6 +257,14 @@ export default function ProcessoAdministrativoDetailPage() {
             </ButtonLink>
           </div>
         }
+      />
+
+      <GuidedProtocolPanel
+        processId={process.id}
+        agencyCode={(process.administrativeBody ?? process.body)?.code ?? null}
+        onChanged={() => {
+          void getActiveOrgId().then((id) => (id ? reload(id) : undefined));
+        }}
       />
 
       <div className="vj-detail-grid">

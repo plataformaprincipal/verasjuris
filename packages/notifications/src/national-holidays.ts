@@ -133,6 +133,26 @@ export class NationalForensicHolidayCalendar implements HolidayCalendarProvider 
   }
 }
 
+/**
+ * Dias úteis em órgãos administrativos federais: fins de semana, feriados
+ * nacionais e datas móveis (Carnaval, Sexta-feira Santa, Corpus Christi).
+ * Sem recesso forense nem Dia da Justiça, que são do Judiciário.
+ */
+export class NationalAdministrativeHolidayCalendar implements HolidayCalendarProvider {
+  readonly status = "READY" as const;
+  readonly coverage =
+    "Feriados nacionais e datas móveis. Sem feriados locais nem pontos facultativos de cada órgão.";
+
+  async isHoliday(date: Date, timezone: string): Promise<boolean> {
+    const iso = civilDate(date, timezone);
+    const d = new Date(`${iso}T12:00:00.000Z`);
+    const weekday = d.getUTCDay();
+    if (weekday === 0 || weekday === 6) return true;
+    const holiday = nationalForensicHolidays(d.getUTCFullYear()).get(iso);
+    return Boolean(holiday && holiday !== "Dia da Justiça");
+  }
+}
+
 /** Próximo dia útil estritamente posterior à data (AAAA-MM-DD). */
 export function nextBusinessDay(
   isoDate: string,

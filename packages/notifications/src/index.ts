@@ -6,6 +6,7 @@ export {
   easterSunday,
   isExpedientRecess,
   isForensicRecess,
+  NationalAdministrativeHolidayCalendar,
   NationalForensicHolidayCalendar,
   nationalForensicHolidays,
   nextBusinessDay,

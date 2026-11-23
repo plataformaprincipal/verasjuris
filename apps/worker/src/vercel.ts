@@ -11,6 +11,8 @@ import {
 } from "@verasjuris/events";
 import type { FastifyInstance } from "fastify";
 import { buildWorkerApp, checkDatabase } from "./app.js";
+import { InpiRpiProvider } from "@verasjuris/ai";
+import { processRpiEdition } from "@verasjuris/api/inpi/capture";
 import { captureMonitorById } from "./jobs/court-communications.js";
 import { registerWorkerHandlers, type WorkerHandlerRegistry } from "./register-handlers.js";
 
@@ -142,6 +144,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   // Vercel Cron: GET com Authorization: Bearer <CRON_SECRET>.
   const cronJobs: Record<string, string> = {
     "/cron/court-communications": "COURT_COMMUNICATIONS_CAPTURE",
+    "/cron/inpi-rpi": "INPI_RPI_PROCESS",
   };
   const cronJob = cronJobs[url.pathname];
   if (method === "GET" && cronJob) {
@@ -211,6 +214,43 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       sendJson(res, 200, { result });
     } catch (error) {
       const message = error instanceof Error ? error.message : "CAPTURE_FAILED";
+      sendJson(res, 500, { error: { code: "INTERNAL_ERROR", message: message.slice(0, 500) } });
+    }
+    return;
+  }
+
+  // Consulta sob demanda da RPI para uma organização (chamada pela API).
+  if (method === "POST" && url.pathname === "/internal/inpi/process") {
+    const expected = process.env.WORKER_INVOKE_SECRET?.trim();
+    const provided = readHeader(req, "x-worker-invoke-secret") ?? "";
+    if (!expected || !secretsEqual(provided, expected)) {
+      sendJson(res, expected ? 401 : 503, {
+        error: {
+          code: expected ? "AUTHENTICATION_ERROR" : "NOT_CONFIGURED",
+          message: "Invocação não autorizada.",
+        },
+      });
+      return;
+    }
+    try {
+      const body = (await readJsonBody(req)) as { organizationId?: unknown; edition?: unknown };
+      const organizationId = typeof body?.organizationId === "string" ? body.organizationId : "";
+      if (!/^[0-9a-f-]{36}$/i.test(organizationId)) {
+        sendJson(res, 400, {
+          error: { code: "VALIDATION_ERROR", message: "organizationId inválido." },
+        });
+        return;
+      }
+      const edition = typeof body.edition === "number" ? body.edition : undefined;
+      const { db } = await getBoot();
+      const result = await processRpiEdition(db, new InpiRpiProvider(), {
+        organizationId,
+        edition,
+        force: true,
+      });
+      sendJson(res, 200, { result });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "RPI_FAILED";
       sendJson(res, 500, { error: { code: "INTERNAL_ERROR", message: message.slice(0, 500) } });
     }
     return;

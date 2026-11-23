@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@verasjuris/types": "workspace:*",
+    "fast-xml-parser": "5.11.2",
+    "fflate": "0.8.2",
     "zod": "3.25.76"
   },
   "devDependencies": {
