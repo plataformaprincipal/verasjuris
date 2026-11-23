@@ -239,6 +239,13 @@
       "when": 1794900000000,
       "tag": "0033_commercial_homologation",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795000000000,
+      "tag": "0034_supabase_security_lockdown",
+      "breakpoints": true
     }
   ]
 }
