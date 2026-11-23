@@ -181,6 +181,7 @@ function FeatureCard({
 }) {
   const { t } = useLocale();
   const meta = getToolDemoMeta(feature.slug);
+  const [demoOpen, setDemoOpen] = useState(false);
   return (
     <article
       className={compact ? "vj-showroom-card is-compact" : "vj-showroom-card"}
@@ -212,11 +213,39 @@ function FeatureCard({
             {t("catalog.details")}
           </ButtonLink>
           {meta?.kind ? (
-            <ButtonLink href={`/ferramentas/${feature.slug}#demonstracao`} variant="ghost">
-              {t("catalog.demo")}
-            </ButtonLink>
+            <button
+              type="button"
+              className="vj-button vj-button-ghost"
+              aria-expanded={demoOpen}
+              aria-controls={`demo-${feature.slug}`}
+              onClick={() => setDemoOpen((open) => !open)}
+            >
+              {demoOpen
+                ? t("catalog.demoClose", "Fechar demonstração")
+                : t("catalog.demoNow", "Testar agora")}
+            </button>
           ) : null}
         </div>
+        {meta?.kind && demoOpen ? (
+          <div id={`demo-${feature.slug}`} className="vj-stack">
+            <p className="vj-demo-banner" role="status">
+              {t(
+                "catalog.demoFictional",
+                "Demonstração com dados de exemplo. Nada é gravado e nenhum dado real é exibido.",
+              )}
+            </p>
+            <ToolDemoPanel kind={meta.kind} />
+            <ButtonLink
+              href={
+                meta.authenticatedHref
+                  ? `/entrar?next=${encodeURIComponent(meta.authenticatedHref)}`
+                  : "/cadastro"
+              }
+            >
+              {t("catalog.useWithMyData", "Usar no sistema com meus dados")}
+            </ButtonLink>
+          </div>
+        ) : null}
       </div>
     </article>
   );
@@ -249,6 +278,12 @@ export function FeatureDetail({ feature }: { feature: CatalogFeature }) {
       {meta?.kind ? (
         <section id="demonstracao" className="vj-stack">
           <h2 className="vj-section-title">{t("showroom.tryDemo", "Experimentar demonstração")}</h2>
+          <p className="vj-demo-banner" role="status">
+            {t(
+              "catalog.demoFictional",
+              "Demonstração com dados de exemplo. Nada é gravado e nenhum dado real é exibido.",
+            )}
+          </p>
           <ToolDemoPanel kind={meta.kind} />
         </section>
       ) : (
