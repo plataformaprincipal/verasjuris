@@ -4568,3 +4568,19 @@ html[data-theme="black"] {
     transition: none;
   }
 }
+
+/* Campos de formulário sempre legíveis em qualquer tema (evita texto branco sobre fundo claro). */
+:where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea
+) {
+  color: var(--vj-ink);
+  background-color: var(--vj-white);
+  border-color: var(--vj-border-strong, var(--vj-border));
+}
+
+:where(input, textarea)::placeholder {
+  color: var(--vj-gray);
+  opacity: 1;
+}

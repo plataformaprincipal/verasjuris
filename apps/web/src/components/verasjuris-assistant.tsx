@@ -11,6 +11,7 @@ import {
   type AssistantMode,
 } from "../lib/assistant";
 import { isApiFailure } from "../lib/ai";
+import { getOrCreateJurisOneVisitorId, sendJurisOnePublicChat } from "../lib/juris-one-public-api";
 import { useLocale } from "./locale-provider";
 
 export function VerasJurisAssistant() {
@@ -53,8 +54,23 @@ export function VerasJurisAssistant() {
     let reply: string;
     let available = false;
     if (isApiFailure(res)) {
-      reply = localFallbackReply(locale, mode, text);
-      available = false;
+      // Sem sessão ou sem IA no módulo autenticado: usa o Juris One público (IA real, com limite diário).
+      const history = messages
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+      const publicRes = await sendJurisOnePublicChat({
+        message: text,
+        locale,
+        visitorId: getOrCreateJurisOneVisitorId(),
+        history,
+      });
+      if ("reply" in publicRes) {
+        reply = publicRes.reply;
+        available = true;
+      } else {
+        reply = `${publicRes.error.message}\n\n${localFallbackReply(locale, mode, text)}`;
+        available = false;
+      }
     } else {
       reply = res.reply;
       available = Boolean(res.aiAvailable);
