@@ -100,7 +100,7 @@ export function LegalDocumentView({
           </div>
           <div>
             <dt>Status</dt>
-            <dd>{document.status === "draft" ? "Rascunho" : document.status}</dd>
+            <dd>{document.status === "draft" ? "Rascunho" : "Vigente"}</dd>
           </div>
         </dl>
         {document.status === "draft" ? (

@@ -1,6 +1,7 @@
 import type { LegalDocument } from "./types";
 
-const ENTIDADE = "[IDENTIFICAÇÃO SOCIETÁRIA PENDENTE]";
+const ENTIDADE =
+  "CAFÉ PLATINE SERVIÇOS E INTEGRAÇÕES LTDA, CNPJ 62.898.191/0001-08, com sede na Avenida Dom Pedro II, 1138, Centro, João Pessoa/PB, CEP 58.013-420";
 
 export const termsOfService: LegalDocument = {
   id: "terms-of-service",
@@ -14,20 +15,10 @@ export const termsOfService: LegalDocument = {
   version: "2026-11-16",
   publishedAt: "2026-11-16",
   effectiveAt: "2026-11-16",
-  status: "draft",
+  status: "published",
   readingMinutes: 22,
   related: ["terms-of-use", "privacy-policy"],
-  pendingItems: [
-    "Razão social e forma societária da entidade responsável",
-    "CNPJ e inscrição estadual/municipal, se aplicável",
-    "Endereço da sede e foro eleito",
-    "Canal oficial do Encarregado (DPO) / Privacidade",
-    "Canais de suporte e atendimento institucional",
-    "Condições comerciais definitivas de planos e preços",
-    "Comissões/repasses de marketplace, se houver",
-    "Lista atualizada de operadores e subprocessadores",
-    "Aprovação jurídica para status published",
-  ],
+  pendingItems: [],
   sections: [
     {
       id: "s1",
@@ -42,8 +33,6 @@ export const termsOfService: LegalDocument = {
             `Estes Termos de Serviço regulam a prestação dos serviços digitais do ecossistema VerasJuris pela entidade responsável (${ENTIDADE}), doravante “VerasJuris”.`,
             "A identificação societária completa será consolidada na versão publicada destes Termos, após validação institucional.",
           ],
-          callout:
-            "Documento em status DRAFT, sujeito a revisão jurídica antes da vigência contratual definitiva.",
         },
         {
           id: "s1-c1-2",

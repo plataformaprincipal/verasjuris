@@ -41,20 +41,13 @@ describe("legal documents", () => {
         expect(new Set(clauseIds).size).toBe(clauseIds.length);
       });
 
-      it("is a draft pending legal review", () => {
-        expect(doc.status).toBe("draft");
+      it("is published", () => {
+        expect(doc.status).toBe("published");
       });
 
-      it("keeps corporate identity as pending", () => {
-        expect(doc.pendingItems.length).toBeGreaterThan(0);
-        expect(doc.pendingItems.some((item) => /societári|razão social|CNPJ/i.test(item))).toBe(
-          true,
-        );
-      });
-
-      it("does not contain a CNPJ number", () => {
-        const text = JSON.stringify(doc);
-        expect(text).not.toMatch(/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/);
+      it("identifies the responsible entity", () => {
+        expect(doc.pendingItems.length).toBe(0);
+        expect(JSON.stringify(doc)).toContain("62.898.191/0001-08");
       });
 
       it("does not state prices or commissions", () => {
@@ -81,13 +74,13 @@ describe("legal documents", () => {
 });
 
 describe("legal registry", () => {
-  it("has package and document versions in draft status", () => {
+  it("has package and document versions in published status", () => {
     expect(CURRENT_LEGAL_REGISTRY.packageVersion).toBe("2026-11-16");
     expect(CURRENT_LEGAL_REGISTRY.termsOfUseVersion).toBeTruthy();
     expect(CURRENT_LEGAL_REGISTRY.termsOfServiceVersion).toBeTruthy();
     expect(CURRENT_LEGAL_REGISTRY.privacyPolicyVersion).toBeTruthy();
     expect(CURRENT_LEGAL_REGISTRY.effectiveAt).toBe("2026-11-16");
-    expect(CURRENT_LEGAL_REGISTRY.status).toBe("draft");
+    expect(CURRENT_LEGAL_REGISTRY.status).toBe("published");
   });
 
   it("exposes API version constants", () => {

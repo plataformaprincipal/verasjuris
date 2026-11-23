@@ -14,7 +14,7 @@ export const CURRENT_LEGAL_REGISTRY: LegalVersionRegistry = {
   termsOfServiceVersion: "2026-11-16",
   privacyPolicyVersion: "2026-11-16",
   effectiveAt: "2026-11-16",
-  status: "draft",
+  status: "published",
 };
 
 /**

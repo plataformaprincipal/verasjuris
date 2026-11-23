@@ -1,7 +1,8 @@
 import type { LegalDocument } from "./types";
 
-const ENTIDADE = "[IDENTIFICAÇÃO SOCIETÁRIA PENDENTE]";
-const CANAL_PRIVACIDADE = "[CANAL DE PRIVACIDADE/ENCARREGADO PENDENTE DE CONFIRMAÇÃO]";
+const ENTIDADE =
+  "CAFÉ PLATINE SERVIÇOS E INTEGRAÇÕES LTDA, CNPJ 62.898.191/0001-08, com sede na Avenida Dom Pedro II, 1138, Centro, João Pessoa/PB, CEP 58.013-420";
+const CANAL_PRIVACIDADE = "acesseverasjuris@gmail.com";
 
 export const privacyPolicy: LegalDocument = {
   id: "privacy-policy",
@@ -15,25 +16,17 @@ export const privacyPolicy: LegalDocument = {
   version: "2026-11-16",
   publishedAt: "2026-11-16",
   effectiveAt: "2026-11-16",
-  status: "draft",
+  status: "published",
   readingMinutes: 16,
   related: ["terms-of-use", "terms-of-service"],
-  pendingItems: [
-    "Identificação societária do controlador (razão social, CNPJ, endereço e representante legal) — [IDENTIFICAÇÃO SOCIETÁRIA PENDENTE].",
-    "Nome e canal oficial do Encarregado pelo Tratamento de Dados Pessoais (DPO) — [CANAL DE PRIVACIDADE/ENCARREGADO PENDENTE DE CONFIRMAÇÃO].",
-    "Lista definitiva de provedores de infraestrutura, pagamento, comunicação, armazenamento e inteligência artificial efetivamente ativos, com localização do tratamento.",
-    "Prazos de retenção por categoria de dados, a serem validados juridicamente.",
-    "Mecanismos de transferência internacional aplicáveis aos provedores efetivamente contratados.",
-    "Relatório de impacto, registro das operações de tratamento e demais artefatos de governança de dados.",
-    "Validação final do texto por advogado(a) habilitado(a) antes da mudança de status para PUBLISHED.",
-  ],
+  pendingItems: [],
   sections: [
     {
       id: "introducao-e-controlador",
       number: "1",
       title: "Introdução e identificação do controlador",
       intro:
-        "Este documento encontra-se em versão de minuta (DRAFT), pendente de revisão jurídica e de validação institucional. Informações sobre provedores e canais serão confirmadas antes da publicação definitiva.",
+        "Este documento está em vigor desde a data indicada e pode ser atualizado, com aviso prévio quando houver mudança relevante.",
       clauses: [
         {
           id: "1-1-compromisso",
@@ -58,7 +51,7 @@ export const privacyPolicy: LegalDocument = {
           number: "1.3",
           title: "Encarregado (DPO) e canal de privacidade",
           paragraphs: [
-            `Solicitações, dúvidas e requerimentos relacionados a dados pessoais devem ser dirigidos ao canal ${CANAL_PRIVACIDADE}. O nome e os dados de contato do Encarregado serão divulgados nesta Política após sua designação e validação.`,
+            `Solicitações, dúvidas e requerimentos relacionados a dados pessoais devem ser dirigidos ao canal ${CANAL_PRIVACIDADE}.`,
           ],
         },
         {
